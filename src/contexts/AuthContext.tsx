@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, type ReactNode } from 'react';
+import { createContext, useState, useEffect, useContext, useRef, type ReactNode } from 'react';
 import { type Session, type User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
@@ -15,36 +15,43 @@ type AuthContextType = {
 // Create the context with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Define the provider component
+// Define the provider component  
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    setAuthLoading(true);
+    // To prevent running twice in StrictMode
+    if (initialized.current) {
+      return;
+    }
+    initialized.current = true;
 
-    // Get the initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user?? null);
+    // Initial check for session on page load
+    const initializeSession = async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-      // If no session, sign in anonymously
-      if (!session) {
-        supabase.auth.signInAnonymously().then(({ data: { session: anonSession } }) => {
-          setSession(anonSession);
-          setUser(anonSession?.user?? null);
-          setAuthLoading(false);
-        });
-      } else {
-        setAuthLoading(false);
+      if (currentSession) {
+        setSession(currentSession);
+        setUser(currentSession.user ?? null);
       }
-    });
+      else {
+        // If no session, sign in anonymously
+        const { data: { session: anonSession } } = await supabase.auth.signInAnonymously();
+        setSession(anonSession);
+        setUser(anonSession?.user ?? null);
+      }
+      setAuthLoading(false)
+    };
+
+    initializeSession();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user?? null);
       setAuthLoading(false);
     });
 
@@ -52,11 +59,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       subscription.unsubscribe();
     };
-  },);
+  }, []);
   
   const signOut = async () => {
-    await supabase.auth.signOut();
-    // After sign-out, the onAuthStateChange listener will trigger an anonymous sign-in
+    setAuthLoading(true)
+
+    try {
+      // Sign out current user
+      await supabase.auth.signOut();
+
+      // Sign in a new anonymous user
+      const { data: { session: anonSession }, error } = await supabase.auth.signInAnonymously();
+
+      if (error) {
+        console.error("Error creating new anonymous user after sign out:", error);
+      }
+      else {
+        setSession(anonSession);
+        setUser(anonSession?.user ?? null);
+      }
+    }
+    catch (e) {
+      console.error("An unexpected error occurred during sign out:", e);
+    }
+    finally {
+      setAuthLoading(false);
+    }
   };
 
   const value = {
