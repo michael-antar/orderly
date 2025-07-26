@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 
-import { User } from 'lucide-react';
+import { User, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
 import {
     DropdownMenu,
@@ -26,16 +26,22 @@ export const UserProfile = () => {
             <DropdownMenuContent className="w-56" align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {isPermanent? (
                     <div className="px-2 py-1.5 text-sm">
-                        <p className="text-muted-foreground">Status</p>
-                        <p className="font-medium text-foreground">
-                            {isPermanent ? 'Permanent' : 'Anonymous'}
-                        </p>
+                        <p className="text-muted-foreground">Email</p>
+                        <p className="font-medium text-foreground truncate">{user?.email}</p>
                     </div>
-                    <div className="px-2 py-1.5 text-sm">
-                        <p className="text-muted-foreground">User ID</p>
-                        <p className="font-medium text-foreground truncate">{user?.id}</p>
+                ) : (
+                    <div className="p-2 text-sm text-muted-foreground flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <p>You're a guest. Sign up to save your data across devices.</p>
                     </div>
+                )}
+                    
+                <div className="px-2 py-1.5 text-sm">
+                    <p className="text-muted-foreground">User ID</p>
+                    <p className="font-medium text-foreground truncate">{user?.id}</p>
+                </div>
                 <DropdownMenuSeparator />
                 {isPermanent? (
                     <>
@@ -50,14 +56,14 @@ export const UserProfile = () => {
                     </>
                 ) : (
                     <>
-                        <AuthModal defaultView='login'>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                Log In
-                            </DropdownMenuItem>
-                        </AuthModal>
                         <AuthModal defaultView='signup'>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                                 Sign Up
+                            </DropdownMenuItem>
+                        </AuthModal>
+                        <AuthModal defaultView='login'>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                Log In
                             </DropdownMenuItem>
                         </AuthModal>
                     </>
