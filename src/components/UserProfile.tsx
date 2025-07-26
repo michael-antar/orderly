@@ -38,9 +38,16 @@ export const UserProfile = () => {
                     </div>
                 <DropdownMenuSeparator />
                 {isPermanent? (
-                    <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                        Sign Out
-                    </DropdownMenuItem>
+                    <>
+                        <AuthModal defaultView='update-password'>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                Change Password
+                            </DropdownMenuItem>
+                        </AuthModal>
+                        <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                            Sign Out
+                        </DropdownMenuItem>
+                    </>
                 ) : (
                     <>
                         <AuthModal defaultView='login'>

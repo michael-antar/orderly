@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-// import { createClient } from '@/lib/supabase/client'
 import { supabase } from '@/lib/supabaseClient'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,27 +12,41 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
-export function UpdatePasswordForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function UpdatePasswordForm({ className, onSuccess, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    // const supabase = createClient()
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setIsSuccess(false)
 
     try {
       const { error } = await supabase.auth.updateUser({ password })
       if (error) throw error
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      location.href = '/protected'
+      setIsSuccess(true)
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isSuccess) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Success</CardTitle>
+          <CardDescription>Your password has been updated successfully.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="w-full" onClick={onSuccess}>Close</Button>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
