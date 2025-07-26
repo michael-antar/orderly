@@ -12,7 +12,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
-export function LoginForm({ className, onSuccess, onViewChange, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; }) {
+export function LoginForm(
+  { className, onSuccess, onViewChange, onForgotPasswordClick, ...props }
+  : React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; onForgotPasswordClick: () => void; }
+) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -62,12 +65,9 @@ export function LoginForm({ className, onSuccess, onViewChange, ...props }: Reac
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <a
-                    href="/forgot-password"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
+                  <Button type="button" variant="link" className="ml-auto inline-block h-auto p-0 text-sm font-normal underline-offset-4 hover:underline" onClick={onForgotPasswordClick}>
                     Forgot your password?
-                  </a>
+                  </Button>
                 </div>
                 <Input
                   id="password"
@@ -87,9 +87,6 @@ export function LoginForm({ className, onSuccess, onViewChange, ...props }: Reac
               <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={onViewChange}>
                 Sign up
               </Button>
-              {/* <a href="/sign-up" className="underline underline-offset-4">
-                Sign up
-              </a> */}
             </div>
           </form>
         </CardContent>

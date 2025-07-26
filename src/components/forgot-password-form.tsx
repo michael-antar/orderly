@@ -13,23 +13,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
-export function ForgotPasswordForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function ForgotPasswordForm({ className, onSuccess, onViewChange, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void, onViewChange: () => void; }) {
   const [email, setEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    // const supabase = createClient()
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setSuccess(false)
 
     try {
-      // The url which will be included in the email. This URL needs to be configured in your redirect URLs in the Supabase dashboard at https://supabase.com/dashboard/project/_/auth/url-configuration
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'http://localhost:3000/update-password',
-      })
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
       if (error) throw error
       setSuccess(true)
     } catch (error: unknown) {
@@ -45,13 +42,13 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription>Password reset instructions sent</CardDescription>
+            <CardDescription>Password reset instructions sent.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className='flex flex-col gap-4'>
             <p className="text-sm text-muted-foreground">
-              If you registered using your email and password, you will receive a password reset
-              email.
+              If you registered using your email and password, you will receive a password reset email.
             </p>
+            <Button className="w-full" onClick={onSuccess}>Close</Button>
           </CardContent>
         </Card>
       ) : (
@@ -74,6 +71,7 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete='email'
                   />
                 </div>
                 {error && <p className="text-sm text-red-500">{error}</p>}
@@ -83,9 +81,9 @@ export function ForgotPasswordForm({ className, ...props }: React.ComponentProps
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{' '}
-                <a href="/login" className="underline underline-offset-4">
+                <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={onViewChange}>
                   Login
-                </a>
+                </Button>
               </div>
             </form>
           </CardContent>
