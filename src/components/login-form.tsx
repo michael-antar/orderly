@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-// import { createClient } from '@/lib/supabase/client'
 import { supabase } from '@/lib/supabaseClient'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,12 +12,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
-export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function LoginForm({ className, onSuccess, onViewChange, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  // const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,8 +29,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
         password,
       })
       if (error) throw error
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      location.href = '/protected'
+      onSuccess()
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
@@ -59,6 +56,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                 />
               </div>
               <div className="grid gap-2">
@@ -86,9 +84,12 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
             </div>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
-              <a href="/sign-up" className="underline underline-offset-4">
+              <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={onViewChange}>
                 Sign up
-              </a>
+              </Button>
+              {/* <a href="/sign-up" className="underline underline-offset-4">
+                Sign up
+              </a> */}
             </div>
           </form>
         </CardContent>

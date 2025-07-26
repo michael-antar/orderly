@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils'
-// import { createClient } from '@/lib/supabase/client'
 import { supabase } from '@/lib/supabaseClient'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useState } from 'react'
 
-export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+export function SignUpForm({ className, onSuccess, onViewChange, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [repeatPassword, setRepeatPassword] = useState('')
@@ -22,7 +21,6 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
   const [success, setSuccess] = useState(false)
 
   const handleSignUp = async (e: React.FormEvent) => {
-    // const supabase = createClient()
     e.preventDefault()
     setError(null)
 
@@ -33,7 +31,8 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Use updateUser to link credentials to default anon account
+      const { error } = await supabase.auth.updateUser({
         email,
         password,
       })
@@ -79,6 +78,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -112,9 +112,12 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
               </div>
               <div className="mt-4 text-center text-sm">
                 Already have an account?{' '}
-                <a href="/login" className="underline underline-offset-4">
+                <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={onViewChange}>
                   Login
-                </a>
+                </Button>
+                {/* <a href="/login" className="underline underline-offset-4">
+                  Login
+                </a> */}
               </div>
             </form>
           </CardContent>

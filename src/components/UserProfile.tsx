@@ -1,7 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 
 import { User } from 'lucide-react';
-
 import { Button } from './ui/button';
 import {
     DropdownMenu,
@@ -11,6 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AuthModal } from './AuthModal';
 
 export const UserProfile = () => {
     const { user, isPermanent, signOut } = useAuth();
@@ -37,9 +37,24 @@ export const UserProfile = () => {
                         <p className="font-medium text-foreground truncate">{user?.id}</p>
                     </div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
-                    Sign Out
-                </DropdownMenuItem>
+                {isPermanent? (
+                    <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                        Sign Out
+                    </DropdownMenuItem>
+                ) : (
+                    <>
+                        <AuthModal defaultView='login'>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                Log In
+                            </DropdownMenuItem>
+                        </AuthModal>
+                        <AuthModal defaultView='signup'>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                Sign Up
+                            </DropdownMenuItem>
+                        </AuthModal>
+                    </>
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );
