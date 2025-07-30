@@ -1,0 +1,1 @@
+export type Category = 'restaurants' | 'movies' | 'tv-shows' | 'books' | 'music';
