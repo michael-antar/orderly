@@ -4,6 +4,15 @@ import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
 export type Category = 'restaurant' | 'movie' | 'show' | 'book' | 'album';
 export type Status = 'ranked' | 'backlog';
 
+export type Item = {
+    user_id: string;
+    name: string;
+    category: Category;
+    status: Status;
+    rating?: number;
+    description: string | null;
+}
+
 type NavItem = {
     name: Category;
     icon: LucideIcon;
