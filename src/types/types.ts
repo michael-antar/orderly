@@ -9,7 +9,7 @@ export type Item = {
     name: string;
     category: Category;
     status: Status;
-    rating?: number;
+    rating: number | null;
     description: string | null;
 }
 

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Plus } from 'lucide-react';
 
 type AddItemFormProps = {
@@ -22,23 +23,20 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [status, setStatus] = useState<Status>('backlog');
+    const [status, setStatus] = useState<Status>('ranked');
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!name || !user) return;
 
         const itemToInsert: Item = {
+            user_id: user.id,
             name,
             category,
-            description: description.trim() === '' ? null : description,
             status,
-            user_id: user.id
+            rating: status === 'ranked' ? 1000 : null,
+            description: description.trim() === '' ? null : description,
         };
-
-        if (status === 'ranked') {
-            itemToInsert.rating = 1000;
-        }
 
         // Insert into 'items' table
         const { data: newItem, error: itemError } = await supabase
@@ -59,10 +57,14 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
         // Reset fields on success
         setName('');
         setDescription('');
-        setStatus('backlog');
+        setStatus('ranked');
         // Refresh the list
         onSuccess();
     };
+
+    const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1);
+    const statusText = status === 'ranked' ? 'Review' : 'to Backlog';
+    const dialogTitle = `Add New ${capitalizedCategory} ${statusText}`;
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -74,14 +76,26 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>Add New {category}</DialogTitle>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>
-                        Enter the details for the new item. Click "Add" when you're done.
+                        Fields marked with <span className="text-destructive">*</span> are required.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
+                    <div className="flex items-center space-x-2 justify-start">
+                        <Label htmlFor="status-switch">Add to Backlog</Label>
+                        <Switch
+                            id="status-switch"
+                            name="status"
+                            checked={status === 'backlog'}
+                            onCheckedChange={(checked) => setStatus(checked ? 'backlog' : 'ranked')}
+                        />
+                    </div>
+                    <Separator />
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">Name</Label>
+                        <Label htmlFor="name" className="text-right">
+                            Name <span className="text-destructive">*</span>
+                            </Label>
                         <Input
                             id="name"
                             name="name"
@@ -93,7 +107,9 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
                         />
                     </div>
                     <div className="grid grid-cols-4 items-start gap-4">
-                        <Label htmlFor="description" className="text-right pt-2">Description</Label>
+                        <Label htmlFor="description" className="text-right pt-2">
+                            {status === 'ranked' ? 'Review' : 'Notes'}
+                        </Label>
                         <Textarea
                             id="description"
                             name="description"
@@ -101,18 +117,10 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             className="col-span-3"
-                            placeholder="Add a description..."
+                            placeholder={status === 'ranked' ? 'My review of this item...' : 'Add some notes...'}
                         />
                     </div>
-                    <div className="flex items-center space-x-2 justify-end">
-                        <Label htmlFor="status-switch">Add to Ranked List</Label>
-                        <Switch
-                            id="status-switch"
-                            name="status"
-                            checked={status === 'ranked'}
-                            onCheckedChange={(checked) => setStatus(checked ? 'ranked' : 'backlog')}
-                        />
-                    </div>
+                    
                     {/* TODO: Add more inputs for category-specific fields here */}
                     <Button type="submit">Add</Button>
                 </form>
