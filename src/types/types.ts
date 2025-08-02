@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
 
-export type Category = 'restaurant' | 'movie' | 'show' | 'book' | 'album';
+export type Category = 'album'| 'book' | 'movie' | 'restaurant' | 'show';
 export type Status = 'ranked' | 'backlog';
 
 export type Item = {
@@ -11,7 +11,33 @@ export type Item = {
     status: Status;
     rating: number | null;
     description: string | null;
-}
+};
+
+export type AlbumDetails = {
+    artist: string | null;
+    release_year: number | null;
+};
+export type BookDetails = {
+    author: string | null;
+    release_year: number | null;
+    series_name: string | null;
+    series_order: number | null;
+};
+export type MovieDetails = {
+    director: string | null;
+    release_year: number | null;
+};
+export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
+export type RestaurantDetails = {
+    address: string | null;
+    price_range: PriceRange | null;
+    latitude: number | null;
+    longitude: number | null;
+};
+export type ShowDetails = {
+    start_year: number | null;
+    end_year: number | null;
+};
 
 type NavItem = {
     name: Category;

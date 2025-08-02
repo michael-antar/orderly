@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/contexts/AuthContext";
-import { type Category, type Item, type Status } from "@/types/types";
+import { type Category, type Item, type Status, type PriceRange } from "@/types/types";
+import { categoryConfig } from "@/config/categoryConfig";
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -24,6 +25,20 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [status, setStatus] = useState<Status>('ranked');
+
+    // Category-specific fields
+    const [releaseYear, setReleaseYear] = useState('');
+    const [director, setDirector] = useState('');
+    const [artist, setArtist] = useState('');
+    const [priceRange, setPriceRange] = useState<PriceRange | ''>('');
+    const [address, setAddress] = useState('');
+    const [author, setAuthor] = useState('');
+    const [seriesName, setSeriesName] = useState('');
+    const [seriesOrder, setSeriesOrder] = useState('');
+    const [startYear, setStartYear] = useState('');
+    const [endYear, setEndYear] = useState('');
+
+    const { FieldsComponent, handleDetailsInsert } = categoryConfig[category];
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,7 +65,26 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
             return;
         }
 
-        // TODO: Insert into the category-specific 'details' tables
+        // Insert into category-specific table
+        const details = {
+            release_year: releaseYear,
+            director: director,
+            artist: artist,
+            price_range: priceRange,
+            address: address,
+            author: author,
+            series_name: seriesName,
+            series_order: seriesOrder,
+            start_year: startYear,
+            end_year: endYear,
+        }
+        if (handleDetailsInsert) {
+            const { error: detailsError } = await handleDetailsInsert(newItem.id, details);
+            if (detailsError) {
+                console.error('Error inserting details:', detailsError);
+                return;
+            }
+        }
 
         // Close Dialog
         setIsOpen(false);
@@ -58,6 +92,17 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
         setName('');
         setDescription('');
         setStatus('ranked');
+        // Reset category-specific fields
+        setReleaseYear('');
+        setDirector('');
+        setArtist('');
+        setPriceRange('');
+        setAddress('');
+        setAuthor('');
+        setSeriesName('');
+        setSeriesOrder('');
+        setStartYear('');
+        setEndYear('');
         // Refresh the list
         onSuccess();
     };
@@ -69,9 +114,9 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Item
+                <Button size="icon">
+                    <Plus className="h-4 w-4" />
+                    <span className="sr-only">Add Item</span>
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
@@ -120,8 +165,31 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
                             placeholder={status === 'ranked' ? 'My review of this item...' : 'Add some notes...'}
                         />
                     </div>
-                    
-                    {/* TODO: Add more inputs for category-specific fields here */}
+                    <Separator />
+
+                    <FieldsComponent
+                        releaseYear={releaseYear}
+                        setReleaseYear={setReleaseYear}
+                        director={director}
+                        setDirector={setDirector}
+                        artist={artist}
+                        setArtist={setArtist}
+                        priceRange={priceRange}
+                        setPriceRange={setPriceRange}
+                        address={address}
+                        setAddress={setAddress}
+                        author={author}
+                        setAuthor={setAuthor}
+                        seriesName={seriesName}
+                        setSeriesName={setSeriesName}
+                        seriesOrder={seriesOrder}
+                        setSeriesOrder={setSeriesOrder} 
+                        startYear={startYear}
+                        setStartYear={setStartYear}
+                        endYear={endYear}
+                        setEndYear={setEndYear}
+                    />
+
                     <Button type="submit">Add</Button>
                 </form>
             </DialogContent>
