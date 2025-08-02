@@ -1,15 +1,5 @@
 import { Button } from "@/components/ui/button";
-// import { cn } from "@/lib/utils";
-import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
-import { type Category } from "@/types/types";
-
-const navItems = [
-    { name: 'restaurants', icon: Utensils, label: 'Restaurants' },
-    { name: 'movies', icon: Film, label: 'Movies' },
-    { name: 'tv-shows', icon: Tv, label: 'TV Shows' },
-    { name: 'books', icon: Book, label: 'Books' },
-    { name: 'music', icon: Music, label: 'Music' },
-] as const;
+import { type Category, navItems } from "@/types/types";
 
 type SidebarProps = {
     activeCategory: Category;
@@ -24,11 +14,11 @@ export const Sidebar = ({ activeCategory, setCategory } : SidebarProps) => {
                     <Button
                         key={item.name}
                         variant={activeCategory === item.name ? 'secondary' : 'ghost'}
-                        className="justify-start gap-3"
+                        size="icon"
                         onClick={() => setCategory(item.name)}
                     >
                         <item.icon className="h-5 w-5" />
-                        {/* <span>{item.label}</span> */}
+                        <span className="sr-only">{item.label}</span>
                     </Button>
                 ))}
             </nav>

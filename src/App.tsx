@@ -3,20 +3,12 @@ import { useAuth } from './contexts/AuthContext';
 
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
+import { CategoryView } from './components/CategoryView';
 import { type Category } from './types/types';
-
-
-const categoryTitles: Record<Category, string> = {
-  restaurants: 'Restaurants',
-  movies: 'Movies',
-  'tv-shows': 'TV Shows',
-  books: 'Books',
-  music: 'Music',
-};
 
 function App() {
   const { authLoading } = useAuth();
-  const [activeCategory, setActiveCategory] = useState<Category>('restaurants');
+  const [activeCategory, setActiveCategory] = useState<Category>('restaurant');
 
   // Show a full-screen, centered loading message
   if (authLoading) {
@@ -34,9 +26,7 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeCategory={activeCategory} setCategory={setActiveCategory} />
         <main className="flex-1 p-8 overflow-y-auto">
-          <h1 className="text-4xl font-bold text-foreground">
-            {categoryTitles[activeCategory]}
-          </h1>
+          <CategoryView category={activeCategory} />
         </main>
       </div>
     </div>
