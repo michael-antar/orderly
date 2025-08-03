@@ -158,6 +158,7 @@ export type Database = {
           category: Database["public"]["Enums"]["item_category"]
           comparison_count: number
           created_at: string
+          description: string | null
           id: string
           name: string
           rating: number | null
@@ -168,6 +169,7 @@ export type Database = {
           category: Database["public"]["Enums"]["item_category"]
           comparison_count?: number
           created_at?: string
+          description?: string | null
           id?: string
           name: string
           rating?: number | null
@@ -178,6 +180,7 @@ export type Database = {
           category?: Database["public"]["Enums"]["item_category"]
           comparison_count?: number
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
           rating?: number | null
@@ -214,22 +217,25 @@ export type Database = {
       }
       restaurant_details: {
         Row: {
+          address: string | null
           item_id: string
           latitude: number | null
           longitude: number | null
-          price_range: string | null
+          price_range: Database["public"]["Enums"]["price_range"] | null
         }
         Insert: {
+          address?: string | null
           item_id: string
           latitude?: number | null
           longitude?: number | null
-          price_range?: string | null
+          price_range?: Database["public"]["Enums"]["price_range"] | null
         }
         Update: {
+          address?: string | null
           item_id?: string
           latitude?: number | null
           longitude?: number | null
-          price_range?: string | null
+          price_range?: Database["public"]["Enums"]["price_range"] | null
         }
         Relationships: [
           {
@@ -305,6 +311,7 @@ export type Database = {
     Enums: {
       item_category: "restaurant" | "movie" | "book" | "show" | "album"
       item_status: "ranked" | "backlog"
+      price_range: "$" | "$$" | "$$$" | "$$$$"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -434,6 +441,7 @@ export const Constants = {
     Enums: {
       item_category: ["restaurant", "movie", "book", "show", "album"],
       item_status: ["ranked", "backlog"],
+      price_range: ["$", "$$", "$$$", "$$$$"],
     },
   },
 } as const

@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 
-import { type Category, categoryTitles } from '@/types/types';
+import { type Category, type CombinedItem, categoryTitles } from '@/types/types';
 import { AddItemForm } from './AddItemForm';
-
-type Item = {
-    id: string;
-    name: string
-}
+import { ItemCard } from './ItemCard';
 
 export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
-    const [items, setItems] = useState<Item[]>([]);
+    const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchItems = useCallback(async () => {
@@ -21,7 +17,14 @@ export const CategoryView = ({ category }: { category: Category }) => {
         try {
             const { data, error } = await supabase
                 .from('items')
-                .select('id, name')
+                .select(`
+                    *,
+                    movie_details(*),
+                    restaurant_details(*),
+                    album_details(*),
+                    book_details(*),
+                    show_details(*)
+                `)
                 .eq('user_id', user.id)
                 .eq('category', category);
             if (error) throw error;
@@ -51,13 +54,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 {loading ? (
                     <p>Loading items...</p>
                 ) : items.length > 0 ? (
-                    <ul>
+                    <div>
                         {items.map((item) => (
-                            <li key={item.id} className="p-2 border-b">
-                            {item.name}
-                            </li>
+                            <ItemCard key={item.id} item={item} />
                         ))}
-                    </ul>
+                    </div>
                 ) : (
                     <p>No items found. Add one to get started!</p>
                 )}

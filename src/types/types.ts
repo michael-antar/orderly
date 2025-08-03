@@ -5,13 +5,24 @@ export type Category = 'album'| 'book' | 'movie' | 'restaurant' | 'show';
 export type Status = 'ranked' | 'backlog';
 
 export type Item = {
+    id: string;
+    created_at: string;
     user_id: string;
     name: string;
     category: Category;
     status: Status;
     rating: number | null;
     description: string | null;
+    comparison_count: number;
 };
+
+export type CombinedItem = Item & {
+    album_details: AlbumDetails | null;
+    book_details: BookDetails | null;
+    movie_details: MovieDetails | null;
+    restaurant_details: RestaurantDetails | null;
+    show_details: ShowDetails | null;
+}
 
 export type AlbumDetails = {
     artist: string | null;
