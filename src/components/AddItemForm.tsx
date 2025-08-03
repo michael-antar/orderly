@@ -13,11 +13,17 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Plus } from 'lucide-react';
 
+const parseOptionalInt = (value: string): number | null => {
+    if (value.trim() === '') return null;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? null : parsed;
+};
+
 type AddItemFormProps = {
     category: Category;
     onSuccess: () => void; // Callback to refresh the list
 };
-
+    
 export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
@@ -44,6 +50,7 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
         e.preventDefault();
         if (!name || !user) return;
 
+        // Insert into 'items' table
         const itemToInsert: Item = {
             user_id: user.id,
             name,
@@ -52,8 +59,7 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
             rating: status === 'ranked' ? 1000 : null,
             description: description.trim() === '' ? null : description,
         };
-
-        // Insert into 'items' table
+        
         const { data: newItem, error: itemError } = await supabase
             .from('items')
             .insert(itemToInsert)
@@ -67,17 +73,18 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
 
         // Insert into category-specific table
         const details = {
-            release_year: releaseYear,
-            director: director,
-            artist: artist,
-            price_range: priceRange,
-            address: address,
-            author: author,
-            series_name: seriesName,
-            series_order: seriesOrder,
-            start_year: startYear,
-            end_year: endYear,
+            release_year: parseOptionalInt(releaseYear),
+            director: director.trim() || null,
+            artist: artist.trim() || null,
+            price_range: priceRange || null,
+            address: address.trim() || null,
+            author: author.trim() || null,
+            series_name: seriesName.trim() || null,
+            series_order: parseOptionalInt(seriesOrder),
+            start_year: parseOptionalInt(startYear),
+            end_year: parseOptionalInt(endYear),
         }
+
         if (handleDetailsInsert) {
             const { error: detailsError } = await handleDetailsInsert(newItem.id, details);
             if (detailsError) {
@@ -168,26 +175,16 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
                     <Separator />
 
                     <FieldsComponent
-                        releaseYear={releaseYear}
-                        setReleaseYear={setReleaseYear}
-                        director={director}
-                        setDirector={setDirector}
-                        artist={artist}
-                        setArtist={setArtist}
-                        priceRange={priceRange}
-                        setPriceRange={setPriceRange}
-                        address={address}
-                        setAddress={setAddress}
-                        author={author}
-                        setAuthor={setAuthor}
-                        seriesName={seriesName}
-                        setSeriesName={setSeriesName}
-                        seriesOrder={seriesOrder}
-                        setSeriesOrder={setSeriesOrder} 
-                        startYear={startYear}
-                        setStartYear={setStartYear}
-                        endYear={endYear}
-                        setEndYear={setEndYear}
+                        releaseYear={releaseYear} setReleaseYear={setReleaseYear}
+                        director={director} setDirector={setDirector}
+                        artist={artist} setArtist={setArtist}
+                        priceRange={priceRange} setPriceRange={setPriceRange}
+                        address={address} setAddress={setAddress}
+                        author={author} setAuthor={setAuthor}
+                        seriesName={seriesName} setSeriesName={setSeriesName}
+                        seriesOrder={seriesOrder} setSeriesOrder={setSeriesOrder} 
+                        startYear={startYear} setStartYear={setStartYear}
+                        endYear={endYear} setEndYear={setEndYear}
                     />
 
                     <Button type="submit">Add</Button>
