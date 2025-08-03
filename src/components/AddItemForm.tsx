@@ -89,6 +89,15 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
             const { error: detailsError } = await handleDetailsInsert(newItem.id, details);
             if (detailsError) {
                 console.error('Error inserting details:', detailsError);
+
+                const { error: deleteError } = await supabase
+                    .from('items')
+                    .delete()
+                    .eq('id', newItem.id);
+
+                if (deleteError) {
+                    console.error('CRITICAL: Failed to rollback item insert.', deleteError);
+                }
                 return;
             }
         }
