@@ -1,69 +1,56 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { type CombinedItem } from "@/types/types";
 
 type ItemCardProps = {
     item: CombinedItem;
 };
 
-export const ItemCard = ({ item }: ItemCardProps) => {
-    const { name, category, status, rating, description} = item;
-
-    const renderCategoryDetails = () => {
-        switch (category) {
-            case 'album':
-                return (
-                    <>
-                        {item.album_details?.artist && <p><strong>Artist:</strong> {item.album_details.artist}</p>}
-                        {item.album_details?.release_year && <p><strong>Release Year:</strong> {item.album_details.release_year}</p>}
-                    </>
-                );
-            case 'book':
-                return (
-                    <>
-                        {item.book_details?.author && <p><strong>Author:</strong> {item.book_details.author}</p>}
-                        {item.book_details?.series_name && <p><strong>Series:</strong> {item.book_details.series_name}</p>}
-                        {item.book_details?.series_order && <p><strong>Series Order:</strong> {item.book_details.series_order}</p>}
-                        {item.book_details?.release_year && <p><strong>Release Year:</strong> {item.book_details.release_year}</p>}
-                    </>
-                );
-            case 'movie':
-                return (
-                    <>
-                        {item.movie_details?.director && <p><strong>Director:</strong> {item.movie_details.director}</p>}
-                        {item.movie_details?.release_year && <p><strong>Release Year:</strong> {item.movie_details.release_year}</p>}
-                    </>
-                );
-            case 'restaurant':
-                return (
-                    <>
-                        {item.restaurant_details?.price_range && <p><strong>Price Range:</strong> {item.restaurant_details.price_range}</p>}
-                        {item.restaurant_details?.address && <p><strong>Address:</strong> {item.restaurant_details.address}</p>}
-                    </>
-                );
-            case 'show':
-                return (
-                    <>
-                        {item.show_details?.start_year && <p><strong>Start Year:</strong> {item.show_details.start_year}</p>}
-                        {item.show_details?.end_year && <p><strong>End Year:</strong> {item.show_details.end_year}</p>}
-                    </>
-                );
-            default:
-                return null;
-        }
+const getCategoryDetails = (item: CombinedItem): string => {
+    const details: string[] = [];
+    switch (item.category) {
+        case 'movie':
+            if (item.movie_details?.director) details.push(item.movie_details.director);
+            if (item.movie_details?.release_year) details.push(String(item.movie_details.release_year));
+            break;
+        case 'album':
+            if (item.album_details?.artist) details.push(item.album_details.artist);
+            if (item.album_details?.release_year) details.push(String(item.album_details.release_year));
+            break;
+        case 'book':
+            if (item.book_details?.author) details.push(item.book_details.author);
+            if (item.book_details?.series_name) details.push(item.book_details.series_name);
+            break;
+        case 'show':
+            if (item.show_details?.start_year) {
+                const years = item.show_details.end_year ? `${item.show_details.start_year}-${item.show_details.end_year}` : String(item.show_details.start_year);
+                details.push(years);
+            }
+            break;
+        case 'restaurant':
+            if (item.restaurant_details?.price_range) details.push(item.restaurant_details.price_range);
+            if (item.restaurant_details?.address) details.push(item.restaurant_details.address);
+            break;
     }
+    return details.filter(Boolean).join(', ');
+};
+
+export const ItemCard = ({ item }: ItemCardProps) => {
+    const { name, status, rating } = item;
+    const detailsString = getCategoryDetails(item);
 
     return (
-        <Card className="mb-4">
-            <CardHeader>
-                <CardTitle>{name}</CardTitle>
-                <CardDescription className="capitalize">
-                    {status} {status === 'ranked' && `(Elo: ${rating})`}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {description && <p className="text-muted-foreground">{description}</p>}
-                <div className="text-foreground">{renderCategoryDetails()}</div>
-            </CardContent>
+        <Card className="mb-4 p-4">
+            <div className="flex flex-col">
+                <div className="flex items-baseline">
+                    <h3 className="text-xl font-semibold truncate">{name}</h3>
+                    {status === 'ranked' && (
+                        <span className="ml-2 text-sm font-normal text-muted-foreground">{rating}</span>
+                    )}
+                </div>
+                {detailsString && (
+                    <p className="text-sm text-muted-foreground truncate">{detailsString}</p>
+                )}
+            </div>
         </Card>
     );
 }
