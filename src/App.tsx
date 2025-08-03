@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
 
+import { Toaster } from '@/components/ui/sonner';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { CategoryView } from './components/CategoryView';
@@ -22,6 +23,7 @@ function App() {
   // Once loaded, render the real app
   return (
     <div className="flex flex-col h-screen bg-background">
+      <Toaster />
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar activeCategory={activeCategory} setCategory={setActiveCategory} />

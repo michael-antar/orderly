@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
 import { Plus } from 'lucide-react';
 
 const parseOptionalInt = (value: string): number | null => {
@@ -98,9 +99,17 @@ export function AddItemForm({ category, onSuccess }: AddItemFormProps) {
                 if (deleteError) {
                     console.error('CRITICAL: Failed to rollback item insert.', deleteError);
                 }
+
+                toast.error("Uh oh! Something went wrong.", {
+                    description: "There was a problem saving the item details.",
+                });
                 return;
             }
         }
+
+        toast.success("Success!", {
+            description: `'${name}' has been added to your list.`,
+        });
 
         // Close Dialog
         setIsOpen(false);
