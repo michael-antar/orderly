@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { type Category, type CombinedItem, categoryTitles } from '@/types/types';
 import { AddItemForm } from './AddItemForm';
 import { ItemCard } from './ItemCard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
@@ -42,27 +43,44 @@ export const CategoryView = ({ category }: { category: Category }) => {
         fetchItems();
     }, [fetchItems]);
 
+    const rankedItems = useMemo(() => items.filter(item => item.status === 'ranked'), [items]);
+    const backlogItems = useMemo(() => items.filter(item => item.status === 'backlog'), [items]);
+
     return (
-        <div className="flex flex-col h-full">
+        <Tabs defaultValue="ranked" className="flex flex-col h-full">
             <header className="flex items-center justify-between pb-4 border-b">
-                <h1 className="text-4xl font-bold text-foreground">
-                    {categoryTitles[category]}
-                </h1>
+                <div className="flex items-center gap-8">
+                    <h1 className="text-4xl font-bold text-foreground">
+                        {categoryTitles[category]}
+                    </h1>
+                    <TabsList>
+                        <TabsTrigger value="ranked">Ranked</TabsTrigger>
+                        <TabsTrigger value="backlog">Backlog</TabsTrigger>
+                    </TabsList>
+                </div>
                 <AddItemForm category={category} onSuccess={fetchItems} />
             </header>
+            
             <div className="flex-1 mt-6 overflow-y-auto">
-                {loading ? (
-                    <p>Loading items...</p>
-                ) : items.length > 0 ? (
-                    <div>
-                        {items.map((item) => (
-                            <ItemCard key={item.id} item={item} />
-                        ))}
-                    </div>
-                ) : (
-                    <p>No items found. Add one to get started!</p>
-                )}
+                <TabsContent value="ranked">
+                    {loading ? <p>Loading items...</p> : rankedItems.length > 0 ? (
+                        <div>
+                            {rankedItems.map((item) => <ItemCard key={item.id} item={item} />)}
+                        </div>
+                    ) : (
+                        <p>No ranked items found.</p>
+                    )}
+                </TabsContent>
+                <TabsContent value="backlog">
+                    {loading ? <p>Loading items...</p> : backlogItems.length > 0 ? (
+                        <div>
+                            {backlogItems.map((item) => <ItemCard key={item.id} item={item} />)}
+                        </div>
+                    ) : (
+                        <p>No backlog items found.</p>
+                    )}
+                </TabsContent>
             </div>
-        </div>
+        </Tabs>
     );
 }
