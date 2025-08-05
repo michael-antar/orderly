@@ -1,11 +1,15 @@
 import { type CombinedItem } from "@/types/types";
 import { getCategoryDetails } from "@/lib/utils";
+import { Button } from "./ui/button";
+import { PanelRightClose } from "lucide-react";
 
 type ItemDetailViewProps = {
   item: CombinedItem | null;
+  onClose: () => void; // Prop to handle closing the panel
 };
 
-export const ItemDetailView = ({ item }: ItemDetailViewProps) => {
+export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {
+
   if (!item) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -18,7 +22,16 @@ export const ItemDetailView = ({ item }: ItemDetailViewProps) => {
 
   return (
     <div className="p-4">
-      <h2 className="text-3xl font-bold">{item.name}</h2>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-4 left-4 md:hidden"
+        onClick={onClose}
+      >
+        <PanelRightClose className="h-5 w-5" />
+        <span className="sr-only">Back to list</span>
+      </Button>
+      <h2 className="text-3xl font-bold pt-12 md:pt-0">{item.name}</h2>
       <p className="text-muted-foreground capitalize">
         {item.status === 'ranked' ? `Elo: ${item.rating}` : 'Backlog'}
       </p>

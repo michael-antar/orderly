@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { type Category, type CombinedItem, categoryTitles } from '@/types/types';
@@ -7,12 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddItemForm } from './AddItemForm';
 import { ItemList } from './ItemList';
 import { ItemDetailView } from './ItemDetailView';
+import { Button } from './ui/button';
+import { PanelRightOpen } from 'lucide-react';
 
 export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
     const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null);
+    const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
+    const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
     const fetchItems = useCallback(async () => {
         if (!user) return;
@@ -38,7 +42,19 @@ export const CategoryView = ({ category }: { category: Category }) => {
         fetchItems();
     }, [fetchItems]);
 
-    // Unselect item when the category changes
+    // When an item is selected on a small screen
+    useEffect(() => {
+        // Automatically open detail view
+        if (selectedItem) {
+            setIsDetailViewOpen(true);
+        }
+        // Automatically close detail view if no item is selected
+        else {
+            setIsDetailViewOpen(false);
+        }
+    }, [selectedItem]);
+
+    // When category changes, clear the selected item
     useEffect(() => {
         setSelectedItem(null);
     }, [category]);
@@ -57,21 +73,33 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     return (
         // Horizontal flexbox
-        <div className="flex h-full">
+        <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
-            <div className="w-2/3 border-r p-4 flex flex-col">
+            <div className="w-full p-4 flex flex-col md:w-1/2 md:border-r lg:w-2/3">
                 <Tabs defaultValue="ranked" className="flex flex-col h-full" onValueChange={() => setSelectedItem(null)}>
-                    <header className="flex items-center justify-between pb-4 border-b">
-                        <div className="flex items-center gap-8">
+                    <header className="flex flex-col gap-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
                             <h1 className="text-4xl font-bold text-foreground">
                                 {categoryTitles[category]}
                             </h1>
-                            <TabsList>
-                                <TabsTrigger value="ranked">Ranked</TabsTrigger>
-                                <TabsTrigger value="backlog">Backlog</TabsTrigger>
-                            </TabsList>
-                        </div>
-                        <AddItemForm category={category} onSuccess={fetchItems} />
+                            <div className="flex items-center justify-between w-full lg:flex-1">
+                                <TabsList>
+                                    <TabsTrigger value="ranked">Ranked</TabsTrigger>
+                                    <TabsTrigger value="backlog">Backlog</TabsTrigger>
+                                </TabsList>
+                                <div className="flex items-center gap-2">
+                                    <AddItemForm category={category} onSuccess={fetchItems} />
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        className="md:hidden"
+                                        onClick={() => setIsDetailViewOpen(true)}
+                                        disabled={!selectedItem} // Disable button if no item is selected
+                                    >
+                                        <PanelRightOpen />
+                                        <span className="sr-only">Open details panel</span>
+                                    </Button>
+                                </div>
+                            </div>          
                     </header>
                     
                     <div className="flex-1 mt-6 overflow-y-auto" onClick={() => setSelectedItem(null)}>
@@ -97,8 +125,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 </Tabs>
             </div>
             {/* Right Column: Detail View */}
-            <div className="w-1/3">
-                <ItemDetailView item={selectedItem} />
+            <div className={cn(
+                "absolute top-0 right-0 h-full w-full bg-background transition-transform duration-300 ease-in-out md:static md:w-1/2 md:translate-x-0",
+                isDetailViewOpen ? "translate-x-0" : "translate-x-full"
+            )}>
+                <ItemDetailView item={selectedItem} onClose={() => setIsDetailViewOpen(false)} />
             </div>
         </div>
     );
