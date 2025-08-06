@@ -31,7 +31,7 @@ export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {
         <ArrowLeft className="h-5 w-5" />
         <span className="sr-only">Back to list</span>
       </Button>
-      <h2 className="text-3xl font-bold pt-12 md:pt-0">{item.name}</h2>
+      <h2 className="text-3xl font-bold pt-12 truncate md:pt-0">{item.name}</h2>
       <p className="text-muted-foreground capitalize">
         {item.status === 'ranked' ? `Elo: ${item.rating}` : 'Backlog'}
       </p>
@@ -44,7 +44,7 @@ export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {
         {details.map(([key, value]) => (
             <div key={key} className="flex justify-between text-sm">
                 <span className="font-semibold text-muted-foreground">{key}</span>
-                <span className="text-foreground">{value}</span>
+                <span className="text-foreground text-right truncate">{value}</span>
             </div>
         ))}
       </div>

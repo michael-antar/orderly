@@ -74,7 +74,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     return (
         <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
-            <div className="w-full h-full flex flex-col md:w-1/2 lg:w-2/3">
+            <div className="w-full h-full flex flex-col md:w-1/2">
                 <Tabs defaultValue="ranked" className="flex flex-col h-full gap-0" onValueChange={() => setSelectedItem(null)}>
                     <header className="flex flex-col gap-4 p-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
                             <h1 className="text-4xl font-bold text-foreground">
