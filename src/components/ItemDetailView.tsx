@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 
 type ItemDetailViewProps = {
   item: CombinedItem | null;
-  onClose: () => void; // Prop to handle closing the panel
+  onClose: () => void;
 };
 
 export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {

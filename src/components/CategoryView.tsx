@@ -72,12 +72,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     return (
-        // Horizontal flexbox
         <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
-            <div className="w-full p-4 flex flex-col md:w-1/2 md:border-r lg:w-2/3">
-                <Tabs defaultValue="ranked" className="flex flex-col h-full" onValueChange={() => setSelectedItem(null)}>
-                    <header className="flex flex-col gap-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
+            <div className="w-full h-full flex flex-col md:w-1/2 lg:w-2/3">
+                <Tabs defaultValue="ranked" className="flex flex-col h-full gap-0" onValueChange={() => setSelectedItem(null)}>
+                    <header className="flex flex-col gap-4 p-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
                             <h1 className="text-4xl font-bold text-foreground">
                                 {categoryTitles[category]}
                             </h1>
@@ -88,6 +87,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 </TabsList>
                                 <div className="flex items-center gap-2">
                                     <AddItemForm category={category} onSuccess={fetchItems} />
+                                    {/* Reopen detail view button */}
                                     <Button
                                         size="icon"
                                         variant="outline"
@@ -102,7 +102,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
                             </div>          
                     </header>
                     
-                    <div className="flex-1 mt-6 overflow-y-auto" onClick={() => setSelectedItem(null)}>
+                    {/* Item List Container */}
+                    <div className="flex-1 p-4 pt-6 overflow-y-auto" onClick={() => setSelectedItem(null)}>
                         <TabsContent value="ranked">
                             <ItemList
                                 items={rankedItems}
@@ -124,9 +125,18 @@ export const CategoryView = ({ category }: { category: Category }) => {
                     </div>
                 </Tabs>
             </div>
+
+            {/* Overlay for mobile view */}
+            {isDetailViewOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-20 md:hidden"
+                    onClick={() => setIsDetailViewOpen(false)}
+                />
+            )}
+
             {/* Right Column: Detail View */}
             <div className={cn(
-                "absolute top-0 right-0 h-full w-full bg-background transition-transform duration-300 ease-in-out md:static md:w-1/2 md:translate-x-0",
+                "absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:translate-x-0",
                 isDetailViewOpen ? "translate-x-0" : "translate-x-full"
             )}>
                 <ItemDetailView item={selectedItem} onClose={() => setIsDetailViewOpen(false)} />

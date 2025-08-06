@@ -21,7 +21,6 @@ function App() {
     );
   }
 
-  // 2. Function to handle category selection and close the mobile sidebar
   const handleCategorySelect = (category: Category) => {
     setActiveCategory(category);
     setIsSidebarOpen(false);
@@ -45,7 +44,7 @@ function App() {
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           <CategoryView category={activeCategory} />
         </main>
       </div>
