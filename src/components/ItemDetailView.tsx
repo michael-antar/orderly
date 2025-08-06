@@ -1,7 +1,7 @@
 import { type CombinedItem } from "@/types/types";
 import { getCategoryDetails } from "@/lib/utils";
 import { Button } from "./ui/button";
-import { PanelRightClose } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 type ItemDetailViewProps = {
   item: CombinedItem | null;
@@ -28,7 +28,7 @@ export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {
         className="absolute top-4 left-4 md:hidden"
         onClick={onClose}
       >
-        <PanelRightClose className="h-5 w-5" />
+        <ArrowLeft className="h-5 w-5" />
         <span className="sr-only">Back to list</span>
       </Button>
       <h2 className="text-3xl font-bold pt-12 md:pt-0">{item.name}</h2>
