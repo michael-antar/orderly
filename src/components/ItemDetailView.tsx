@@ -21,7 +21,7 @@ export const ItemDetailView = ({ item, onClose }: ItemDetailViewProps) => {
   const details = getCategoryDetails(item);
 
   return (
-    <div className="p-4">
+    <div className="p-4 pt-0">
       <Button
         variant="ghost"
         size="icon"

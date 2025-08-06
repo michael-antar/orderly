@@ -76,7 +76,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Left Column: Item List */}
             <div className="w-full h-full flex flex-col md:w-1/2">
                 <Tabs defaultValue="ranked" className="flex flex-col h-full gap-0" onValueChange={() => setSelectedItem(null)}>
-                    <header className="flex flex-col gap-4 p-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
+                    <header className="flex flex-col mx-4 gap-4 p-4 border-b lg:flex-row lg:items-center lg:justify-between">
                             <h1 className="text-4xl font-bold text-foreground">
                                 {categoryTitles[category]}
                             </h1>
@@ -136,7 +136,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
             {/* Right Column: Detail View */}
             <div className={cn(
-                "absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:translate-x-0",
+                "absolute top-0 right-0 w-[85%] bg-background my-4 border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:translate-x-0",
                 isDetailViewOpen ? "translate-x-0" : "translate-x-full"
             )}>
                 <ItemDetailView item={selectedItem} onClose={() => setIsDetailViewOpen(false)} />
