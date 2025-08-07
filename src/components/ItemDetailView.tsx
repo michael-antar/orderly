@@ -54,54 +54,61 @@ export const ItemDetailView = ({ item, onClose, onDelete }: ItemDetailViewProps)
   const details = getCategoryDetails(item);
 
   return (
-    <div className="relative h-full px-4 overflow-y-auto">
-      {/* Close Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 left-4 md:hidden"
-        onClick={onClose}
-      >
-        <ArrowLeft className="h-5 w-5" />
-        <span className="sr-only">Back to list</span>
-      </Button>
+    <div className="flex flex-col mx-4 pt-4 md:pt-0">
+      {/* Button Row */}
+      <div className="flex gap-2 justify-between md:justify-end">
+        {/* Close Button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onClose}
+        >
+          <ArrowLeft className="h-5 w-5" /> 
+          <span className="sr-only">Back to list</span>
+        </Button>
 
-      {/* Delete Button and Confirmation Dialog */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-5 w-5" />
-            <span className="sr-only">Delete item</span>
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the item
-              <span className="font-semibold"> {item.name}</span> and all of its data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete Button and Confirmation Dialog */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-destructive hover:text-destructive"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span className="sr-only">Delete item</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the item
+                <span className="font-semibold"> {item.name}</span> and all of its data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
 
-      <h2 className="text-3xl font-bold pt-12 truncate">{item.name}</h2>
-      <p className="text-muted-foreground capitalize">
-        {item.status === 'ranked' ? `Elo: ${item.rating}` : 'Backlog'}
-      </p>
+      {/* General Item Information */}
+      <div>
+        <h2 className="text-3xl font-bold truncate">{item.name}</h2>
+        <p className="text-muted-foreground capitalize">
+          {item.status === 'ranked' ? `Elo: ${item.rating}` : 'Backlog'}
+        </p>
 
-      {item.description && (
-        <p className="mt-4 text-sm whitespace-pre-wrap break-words">{item.description}</p>
-      )}
+        {item.description && (
+          <p className="mt-4 text-sm whitespace-pre-wrap break-words">{item.description}</p>
+        )}
+      </div>
 
+      {/* Category Specific Details */}
       <div className="mt-6 space-y-2 border-t pt-4">
         {details.map(([key, value]) => (
             <div key={key} className="flex justify-between text-sm">
