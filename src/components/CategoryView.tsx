@@ -71,6 +71,12 @@ export const CategoryView = ({ category }: { category: Category }) => {
         }
     };
 
+    // Unselect item and trigger list refresh
+    const handleDelete = () => {
+        setSelectedItem(null);
+        fetchItems();
+    }
+
     return (
         <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
@@ -139,7 +145,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 "absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:h-auto md:my-4 md:translate-x-0",
                 isDetailViewOpen ? "translate-x-0" : "translate-x-full"
             )}>
-                <ItemDetailView item={selectedItem} onClose={() => setIsDetailViewOpen(false)} />
+                <ItemDetailView 
+                    item={selectedItem} 
+                    onClose={() => setIsDetailViewOpen(false)}
+                    onDelete={handleDelete}
+                />
             </div>
         </div>
     );
