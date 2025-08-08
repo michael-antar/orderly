@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
 
 export type Category = 'album'| 'book' | 'movie' | 'restaurant' | 'show';
+export type DetailTableNames = "album_details" | "book_details" | "movie_details" | "restaurant_details" | "show_details";
 export type Status = 'ranked' | 'backlog';
 
 export type Item = {

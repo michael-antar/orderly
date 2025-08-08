@@ -1,5 +1,13 @@
 import { supabase } from "@/lib/supabaseClient";
-import { type Category, type AlbumDetails, type BookDetails, type MovieDetails, type RestaurantDetails, type ShowDetails } from "@/types/types";
+import { 
+    type Category, 
+    type DetailTableNames,
+    type AlbumDetails, 
+    type BookDetails, 
+    type MovieDetails, 
+    type RestaurantDetails, 
+    type ShowDetails 
+} from "@/types/types";
 
 import { AlbumFields } from "@/components/forms/AlbumFields";
 import { BookFields } from "@/components/forms/BookFields";
@@ -10,59 +18,43 @@ import { ShowFields } from "@/components/forms/ShowFields";
 
 type CategoryConfig = {
     FieldsComponent: React.ComponentType<any>; // Renders the category-specific fields
-    handleDetailsInsert: (itemId: string, details: any) => Promise<any>; // Handles inserting data into the details table
+    handleDetailsInsert: (itemId: string, details: any) => Promise<any>;
+    handleDetailsUpdate: (itemId: string, details: any) => Promise<any>;
 };
 
-// Configuration map
+/**
+ * A generic factory function to create Supabase insert and update handlers.
+ * @param tableName - The name of the Supabase table (e.g., 'album_details').
+ * @returns An object with `handleDetailsInsert` and `handleDetailsUpdate` methods.
+ */
+const createDetailsHandlers = <T extends object>(detailTableName: DetailTableNames) => ({
+    handleDetailsInsert: async (itemId: string, details: T) => {
+        return await supabase.from(detailTableName).insert({item_id: itemId, ...details});
+    },
+    handleDetailsUpdate: async (itemId: string, details: Partial<T>) => {
+        return await supabase.from(detailTableName).update(details).eq('item_id', itemId)
+    },
+});
+
 export const categoryConfig: Record<Category, CategoryConfig> = {
     album: {
         FieldsComponent: AlbumFields,
-        handleDetailsInsert: async (itemId, details: AlbumDetails) => {
-            return supabase.from('album_details').insert({
-                item_id: itemId,
-                artist: details.artist,
-                release_year: details.release_year,
-            });
-        },
+        ...createDetailsHandlers<AlbumDetails>('album_details'),
     },
     book: {
         FieldsComponent: BookFields,
-        handleDetailsInsert: async (itemId, details: BookDetails) => {
-            return supabase.from('book_details').insert({
-                item_id: itemId,
-                author: details.author,
-                release_year: details.release_year,
-            });
-        },
+        ...createDetailsHandlers<BookDetails>('book_details'),
     },
     movie: {
         FieldsComponent: MovieFields,
-        handleDetailsInsert: async (itemId, details: MovieDetails) => {
-            return supabase.from('movie_details').insert({
-                item_id: itemId,
-                director: details.director,
-                release_year: details.release_year,
-            });
-        },
+        ...createDetailsHandlers<MovieDetails>('movie_details'),
     },
     restaurant: {
         FieldsComponent: RestaurantFields,
-        handleDetailsInsert: async (itemId, details: RestaurantDetails) => {
-            return supabase.from('restaurant_details').insert({
-                item_id: itemId,
-                address: details.address,
-                price_range: details.price_range,
-            });
-        },
+        ...createDetailsHandlers<RestaurantDetails>('restaurant_details'),
     },
     show: {
         FieldsComponent: ShowFields,
-        handleDetailsInsert: async (itemId, details: ShowDetails) => {
-            return supabase.from('show_details').insert({
-                item_id: itemId,
-                start_year: details.start_year,
-                end_year: details.end_year,
-            });
-        },
+        ...createDetailsHandlers<ShowDetails>('show_details'),
     },
 };
