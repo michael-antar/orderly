@@ -1,12 +1,16 @@
+import { type ComponentType } from 'react';
 import { supabase } from "@/lib/supabaseClient";
-import { 
-    type Category, 
+import {
+    type Category,
+    type CategoryFieldsProps,
+    type SupabaseMutationResponse,
+    type DetailsMap,
     type DetailTableNames,
-    type AlbumDetails, 
-    type BookDetails, 
-    type MovieDetails, 
-    type RestaurantDetails, 
-    type ShowDetails 
+    type AlbumDetails,
+    type BookDetails,
+    type MovieDetails,
+    type RestaurantDetails,
+    type ShowDetails
 } from "@/types/types";
 
 import { AlbumFields } from "@/components/forms/AlbumFields";
@@ -16,10 +20,13 @@ import { RestaurantFields } from "@/components/forms/RestaurantFields";
 import { ShowFields } from "@/components/forms/ShowFields";
 
 
-type CategoryConfig = {
-    FieldsComponent: React.ComponentType<any>; // Renders the category-specific fields
-    handleDetailsInsert: (itemId: string, details: any) => Promise<any>;
-    handleDetailsUpdate: (itemId: string, details: any) => Promise<any>;
+type CategoryConfigMap = {
+    [K in Category]: {
+        FieldsComponent: ComponentType<CategoryFieldsProps>;
+        handleDetailsInsert: (itemId: string, details: DetailsMap[K]) => SupabaseMutationResponse;
+        handleDetailsUpdate: (itemId: string, details: Partial<DetailsMap[K]>) => SupabaseMutationResponse;
+        fields: Array<keyof DetailsMap[K]>;
+    }
 };
 
 /**
@@ -36,25 +43,30 @@ const createDetailsHandlers = <T extends object>(detailTableName: DetailTableNam
     },
 });
 
-export const categoryConfig: Record<Category, CategoryConfig> = {
+export const categoryConfig: CategoryConfigMap = {
     album: {
         FieldsComponent: AlbumFields,
         ...createDetailsHandlers<AlbumDetails>('album_details'),
+        fields: ['artist', 'release_year'],
     },
     book: {
         FieldsComponent: BookFields,
         ...createDetailsHandlers<BookDetails>('book_details'),
+        fields: ['author', 'release_year', 'series_name', 'series_order']
     },
     movie: {
         FieldsComponent: MovieFields,
         ...createDetailsHandlers<MovieDetails>('movie_details'),
+        fields: ['director', 'release_year'],
     },
     restaurant: {
         FieldsComponent: RestaurantFields,
         ...createDetailsHandlers<RestaurantDetails>('restaurant_details'),
+        fields: ['address', 'price_range'],
     },
     show: {
         FieldsComponent: ShowFields,
         ...createDetailsHandlers<ShowDetails>('show_details'),
+        fields: ['start_year', 'end_year'],
     },
 };

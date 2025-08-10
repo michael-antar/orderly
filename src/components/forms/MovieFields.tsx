@@ -1,27 +1,23 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import type { CategoryFieldsProps } from "@/types/types";
 
-type MovieFieldsProps = {
-    director: string;
-    setDirector: (director: string) => void;
-    releaseYear: string;
-    setReleaseYear: (releaseYear: string) => void;
-};
-
-export const MovieFields = ({ director, setDirector, releaseYear, setReleaseYear }: MovieFieldsProps) => {
+export const MovieFields = ({ formData, onFieldChange }: CategoryFieldsProps) => {
     return (
         <>
+            {/* Director Field */}
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="director" className="text-left">Director</Label>
                 <Input
                     id="director"
                     name="director"
                     autoComplete="off"
-                    value={director}
-                    onChange={(e) => setDirector(e.target.value)}
+                    value={formData.director || ''}
+                    onChange={(e) => onFieldChange('director', e.target.value)}
                     className="col-span-3"
                 />
             </div>
+            {/* Release Year Field */}
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="releaseYear" className="text-left">Release Year</Label>
                 <Input
@@ -29,8 +25,8 @@ export const MovieFields = ({ director, setDirector, releaseYear, setReleaseYear
                     name="releaseYear"
                     type="number"
                     autoComplete="off"
-                    value={releaseYear}
-                    onChange={(e) => setReleaseYear(e.target.value)}
+                    value={formData.release_year || ''}
+                    onChange={(e) => onFieldChange('release_year', e.target.value)}
                     className="col-span-3"
                     min="1000"
                     max="9999"
