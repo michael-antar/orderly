@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 import { type Category, type CombinedItem, categoryTitles } from '@/types/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AddItemForm } from './AddItemForm';
+import { ItemForm } from './ItemForm';
 import { ItemList } from './ItemList';
 import { ItemDetailView } from './ItemDetailView';
 import { Button } from './ui/button';
@@ -18,7 +18,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
-    const fetchItems = useCallback(async () => {
+    // Fetch list of items from database
+    const getItems = useCallback(async () => {
         if (!user) return;
         setLoading(true);
         try {
@@ -29,29 +30,25 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 .eq('category', category);
             if (error) throw error;
             setItems(data || []);
+            return { data, error: null };
         }
         catch (error) {
             console.error('Error fetching items:', error);
+            return { data: [], error };
         }
         finally {
             setLoading(false);
         }
     }, [user, category]);
 
+    // Initial fetch on component mount or category change
     useEffect(() => {
-        fetchItems();
-    }, [fetchItems]);
+        getItems();
+    }, [getItems]);
 
-    // When an item is selected on a small screen
+    // Toggle opening detail view on mobile
     useEffect(() => {
-        // Automatically open detail view
-        if (selectedItem) {
-            setIsDetailViewOpen(true);
-        }
-        // Automatically close detail view if no item is selected
-        else {
-            setIsDetailViewOpen(false);
-        }
+        setIsDetailViewOpen(selectedItem ? true : false);
     }, [selectedItem]);
 
     // When category changes, clear the selected item
@@ -64,17 +61,26 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Toggle selection of item
     const handleSelectItem = (item: CombinedItem) => {
-        if (selectedItem?.id === item.id) {
-            setSelectedItem(null);
-        } else {
-            setSelectedItem(item);
-        }
+        setSelectedItem(prev => (prev?.id === item.id ? null : item));
     };
 
-    // Unselect item and trigger list refresh
-    const handleDelete = () => {
+    // Refresh list
+    const handleAddSuccess = () => {
+        getItems();
+    };
+
+    const handleEditSuccess = async () => {
+        const result = await getItems();
+        if (result?.data && selectedItem) {
+            const updatedItem = result.data.find(item => item.id === selectedItem.id);
+            setSelectedItem(updatedItem || null);
+        }
+    }
+
+    // Unselect item and refresh list
+    const handleDeleteSuccess = () => {
         setSelectedItem(null);
-        fetchItems();
+        getItems();
     }
 
     return (
@@ -92,7 +98,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     <TabsTrigger value="backlog">Backlog</TabsTrigger>
                                 </TabsList>
                                 <div className="flex items-center gap-2">
-                                    <AddItemForm category={category} onSuccess={fetchItems} />
+                                    {/* Add Item Button */}
+                                    <ItemForm category={category} onSuccess={handleAddSuccess} />
+
                                     {/* Reopen detail view button */}
                                     <Button
                                         size="icon"
@@ -148,7 +156,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 <ItemDetailView 
                     item={selectedItem} 
                     onClose={() => setIsDetailViewOpen(false)}
-                    onDelete={handleDelete}
+                    onEdit={handleEditSuccess}
+                    onDelete={handleDeleteSuccess}
                 />
             </div>
         </div>

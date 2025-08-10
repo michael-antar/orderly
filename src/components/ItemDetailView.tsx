@@ -15,16 +15,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ItemForm } from "./ItemForm";
 
 import { ArrowLeft, Trash2 } from "lucide-react";
 
 type ItemDetailViewProps = {
   item: CombinedItem | null;
   onClose: () => void;
+  onEdit: () => void;
   onDelete: () => void;
 };
 
-export const ItemDetailView = ({ item, onClose, onDelete }: ItemDetailViewProps) => {
+export const ItemDetailView = ({ item, onClose, onEdit, onDelete }: ItemDetailViewProps) => {
 
   const handleDelete = async () => {
     if (!item) return;
@@ -68,32 +70,38 @@ export const ItemDetailView = ({ item, onClose, onDelete }: ItemDetailViewProps)
           <span className="sr-only">Back to list</span>
         </Button>
 
-        {/* Delete Button and Confirmation Dialog */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-5 w-5" />
-              <span className="sr-only">Delete item</span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the item
-                <span className="font-semibold"> {item.name}</span> and all of its data.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Button Row Right Side */}
+        <div className="flex gap-2">
+          {/* Edit Item Form */}
+          <ItemForm item={item} onSuccess={onEdit} />
+
+          {/* Delete Button and Confirmation Dialog */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-5 w-5" />
+                <span className="sr-only">Delete item</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the item
+                  <span className="font-semibold"> {item.name}</span> and all of its data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       {/* General Item Information */}
