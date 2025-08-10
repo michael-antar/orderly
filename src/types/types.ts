@@ -1,10 +1,15 @@
 import type { LucideIcon } from 'lucide-react';
 import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
+import { type PostgrestError } from '@supabase/supabase-js';
 
+// --- Core Category and Status Types ---
 export type Category = 'album'| 'book' | 'movie' | 'restaurant' | 'show';
-export type DetailTableNames = "album_details" | "book_details" | "movie_details" | "restaurant_details" | "show_details";
 export type Status = 'ranked' | 'backlog';
+export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
 
+// --- Database and API Types ---
+
+// Base item stored in 'items' table
 export type Item = {
     id: string;
     created_at: string;
@@ -17,13 +22,12 @@ export type Item = {
     comparison_count: number;
 };
 
-export type CombinedItem = Item & {
-    album_details: AlbumDetails | null;
-    book_details: BookDetails | null;
-    movie_details: MovieDetails | null;
-    restaurant_details: RestaurantDetails | null;
-    show_details: ShowDetails | null;
-}
+// Generic type for the response from Supabase mutation operations
+export type SupabaseMutationResponse  = Promise<{error: PostgrestError | null }>;
+
+// - Category Specific Details -
+
+export type DetailTableNames = "album_details" | "book_details" | "movie_details" | "restaurant_details" | "show_details";
 
 export type AlbumDetails = {
     artist: string | null;
@@ -39,7 +43,6 @@ export type MovieDetails = {
     director: string | null;
     release_year: number | null;
 };
-export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
 export type RestaurantDetails = {
     address: string | null;
     price_range: PriceRange | null;
@@ -50,6 +53,43 @@ export type ShowDetails = {
     start_year: number | null;
     end_year: number | null;
 };
+
+// A union of all possible category-specific detail types
+export type AnyDetails = AlbumDetails | BookDetails | MovieDetails | RestaurantDetails | ShowDetails;
+
+// Maps category name to its specific details type
+export type DetailsMap = {
+    album: AlbumDetails;
+    book: BookDetails;
+    movie: MovieDetails;
+    restaurant: RestaurantDetails;
+    show: ShowDetails;
+};
+
+// Maps over the Category type to create the `...details` properties
+export type CombinedItem = Item & {
+    [K in Category as `${K}_details`]
+        : K extends 'album' ? AlbumDetails | null
+        : K extends 'book' ? BookDetails | null
+        : K extends 'movie' ? MovieDetails | null
+        : K extends 'restaurant' ? RestaurantDetails | null
+        : K extends 'show' ? ShowDetails | null
+        : never;
+};
+
+// --- Form and Components Prop Types ---
+
+export type ItemFormData = Partial<
+    { name: string; description: string; status: Status, rating: number | null} &
+    AlbumDetails & BookDetails & MovieDetails & RestaurantDetails & ShowDetails
+>;
+
+export type CategoryFieldsProps = {
+    formData: ItemFormData;
+    onFieldChange: (field: keyof ItemFormData, value: unknown) => void;
+};
+
+// --- UI and Navigation Constants ---
 
 type NavItem = {
     name: Category;
