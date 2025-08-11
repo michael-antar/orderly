@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 
@@ -47,7 +47,7 @@ export const useItemForm = ({
     const [isLoading, setIsLoading] = useState(false);
 
     // Initial state is derived once from props
-    const getInitialState = (): ItemFormData => {
+    const getInitialState = useCallback((): ItemFormData => {
         if (mode === 'edit' && item) {
             const details = item[`${item.category}_details`];
             return {
@@ -58,9 +58,16 @@ export const useItemForm = ({
             };
         }
         return { name: '', description: '', status: 'ranked' };
-    };
+    }, [mode, item]);
 
     const [formData, setFormData] = useState<ItemFormData>(getInitialState);
+
+    // Reset state when item changes or form opens
+    useEffect(() => {
+        if (isOpen) {
+            setFormData(getInitialState());
+        }
+    }, [isOpen, getInitialState]);
 
     const handleFieldChange = useCallback(
         <K extends keyof ItemFormData>(field: K, value: ItemFormData[K]) => {
