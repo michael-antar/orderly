@@ -1,8 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/AuthContext';
-import { categoryConfig } from '@/config/categoryConfig';
+
 import { toast } from 'sonner';
+
+import { useAuth } from '@/contexts/AuthContext';
+
+import { categoryConfig } from '@/config/categoryConfig';
 import {
     type CombinedItem,
     type Item,
@@ -10,7 +14,7 @@ import {
     type Status,
     type AnyDetails,
     type SupabaseMutationResponse,
-    type ItemFormData
+    type ItemFormData,
 } from '@/types/types';
 
 type FormMode = 'add' | 'edit';
@@ -22,13 +26,18 @@ type UseItemFormProps = {
 };
 
 // Helper to parse integer values from form inputs
-const parseOptionalInt = (value: any): number | null => {
+const parseOptionalInt = (value: string | number | null): number | null => {
     if (value === null || String(value).trim() === '') return null;
     const parsed = parseInt(String(value), 10);
     return isNaN(parsed) ? null : parsed;
 };
 
-export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps) => {
+export const useItemForm = ({
+    mode,
+    category,
+    item,
+    onSuccess,
+}: UseItemFormProps) => {
     const { user } = useAuth();
     const effectiveCategory = mode === 'add' ? category! : item!.category;
     const config = categoryConfig[effectiveCategory];
@@ -39,23 +48,26 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
 
     // Initial state is derived once from props
     const getInitialState = (): ItemFormData => {
-        if (mode === "edit" && item) {
+        if (mode === 'edit' && item) {
             const details = item[`${item.category}_details`];
             return {
                 name: item.name,
                 description: item.description || '',
                 status: item.status,
-                ...details
+                ...details,
             };
         }
-        return { name: '', description: '', status: 'ranked' }
+        return { name: '', description: '', status: 'ranked' };
     };
 
     const [formData, setFormData] = useState<ItemFormData>(getInitialState);
 
-    const handleFieldChange = (field: string, value: any) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
+    const handleFieldChange = useCallback(
+        <K extends keyof ItemFormData>(field: K, value: ItemFormData[K]) => {
+            setFormData((prev) => ({ ...prev, [field]: value }));
+        },
+        [],
+    );
 
     // --- SUBMISSION LOGIC ---
     const handleSubmit = async (e: React.FormEvent) => {
@@ -64,33 +76,43 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
         setIsLoading(true);
 
         try {
-            if (mode === "add") {
+            if (mode === 'add') {
                 await handleAddItem();
-            }
-            else {
+            } else {
                 await handleEditItem();
             }
-            toast.success(`Success!`, { description: `'${formData.name}' has been saved.` });
+            toast.success(`Success!`, {
+                description: `'${formData.name}' has been saved.`,
+            });
             onSuccess();
             setIsOpen(false);
-        }
-        catch (error: any) {
-            toast.error("Something went wrong.", { description: error.message });
-        }
-        finally {
+        } catch (error: unknown) {
+            toast.error('Something went wrong.', {
+                description:
+                    error instanceof Error
+                        ? error.message
+                        : 'An unknown error occurred.',
+            });
+        } finally {
             setIsLoading(false);
         }
     };
 
     const handleAddItem = async () => {
         // Insert into 'items' table
-        const itemToInsert: Omit<Item, 'id' | 'created_at' | 'comparison_count'> = {
+        const itemToInsert: Omit<
+            Item,
+            'id' | 'created_at' | 'comparison_count'
+        > = {
             user_id: user!.id,
             name: formData.name!,
             category: effectiveCategory,
             status: formData.status as Status,
             rating: formData.status === 'ranked' ? 1000 : null,
-            description: formData.description!.trim() === '' ? null : formData.description!,
+            description:
+                formData.description!.trim() === ''
+                    ? null
+                    : formData.description!,
         };
 
         const { data: newItem, error: itemError } = await supabase
@@ -102,13 +124,19 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
 
         // Insert into category-specific 'details' table
         const detailsToInsert = getDetailsObject();
-        const handler = config.handleDetailsInsert as (itemId: string, details: Partial<AnyDetails>) => SupabaseMutationResponse;
-        const { error: detailsError } = await handler(newItem.id, detailsToInsert);
+        const handler = config.handleDetailsInsert as (
+            itemId: string,
+            details: Partial<AnyDetails>,
+        ) => SupabaseMutationResponse;
+        const { error: detailsError } = await handler(
+            newItem.id,
+            detailsToInsert,
+        );
 
         if (detailsError) {
             // Rollback item creation if details fail
             await supabase.from('items').delete().eq('id', newItem.id);
-            throw new Error('Failed to save item details.')
+            throw new Error('Failed to save item details.');
         }
     };
 
@@ -116,13 +144,16 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
         const updatedItem: Partial<Item> = {
             name: formData.name,
             status: formData.status as Status,
-            description: formData.description?.trim() === '' ? null : formData.description,
-        }
+            description:
+                formData.description?.trim() === ''
+                    ? null
+                    : formData.description,
+        };
         // If status has changed, update rating
         if (item && formData.status !== item.status) {
-            updatedItem.rating = formData.status === 'ranked' ? 1000 : null
+            updatedItem.rating = formData.status === 'ranked' ? 1000 : null;
         }
-        
+
         // Update 'items' table
         const { error: itemError } = await supabase
             .from('items')
@@ -132,22 +163,49 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
 
         // Update category-specific 'details' table
         const detailsToUpdate = getDetailsObject();
-        const handler = config.handleDetailsUpdate as (itemId: string, details: Partial<AnyDetails>) => SupabaseMutationResponse;
-        const { error: detailsError } = await handler(item!.id, detailsToUpdate);
-        // TODO: Handle rollback
-        if (detailsError) throw new Error('Failed to update item details.');
+        const handler = config.handleDetailsUpdate as (
+            itemId: string,
+            details: Partial<AnyDetails>,
+        ) => SupabaseMutationResponse;
+        const { error: detailsError } = await handler(
+            item!.id,
+            detailsToUpdate,
+        );
+
+        if (detailsError) {
+            // Rollback the main item update if details update fails
+            const { error: rollbackError } = await supabase
+                .from('items')
+                .update({
+                    name: item!.name,
+                    status: item!.status,
+                    description: item!.description,
+                    rating: item!.rating,
+                })
+                .eq('id', item!.id);
+            if (rollbackError)
+                console.error(
+                    'CRITICAL: Failed to rollback item update.',
+                    rollbackError,
+                );
+            throw new Error('Failed to update item details.');
+        }
     };
 
     // Helper to extract only the relevant details for the current category
     const getDetailsObject = () => {
-        const details: { [key: string]: any } = {};
+        const details: { [key: string]: string | number | null } = {};
         for (const field of config.fields) {
             // Handle number parsing for specific fields
+            const key = field as keyof ItemFormData;
             if (field.endsWith('_year') || field.endsWith('_order')) {
-                details[field] = parseOptionalInt(formData[field as keyof typeof formData]);
+                details[key] = parseOptionalInt(formData[key] ?? null);
             } else {
-                const value = formData[field as keyof typeof formData];
-                details[field] = typeof value === 'string' ? value.trim() || null : value || null;
+                const value = formData[key];
+                details[key] =
+                    typeof value === 'string'
+                        ? value.trim() || null
+                        : value || null;
             }
         }
         return details;
@@ -167,4 +225,4 @@ export const useItemForm = ({ mode, category, item, onSuccess}: UseItemFormProps
         mode,
         effectiveCategory,
     };
-}
+};

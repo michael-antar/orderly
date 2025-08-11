@@ -1,13 +1,18 @@
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import type { CategoryFieldsProps } from "@/types/types";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import type { CategoryFieldsProps } from '@/types/types';
 
-export const BookFields = ({ formData, onFieldChange }: CategoryFieldsProps) => {
+export const BookFields = ({
+    formData,
+    onFieldChange,
+}: CategoryFieldsProps) => {
     return (
         <>
             {/* Author Field */}
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="author" className="text-left">Director</Label>
+                <Label htmlFor="author" className="text-left">
+                    Director
+                </Label>
                 <Input
                     id="author"
                     name="author"
@@ -19,14 +24,22 @@ export const BookFields = ({ formData, onFieldChange }: CategoryFieldsProps) => 
             </div>
             {/* Release Year Field */}
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="releaseYear" className="text-left">Release Year</Label>
+                <Label htmlFor="releaseYear" className="text-left">
+                    Release Year
+                </Label>
                 <Input
                     id="releaseYear"
                     name="releaseYear"
                     type="number"
                     autoComplete="off"
                     value={formData.release_year || ''}
-                    onChange={(e) => onFieldChange('release_year', e.target.value)}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        onFieldChange(
+                            'release_year',
+                            value === '' ? null : parseInt(value, 10),
+                        );
+                    }}
                     className="col-span-3"
                     min="1000"
                     max="9999"
@@ -34,13 +47,17 @@ export const BookFields = ({ formData, onFieldChange }: CategoryFieldsProps) => 
             </div>
             {/* Series Name Field */}
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="series-name" className="text-left">Series Name</Label>
+                <Label htmlFor="series-name" className="text-left">
+                    Series Name
+                </Label>
                 <Input
                     id="series-name"
                     name="series-name"
                     autoComplete="off"
                     value={formData.series_name || ''}
-                    onChange={(e) => onFieldChange('series_name', e.target.value)}
+                    onChange={(e) =>
+                        onFieldChange('series_name', e.target.value)
+                    }
                     className="col-span-3"
                 />
             </div>

@@ -1,12 +1,21 @@
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
-import { type CategoryFieldsProps, type PriceRange } from "@/types/types";
+import { type CategoryFieldsProps, type PriceRange } from '@/types/types';
 
 const priceOptions: PriceRange[] = ['$', '$$', '$$$', '$$$$'];
 
-export const RestaurantFields = ({ formData, onFieldChange }: CategoryFieldsProps) => {
+export const RestaurantFields = ({
+    formData,
+    onFieldChange,
+}: CategoryFieldsProps) => {
     return (
         <>
             {/* Price Range Field */}
@@ -16,16 +25,18 @@ export const RestaurantFields = ({ formData, onFieldChange }: CategoryFieldsProp
                 </Label>
                 <Select
                     value={formData.price_range || ''}
-                    onValueChange={(e) => onFieldChange('price_range', e)}
+                    onValueChange={(value) =>
+                        onFieldChange('price_range', value as PriceRange)
+                    }
                 >
                     <SelectTrigger id="priceRange" className="col-span-3">
                         <SelectValue placeholder="Select a price range" />
                     </SelectTrigger>
                     <SelectContent>
                         {priceOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                            {option}
-                        </SelectItem>
+                            <SelectItem key={option} value={option}>
+                                {option}
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

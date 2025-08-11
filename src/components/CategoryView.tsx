@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import {
     type Category,
     type CombinedItem,
+    type Status,
     categoryTitles,
 } from '@/types/types';
 
@@ -22,6 +23,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
     const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
     const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
@@ -72,6 +74,12 @@ export const CategoryView = ({ category }: { category: Category }) => {
         [items],
     );
 
+    // Unselect item and set new active tab for form
+    const handleTabChange = (value: Status) => {
+        setSelectedItem(null);
+        setActiveTab(value);
+    };
+
     // Toggle selection of item
     const handleSelectItem = (item: CombinedItem) => {
         setSelectedItem((prev) => (prev?.id === item.id ? null : item));
@@ -106,7 +114,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 <Tabs
                     defaultValue="ranked"
                     className="flex flex-col h-full gap-0"
-                    onValueChange={() => setSelectedItem(null)}
+                    onValueChange={(value) => handleTabChange(value as Status)}
                 >
                     <header className="flex flex-col m-4 mb-0 gap-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
                         <h1 className="text-4xl font-bold text-foreground">
@@ -124,6 +132,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 <ItemForm
                                     category={category}
                                     onSuccess={handleAddSuccess}
+                                    activeListStatus={activeTab}
                                 />
 
                                 {/* Reopen detail view button */}
