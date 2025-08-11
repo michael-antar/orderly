@@ -14,7 +14,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-// import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -82,8 +81,10 @@ export function ItemForm({
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{dialogTitle}</DialogTitle>
+                <DialogHeader className="overflow-hidden">
+                    <DialogTitle className="break-words">
+                        {dialogTitle}
+                    </DialogTitle>
                     <DialogDescription>
                         {mode === 'add' ? (
                             <span>
@@ -98,6 +99,8 @@ export function ItemForm({
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                     {/* Common Fields */}
+
+                    {/* Status Toggle */}
                     <ToggleGroup
                         type="single"
                         variant="outline"
@@ -114,7 +117,10 @@ export function ItemForm({
                             Backlog
                         </ToggleGroupItem>
                     </ToggleGroup>
+
                     <Separator />
+
+                    {/* Name Field */}
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="name" className="text-right">
                             Name <span className="text-destructive">*</span>
@@ -125,7 +131,7 @@ export function ItemForm({
                             onChange={(e) =>
                                 handleFieldChange('name', e.target.value)
                             }
-                            className="col-span-3"
+                            className="col-span-3 break-words"
                             autoComplete="off"
                             required
                         />

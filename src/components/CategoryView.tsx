@@ -196,6 +196,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             >
                 <ItemDetailView
                     item={selectedItem}
+                    activeListStatus={activeTab}
                     onClose={() => setIsDetailViewOpen(false)}
                     onEdit={handleEditSuccess}
                     onDelete={handleDeleteSuccess}
