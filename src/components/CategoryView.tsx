@@ -86,12 +86,15 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     // Refresh list
-    const handleAddSuccess = () => {
+    const handleAddSuccess = (newStatus: Status) => {
+        setActiveTab(newStatus);
         getItems();
     };
 
-    // Refresh edited item
-    const handleEditSuccess = async () => {
+    // Set new active tab and refresh edited item
+    const handleEditSuccess = async (newStatus: Status) => {
+        setActiveTab(newStatus);
+
         const result = await getItems();
         if (result?.data && selectedItem) {
             const updatedItem = result.data.find(
@@ -112,7 +115,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Left Column: Item List */}
             <div className="w-full h-full flex flex-col md:w-1/2">
                 <Tabs
-                    defaultValue="ranked"
+                    value={activeTab}
                     className="flex flex-col h-full gap-0"
                     onValueChange={(value) => handleTabChange(value as Status)}
                 >
@@ -131,7 +134,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 {/* Add Item Button */}
                                 <ItemForm
                                     category={category}
-                                    onSuccess={handleAddSuccess}
+                                    onSuccess={(newStatus) =>
+                                        handleAddSuccess(newStatus)
+                                    }
                                     activeListStatus={activeTab}
                                 />
 

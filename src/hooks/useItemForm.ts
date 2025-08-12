@@ -22,7 +22,7 @@ type UseItemFormProps = {
     mode: FormMode;
     category?: Category; // Required for 'add' mode
     item?: CombinedItem; // Required for 'edit' mode
-    onSuccess: () => void;
+    onSuccess: (newStatus: Status) => void;
 };
 
 // Helper to parse integer values from form inputs
@@ -91,7 +91,7 @@ export const useItemForm = ({
             toast.success(`Success!`, {
                 description: `'${formData.name}' has been saved.`,
             });
-            onSuccess();
+            onSuccess(formData.status as Status);
             setIsOpen(false);
         } catch (error: unknown) {
             toast.error('Something went wrong.', {

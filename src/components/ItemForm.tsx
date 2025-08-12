@@ -24,7 +24,7 @@ type ItemFormProps = {
     // Determine mode by checking if 'item' prop exists
     item?: CombinedItem;
     category?: Category;
-    onSuccess: () => void;
+    onSuccess: (newStatus: Status) => void;
     activeListStatus: Status;
 };
 
