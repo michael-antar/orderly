@@ -6,6 +6,7 @@ import { PanelRightOpen } from 'lucide-react';
 import { Button } from './ui/button';
 import { ItemDetailView } from './ItemDetailView';
 import { ItemForm } from './ItemForm';
+import { SortControls } from './SortControls';
 import { ItemList } from './ItemList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -124,12 +125,17 @@ export const CategoryView = ({ category }: { category: Category }) => {
                             {categoryTitles[category]}
                         </h1>
                         <div className="flex items-center justify-between w-full lg:flex-1">
+                            {/* Status Tabs */}
                             <TabsList>
                                 <TabsTrigger value="ranked">Ranked</TabsTrigger>
                                 <TabsTrigger value="backlog">
                                     Backlog
                                 </TabsTrigger>
                             </TabsList>
+
+                            {/* Sort Controls */}
+                            <SortControls />
+
                             <div className="flex items-center gap-2">
                                 {/* Add Item Button */}
                                 <ItemForm
