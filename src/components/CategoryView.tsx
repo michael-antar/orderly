@@ -133,10 +133,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 </TabsTrigger>
                             </TabsList>
 
-                            {/* Sort Controls */}
-                            <SortControls />
-
                             <div className="flex items-center gap-2">
+                                {/* Sort Controls */}
+                                <SortControls />
+
                                 {/* Add Item Button */}
                                 <ItemForm
                                     category={category}
