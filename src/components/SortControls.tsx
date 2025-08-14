@@ -1,4 +1,4 @@
-import { ArrowDown, SlidersHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowUp, SlidersHorizontal } from 'lucide-react';
 
 import { Button } from './ui/button';
 import { Label } from '@/components/ui/label';
@@ -16,13 +16,26 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 
-export const SortControls = () => {
+import { type SortOption } from '@/types/types';
+
+type SortControlsProps = {
+    sortBy: SortOption;
+    sortAsc: boolean;
+    onSortByChange: (value: SortOption) => void;
+    onSortDirChange: () => void;
+};
+
+export const SortControls = ({
+    sortBy,
+    sortAsc,
+    onSortByChange,
+    onSortDirChange,
+}: SortControlsProps) => {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <Button variant={'outline'}>
-                    <SlidersHorizontal className="mr-2 h-4 w-4" />
-                    Sort & Filter
+                <Button variant="outline" size="icon">
+                    <SlidersHorizontal className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
@@ -39,7 +52,10 @@ export const SortControls = () => {
                     <div className="grid grid-cols-3 items-center gap-4">
                         <Label>Sort by</Label>
                         <div className="col-span-2 flex items-center gap-2">
-                            <Select>
+                            <Select
+                                value={sortBy}
+                                onValueChange={onSortByChange}
+                            >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
@@ -53,8 +69,19 @@ export const SortControls = () => {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Button variant="ghost" size="icon">
-                                <ArrowDown className="h-4 w-4" />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onSortDirChange}
+                            >
+                                {sortAsc ? (
+                                    <ArrowUp className="h-4 w-4" />
+                                ) : (
+                                    <ArrowDown className="h-4 w-4" />
+                                )}
+                                <span className="sr-only">
+                                    Toggle sort direction
+                                </span>
                             </Button>
                         </div>
                     </div>

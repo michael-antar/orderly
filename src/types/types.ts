@@ -6,6 +6,7 @@ import { type PostgrestError } from '@supabase/supabase-js';
 export type Category = 'album' | 'book' | 'movie' | 'restaurant' | 'show';
 export type Status = 'ranked' | 'backlog';
 export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
+export type SortOption = 'rating' | 'name' | 'created_at';
 
 // --- Database and API Types ---
 

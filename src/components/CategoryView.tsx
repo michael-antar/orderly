@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import {
     type Category,
     type CombinedItem,
+    type SortOption,
     type Status,
     categoryTitles,
 } from '@/types/types';
@@ -25,8 +26,14 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
+
+    // Handle DetailView
     const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
+
+    // Handle list sorting
+    const [sortBy, setSortBy] = useState<SortOption>('rating');
+    const [sortAsc, setSortAsc] = useState(false);
 
     // Fetch list of items from database
     const getItems = useCallback(async () => {
@@ -135,7 +142,14 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
                             <div className="flex items-center gap-2">
                                 {/* Sort Controls */}
-                                <SortControls />
+                                <SortControls
+                                    sortBy={sortBy}
+                                    sortAsc={sortAsc}
+                                    onSortByChange={setSortBy}
+                                    onSortDirChange={() =>
+                                        setSortAsc((prev) => !prev)
+                                    }
+                                />
 
                                 {/* Add Item Button */}
                                 <ItemForm
