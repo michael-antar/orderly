@@ -73,13 +73,29 @@ export const CategoryView = ({ category }: { category: Category }) => {
         setSelectedItem(null);
     }, [category]);
 
+    // Handle list sort
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            const aVal = a[sortBy];
+            const bVal = b[sortBy];
+
+            // Handle null cases
+            if (aVal === null) return 1;
+            if (bVal === null) return -1;
+
+            if (aVal < bVal) return sortAsc ? -1 : 1;
+            if (aVal > bVal) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }, [items, sortBy, sortAsc]);
+
     const rankedItems = useMemo(
-        () => items.filter((item) => item.status === 'ranked'),
-        [items],
+        () => sortedItems.filter((item) => item.status === 'ranked'),
+        [sortedItems],
     );
     const backlogItems = useMemo(
-        () => items.filter((item) => item.status === 'backlog'),
-        [items],
+        () => sortedItems.filter((item) => item.status === 'backlog'),
+        [sortedItems],
     );
 
     // Unselect item and set new active tab for form
