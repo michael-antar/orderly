@@ -43,7 +43,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             const { data, error } = await supabase
                 .from('items')
                 .select(
-                    `*, movie_details(*), restaurant_details(*), album_details(*), book_details(*), show_details(*)`,
+                    `*, tags(*), movie_details(*), restaurant_details(*), album_details(*), book_details(*), show_details(*)`,
                 )
                 .eq('user_id', user.id)
                 .eq('category', category)

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
 import { ItemForm } from './ItemForm';
+import { TagBadge } from './TagBadge';
 import { toast } from 'sonner';
 
 import { type CombinedItem, type Status } from '@/types/types';
@@ -144,6 +145,20 @@ export const ItemDetailView = ({
                     </p>
                 )}
             </div>
+
+            {/* Tags Section */}
+            {item.tags && item.tags.length > 0 && (
+                <div className="mt-6 space-y-2 border-t pt-4">
+                    <h4 className="font-semibold text-muted-foreground text-sm">
+                        Tags
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                        {item.tags.map((tag) => (
+                            <TagBadge key={tag.id} name={tag.name} />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Category Specific Details */}
             <div className="mt-6 space-y-2 border-t pt-4">

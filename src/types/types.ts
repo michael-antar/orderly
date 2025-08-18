@@ -7,6 +7,12 @@ export type Category = 'album' | 'book' | 'movie' | 'restaurant' | 'show';
 export type Status = 'ranked' | 'backlog';
 export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
 export type SortOption = 'rating' | 'name' | 'created_at';
+export type Tag = {
+    id: number;
+    name: string;
+    category: Category;
+    user_id: string;
+};
 
 // --- Database and API Types ---
 
@@ -21,6 +27,7 @@ export type Item = {
     rating: number | null;
     description: string | null;
     comparison_count: number;
+    tags: Tag[] | null;
 };
 
 // Generic type for the response from Supabase mutation operations
