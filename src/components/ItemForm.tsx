@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { TagInput } from '@/components/TagInput';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 import { useItemForm } from '@/hooks/useItemForm';
@@ -152,6 +153,7 @@ export function ItemForm({
                             className="col-span-3"
                         />
                     </div>
+
                     <Separator />
 
                     {/* Category Specific Fields */}
@@ -160,6 +162,12 @@ export function ItemForm({
                         onFieldChange={handleFieldChange}
                     />
 
+                    <Separator />
+
+                    {/* Tag Input component */}
+                    <TagInput />
+
+                    {/* Submit Button */}
                     <Button type="submit" disabled={isLoading}>
                         {isLoading
                             ? 'Saving...'
