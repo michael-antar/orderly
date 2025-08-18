@@ -87,6 +87,16 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const handleTabChange = (value: Status) => {
         setSelectedItem(null);
         setActiveTab(value);
+
+        // Set default sorting based on selected tab
+        if (value === 'backlog') {
+            setSortBy('name'); // Alphabetical
+            setSortAsc(true);
+        } else {
+            // ranked
+            setSortBy('rating'); // Elo
+            setSortAsc(false);
+        }
     };
 
     // Toggle selection of item
@@ -146,6 +156,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 <SortControls
                                     sortBy={sortBy}
                                     sortAsc={sortAsc}
+                                    isEloDisabled={activeTab === 'backlog'}
                                     onSortByChange={setSortBy}
                                     onSortDirChange={() =>
                                         setSortAsc((prev) => !prev)

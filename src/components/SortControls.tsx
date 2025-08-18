@@ -21,6 +21,7 @@ import { type SortOption } from '@/types/types';
 type SortControlsProps = {
     sortBy: SortOption;
     sortAsc: boolean;
+    isEloDisabled: boolean;
     onSortByChange: (value: SortOption) => void;
     onSortDirChange: () => void;
 };
@@ -28,6 +29,7 @@ type SortControlsProps = {
 export const SortControls = ({
     sortBy,
     sortAsc,
+    isEloDisabled,
     onSortByChange,
     onSortDirChange,
 }: SortControlsProps) => {
@@ -60,7 +62,12 @@ export const SortControls = ({
                                     <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="rating">Elo</SelectItem>
+                                    <SelectItem
+                                        value="rating"
+                                        disabled={isEloDisabled}
+                                    >
+                                        Elo
+                                    </SelectItem>
                                     <SelectItem value="name">
                                         Alphabetical
                                     </SelectItem>
