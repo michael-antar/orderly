@@ -46,7 +46,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
                     `*, movie_details(*), restaurant_details(*), album_details(*), book_details(*), show_details(*)`,
                 )
                 .eq('user_id', user.id)
-                .eq('category', category);
+                .eq('category', category)
+                .order(sortBy, { ascending: sortAsc, nullsFirst: false });
             if (error) throw error;
             setItems(data || []);
             return { data, error: null };
@@ -56,7 +57,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
         } finally {
             setLoading(false);
         }
-    }, [user, category]);
+    }, [user, category, sortBy, sortAsc]);
 
     // Initial fetch on component mount or category change
     useEffect(() => {
@@ -73,29 +74,13 @@ export const CategoryView = ({ category }: { category: Category }) => {
         setSelectedItem(null);
     }, [category]);
 
-    // Handle list sort
-    const sortedItems = useMemo(() => {
-        return [...items].sort((a, b) => {
-            const aVal = a[sortBy];
-            const bVal = b[sortBy];
-
-            // Handle null cases
-            if (aVal === null) return 1;
-            if (bVal === null) return -1;
-
-            if (aVal < bVal) return sortAsc ? -1 : 1;
-            if (aVal > bVal) return sortAsc ? 1 : -1;
-            return 0;
-        });
-    }, [items, sortBy, sortAsc]);
-
     const rankedItems = useMemo(
-        () => sortedItems.filter((item) => item.status === 'ranked'),
-        [sortedItems],
+        () => items.filter((item) => item.status === 'ranked'),
+        [items],
     );
     const backlogItems = useMemo(
-        () => sortedItems.filter((item) => item.status === 'backlog'),
-        [sortedItems],
+        () => items.filter((item) => item.status === 'backlog'),
+        [items],
     );
 
     // Unselect item and set new active tab for form
