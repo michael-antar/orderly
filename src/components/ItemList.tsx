@@ -1,5 +1,6 @@
-import { type CombinedItem } from "@/types/types";
-import { ItemCard } from "./ItemCard";
+import { type CombinedItem } from '@/types/types';
+import { ItemCard } from './ItemCard';
+import { ItemCardSkeleton } from './ItemCardSkeleton';
 
 type ItemListProps = {
     items: CombinedItem[];
@@ -9,9 +10,23 @@ type ItemListProps = {
     emptyMessage: string;
 };
 
-export const ItemList = ({ items, loading, selectedItem, onSelectItem, emptyMessage }: ItemListProps) => {
+export const ItemList = ({
+    items,
+    loading,
+    selectedItem,
+    onSelectItem,
+    emptyMessage,
+}: ItemListProps) => {
+    // Use skeleton if loading
     if (loading) {
-        return <p className="text-muted-foreground">Loading items...</p>;
+        const skeletonCount = items.length > 0 ? items.length : 5;
+        return (
+            <div>
+                {Array.from({ length: skeletonCount }).map((_, index) => (
+                    <ItemCardSkeleton key={index} />
+                ))}
+            </div>
+        );
     }
 
     if (items.length === 0) {
