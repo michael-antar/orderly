@@ -8,13 +8,14 @@ import { useAuth } from '@/contexts/AuthContext';
 
 import { categoryConfig } from '@/config/categoryConfig';
 import {
+    type AnyDetails,
+    type Category,
     type CombinedItem,
     type Item,
-    type Category,
-    type Status,
-    type AnyDetails,
-    type SupabaseMutationResponse,
     type ItemFormData,
+    type Status,
+    type SupabaseMutationResponse,
+    type Tag,
 } from '@/types/types';
 
 type FormMode = 'add' | 'edit';
@@ -45,6 +46,7 @@ export const useItemForm = ({
     // --- STATE MANAGEMENT ---
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
 
     // Initial state is derived once from props
     const getInitialState = useCallback((): ItemFormData => {
@@ -54,20 +56,37 @@ export const useItemForm = ({
                 name: item.name,
                 description: item.description || '',
                 status: item.status,
+                tags: item.tags || [],
                 ...details,
             };
         }
-        return { name: '', description: '', status: 'ranked' };
+        return { name: '', description: '', status: 'ranked', tags: [] };
     }, [mode, item]);
 
     const [formData, setFormData] = useState<ItemFormData>(getInitialState);
 
     // Reset state when item changes or form opens
     useEffect(() => {
+        const fetchTags = async () => {
+            if (!user) return;
+            const { data, error } = await supabase
+                .from('tags')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('category', effectiveCategory);
+
+            if (error) {
+                console.error('Error fetching tags:', error);
+            } else {
+                setAvailableTags(data || []);
+            }
+        };
+
         if (isOpen) {
             setFormData(getInitialState());
+            fetchTags();
         }
-    }, [isOpen, getInitialState]);
+    }, [isOpen, getInitialState, user, effectiveCategory]);
 
     const handleFieldChange = useCallback(
         <K extends keyof ItemFormData>(field: K, value: ItemFormData[K]) => {
@@ -231,5 +250,6 @@ export const useItemForm = ({
         FieldsComponent,
         mode,
         effectiveCategory,
+        availableTags,
     };
 };

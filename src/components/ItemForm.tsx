@@ -45,6 +45,7 @@ export function ItemForm({
         handleSubmit,
         FieldsComponent,
         effectiveCategory,
+        availableTags,
     } = useItemForm({
         mode,
         item,
@@ -165,7 +166,14 @@ export function ItemForm({
                     <Separator />
 
                     {/* Tag Input component */}
-                    <TagInput />
+                    <TagInput
+                        selectedTags={formData.tags || []}
+                        availableTags={availableTags}
+                        onTagsChange={(newTags) =>
+                            handleFieldChange('tags', newTags)
+                        }
+                        category={effectiveCategory}
+                    />
 
                     {/* Submit Button */}
                     <Button type="submit" disabled={isLoading}>

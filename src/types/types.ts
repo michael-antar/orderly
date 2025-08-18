@@ -109,6 +109,7 @@ export type ItemFormData = Partial<
         description: string;
         status: Status;
         rating: number | null;
+        tags: Tag[];
     } & AlbumDetails &
         BookDetails &
         MovieDetails &
