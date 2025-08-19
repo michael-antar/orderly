@@ -9,6 +9,7 @@ import { ItemForm } from './ItemForm';
 import { SortControls } from './SortControls';
 import { ItemList } from './ItemList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TagManagementModal } from '@/components/TagManagementModal';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -162,6 +163,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                         setSortAsc((prev) => !prev)
                                     }
                                 />
+
+                                {/* Tag Management Modal */}
+                                <TagManagementModal category={category} />
 
                                 {/* Add Item Button */}
                                 <ItemForm
