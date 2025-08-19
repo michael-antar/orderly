@@ -75,21 +75,6 @@ export const TagInput = ({
             tag.name.toLowerCase().includes(inputValue.toLowerCase()),
     );
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        // Close on Escape
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(false);
-        }
-        // Close on Enter when input is empty
-        if (e.key === 'Enter' && !inputValue) {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(false);
-        }
-    };
-
     return (
         <div className="grid grid-cols-4 items-start gap-4">
             <Label className="text-right pt-2">Tags</Label>
@@ -133,7 +118,7 @@ export const TagInput = ({
                         className="w-[--radix-popover-trigger-width] p-0"
                         align="start"
                     >
-                        <Command onKeyDown={handleKeyDown}>
+                        <Command>
                             <CommandInput
                                 placeholder="Search or create tag..."
                                 value={inputValue}
