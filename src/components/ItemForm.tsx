@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Plus, Pencil } from 'lucide-react';
 
@@ -53,6 +53,8 @@ export function ItemForm({
         onSuccess,
     });
 
+    const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
+
     useEffect(() => {
         if (mode === 'add' && isOpen && activeListStatus) {
             handleFieldChange('status', activeListStatus);
@@ -82,7 +84,16 @@ export function ItemForm({
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent
+                className="sm:max-w-[425px]"
+                onEscapeKeyDown={(e) => {
+                    // If the tag popover is open, prevent the dialog from closing
+                    if (isTagPopoverOpen) {
+                        e.preventDefault();
+                        setTagPopoverOpen(false);
+                    }
+                }}
+            >
                 <DialogHeader className="overflow-hidden">
                     <DialogTitle className="break-words">
                         {dialogTitle}
@@ -173,6 +184,8 @@ export function ItemForm({
                             handleFieldChange('tags', newTags)
                         }
                         category={effectiveCategory}
+                        popoverOpen={isTagPopoverOpen}
+                        onPopoverOpenChange={setTagPopoverOpen}
                     />
 
                     {/* Submit Button */}

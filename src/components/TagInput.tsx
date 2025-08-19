@@ -26,6 +26,8 @@ type TagInputProps = {
     availableTags: Tag[];
     onTagsChange: (newTags: Tag[]) => void;
     category: Category;
+    popoverOpen: boolean;
+    onPopoverOpenChange: (open: boolean) => void;
 };
 
 export const TagInput = ({
@@ -33,8 +35,9 @@ export const TagInput = ({
     availableTags,
     onTagsChange,
     category,
+    popoverOpen,
+    onPopoverOpenChange,
 }: TagInputProps) => {
-    const [open, setOpen] = useState(false);
     const [inputValue, setInputValue] = useState('');
 
     const handleSelect = useCallback(
@@ -75,11 +78,20 @@ export const TagInput = ({
             tag.name.toLowerCase().includes(inputValue.toLowerCase()),
     );
 
+    const showCreateOption =
+        inputValue &&
+        !availableTags.some(
+            (t) => t.name.toLowerCase() === inputValue.toLowerCase(),
+        ) &&
+        !selectedTags.some(
+            (t) => t.name.toLowerCase() === inputValue.toLowerCase(),
+        );
+
     return (
         <div className="grid grid-cols-4 items-start gap-4">
             <Label className="text-right pt-2">Tags</Label>
             <div className="col-span-3">
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover open={popoverOpen} onOpenChange={onPopoverOpenChange}>
                     <PopoverTrigger asChild>
                         <Button
                             variant="outline"
@@ -118,37 +130,39 @@ export const TagInput = ({
                         className="w-[--radix-popover-trigger-width] p-0"
                         align="start"
                     >
-                        <Command>
+                        <Command shouldFilter={false}>
                             <CommandInput
                                 placeholder="Search or create tag..."
                                 value={inputValue}
                                 onValueChange={setInputValue}
                             />
                             <CommandList>
-                                {inputValue &&
-                                    !availableTags.some(
-                                        (t) =>
-                                            t.name.toLowerCase() ===
-                                            inputValue.toLowerCase(),
-                                    ) && (
+                                {showCreateOption && (
+                                    <CommandGroup>
                                         <CommandItem
+                                            key="create-new-tag"
                                             onSelect={() =>
                                                 handleCreate(inputValue)
                                             }
                                         >
                                             Create "{inputValue}"
                                         </CommandItem>
-                                    )}
-                                <CommandGroup heading="Suggestions">
-                                    {filteredTags.map((tag) => (
-                                        <CommandItem
-                                            key={tag.id}
-                                            onSelect={() => handleSelect(tag)}
-                                        >
-                                            {tag.name}
-                                        </CommandItem>
-                                    ))}
-                                </CommandGroup>
+                                    </CommandGroup>
+                                )}
+                                {filteredTags.length > 0 && (
+                                    <CommandGroup heading="Suggestions">
+                                        {filteredTags.map((tag) => (
+                                            <CommandItem
+                                                key={tag.id}
+                                                onSelect={() =>
+                                                    handleSelect(tag)
+                                                }
+                                            >
+                                                {tag.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                )}
                                 <CommandEmpty>No results found.</CommandEmpty>
                             </CommandList>
                         </Command>
