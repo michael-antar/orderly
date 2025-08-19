@@ -128,7 +128,7 @@ export const useItemForm = ({
         // Insert into 'items' table
         const itemToInsert: Omit<
             Item,
-            'id' | 'created_at' | 'comparison_count'
+            'id' | 'created_at' | 'comparison_count' | 'tags'
         > = {
             user_id: user!.id,
             name: formData.name!,
@@ -148,21 +148,24 @@ export const useItemForm = ({
             .single();
         if (itemError) throw new Error('Failed to create a new item.');
 
-        // Insert into category-specific 'details' table
-        const detailsToInsert = getDetailsObject();
-        const handler = config.handleDetailsInsert as (
-            itemId: string,
-            details: Partial<AnyDetails>,
-        ) => SupabaseMutationResponse;
-        const { error: detailsError } = await handler(
-            newItem.id,
-            detailsToInsert,
-        );
+        try {
+            // Perform inserts sequentially to ensure type safety and handle rollbacks
+            const detailsToInsert = getDetailsObject();
+            const handler = config.handleDetailsInsert as (
+                itemId: string,
+                details: Partial<AnyDetails>,
+            ) => SupabaseMutationResponse;
+            const { error: detailsError } = await handler(
+                newItem.id,
+                detailsToInsert,
+            );
+            if (detailsError) throw new Error('Failed to save item details.');
 
-        if (detailsError) {
-            // Rollback item creation if details fail
+            await handleTagSync(newItem.id, formData.tags || []);
+        } catch (error) {
+            // If any of the subsequent inserts fail, roll back the main item creation
             await supabase.from('items').delete().eq('id', newItem.id);
-            throw new Error('Failed to save item details.');
+            throw error; // Re-throw the error to be caught by handleSubmit
         }
     };
 
@@ -216,25 +219,87 @@ export const useItemForm = ({
                 );
             throw new Error('Failed to update item details.');
         }
+
+        // Sync tag data for item
+        await handleTagSync(item!.id, formData.tags || []);
     };
 
     // Helper to extract only the relevant details for the current category
-    const getDetailsObject = () => {
+    const getDetailsObject = useCallback((): Partial<AnyDetails> => {
         const details: { [key: string]: string | number | null } = {};
         for (const field of config.fields) {
-            // Handle number parsing for specific fields
             const key = field as keyof ItemFormData;
+            const value = formData[key] ?? null;
+
+            // Prevents function from processing 'tags' array
+            if (Array.isArray(value)) {
+                continue;
+            }
+
             if (field.endsWith('_year') || field.endsWith('_order')) {
-                details[key] = parseOptionalInt(formData[key] ?? null);
+                details[key] = parseOptionalInt(value ?? null);
             } else {
-                const value = formData[key];
                 details[key] =
                     typeof value === 'string'
                         ? value.trim() || null
                         : value || null;
             }
         }
-        return details;
+        return details as Partial<AnyDetails>;
+    }, [config.fields, formData]);
+
+    const handleTagSync = async (itemId: string, finalTags: Tag[]) => {
+        const originalTagIds = item?.tags?.map((t) => t.id) || [];
+
+        // Create any new tags that were added by the user
+        // New tags will have been created with a generated id using Date(now), which will always be over 1,000,000
+        const tagsToCreate = finalTags.filter((t) => t.id > 1_000_000);
+        let newTagIds: number[] = [];
+        if (tagsToCreate.length > 0) {
+            const { data: createdTags, error: createError } = await supabase
+                .from('tags')
+                .insert(
+                    tagsToCreate.map((t) => ({
+                        name: t.name,
+                        category: t.category,
+                        user_id: user!.id,
+                    })),
+                )
+                .select('id');
+            if (createError) throw new Error('Failed to create new tags.');
+            newTagIds = createdTags.map((t) => t.id);
+        }
+
+        const allFinalTagIds = [
+            ...finalTags.filter((t) => t.id < 1_000_000).map((t) => t.id),
+            ...newTagIds,
+        ];
+
+        // Determine which tags to link and unlink
+        const tagsToLink = allFinalTagIds.filter(
+            (id) => !originalTagIds.includes(id),
+        );
+        const tagsToUnlink = originalTagIds.filter(
+            (id) => !allFinalTagIds.includes(id),
+        );
+
+        // Perform the linking and unlinking in the junction 'item_tags' table
+        if (tagsToLink.length > 0) {
+            const { error } = await supabase
+                .from('item_tags')
+                .insert(
+                    tagsToLink.map((tag_id) => ({ item_id: itemId, tag_id })),
+                );
+            if (error) throw new Error('Failed to link new tags.');
+        }
+        if (tagsToUnlink.length > 0) {
+            const { error } = await supabase
+                .from('item_tags')
+                .delete()
+                .eq('item_id', itemId)
+                .in('tag_id', tagsToUnlink);
+            if (error) throw new Error('Failed to unlink old tags.');
+        }
     };
 
     // Memoize the FieldsComponent to prevent re-renders
