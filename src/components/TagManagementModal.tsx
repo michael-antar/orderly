@@ -25,7 +25,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { TagBadge } from './TagBadge';
+import { EditableTag } from './EditableTag';
 import { Separator } from './ui/separator';
 
 import { type Category, categoryTitles, type Tag } from '@/types/types';
@@ -66,6 +66,29 @@ export const TagManagementModal = ({ category }: TagManagementModal) => {
             fetchTags();
         }
     }, [isOpen, user, category]);
+
+    const handleRename = async (tagToRename: Tag, newName: string) => {
+        const { error } = await supabase
+            .from('tags')
+            .update({ name: newName })
+            .eq('id', tagToRename.id);
+
+        if (error) {
+            toast.error('Rename failed', {
+                description: 'There was a problem renaming the tag.',
+            });
+        } else {
+            toast.success('Tag renamed', {
+                description: `'${tagToRename.name}' is now '${newName}'.`,
+            });
+            // Refresh local UI
+            setTags((prevTags) =>
+                prevTags.map((tag) =>
+                    tag.id === tagToRename.id ? { ...tag, name: newName } : tag,
+                ),
+            );
+        }
+    };
 
     const handleDelete = async (tagToDelete: Tag) => {
         // Delete all associations from the junction table
@@ -136,7 +159,10 @@ export const TagManagementModal = ({ category }: TagManagementModal) => {
                                     key={tag.id}
                                     className="flex items-center justify-between"
                                 >
-                                    <TagBadge name={tag.name} />
+                                    <EditableTag
+                                        tag={tag}
+                                        onRename={handleRename}
+                                    />
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
                                             <Button
