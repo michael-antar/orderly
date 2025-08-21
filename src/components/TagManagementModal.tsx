@@ -147,7 +147,7 @@ export const TagManagementModal = ({ category }: TagManagementModal) => {
                 <Separator />
 
                 {/* Display Tags */}
-                <div className="py-4 max-h-[400px] overflow-y-auto">
+                <div className="py-4 px-2 max-h-[400px] overflow-y-auto">
                     {loading ? (
                         <p className="text-sm text-center text-muted-foreground">
                             Loading tags...
