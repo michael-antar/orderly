@@ -76,6 +76,15 @@ export const TagManagementModal = ({
         }
     }, [isOpen, user, category]);
 
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        // If the dialog is closing, reset the form state
+        if (!open) {
+            setIsCreatingTag(false);
+            setNewTagName('');
+        }
+    };
+
     const handleRename = async (tagToRename: Tag, newName: string) => {
         const { error } = await supabase
             .from('tags')
@@ -136,8 +145,51 @@ export const TagManagementModal = ({
         }
     };
 
+    const handleCreateTag = async () => {
+        if (!newTagName.trim() || !user) return;
+
+        // Check for duplicates
+        if (
+            tags.some(
+                (tag) =>
+                    tag.name.toLowerCase() === newTagName.trim().toLowerCase(),
+            )
+        ) {
+            toast.error('Duplicate Tag', {
+                description: 'A tag with this name already exists.',
+            });
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('tags')
+            .insert({
+                name: newTagName.trim(),
+                category,
+                user_id: user.id,
+            })
+            .select()
+            .single();
+
+        if (error || !data) {
+            toast.error('Create failed', {
+                description: 'There was a problem creating the new tag.',
+            });
+        } else {
+            toast.success('Tag created', {
+                description: `'${data.name}' has been added to your tags.`,
+            });
+            setTags((prev) =>
+                [...prev, data].sort((a, b) => a.name.localeCompare(b.name)),
+            );
+            setNewTagName('');
+            setIsCreatingTag(false);
+            onSuccess();
+        }
+    };
+
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="icon">
                     <Tags className="h-4 w-4" />
@@ -231,6 +283,9 @@ export const TagManagementModal = ({
                                 placeholder="New tag name..."
                                 value={newTagName}
                                 onChange={(e) => setNewTagName(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleCreateTag();
+                                }}
                                 autoFocus
                             />
                             <Button
@@ -239,7 +294,7 @@ export const TagManagementModal = ({
                             >
                                 Cancel
                             </Button>
-                            <Button>Save</Button>
+                            <Button onClick={handleCreateTag}>Save</Button>
                         </div>
                     ) : (
                         <Button
