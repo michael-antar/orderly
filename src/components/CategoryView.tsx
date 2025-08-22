@@ -130,6 +130,17 @@ export const CategoryView = ({ category }: { category: Category }) => {
         getItems();
     };
 
+    // Refresh both the list and the item detail view
+    const handleTagUpdateSuccess = async () => {
+        const result = await getItems();
+        if (result?.data && selectedItem) {
+            const updatedItem = result.data.find(
+                (item) => item.id === selectedItem.id,
+            );
+            setSelectedItem(updatedItem || null);
+        }
+    };
+
     return (
         <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
@@ -165,7 +176,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 />
 
                                 {/* Tag Management Modal */}
-                                <TagManagementModal category={category} />
+                                <TagManagementModal
+                                    category={category}
+                                    onSuccess={handleTagUpdateSuccess}
+                                />
 
                                 {/* Add Item Button */}
                                 <ItemForm

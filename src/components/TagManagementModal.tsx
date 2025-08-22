@@ -32,9 +32,13 @@ import { type Category, categoryTitles, type Tag } from '@/types/types';
 
 type TagManagementModal = {
     category: Category;
+    onSuccess: () => void;
 };
 
-export const TagManagementModal = ({ category }: TagManagementModal) => {
+export const TagManagementModal = ({
+    category,
+    onSuccess,
+}: TagManagementModal) => {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [tags, setTags] = useState<Tag[]>([]);
@@ -87,6 +91,7 @@ export const TagManagementModal = ({ category }: TagManagementModal) => {
                     tag.id === tagToRename.id ? { ...tag, name: newName } : tag,
                 ),
             );
+            onSuccess();
         }
     };
 
@@ -122,6 +127,7 @@ export const TagManagementModal = ({ category }: TagManagementModal) => {
             setTags((prevTags) =>
                 prevTags.filter((tag) => tag.id !== tagToDelete.id),
             );
+            onSuccess();
         }
     };
 
