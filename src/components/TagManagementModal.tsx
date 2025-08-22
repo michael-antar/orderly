@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
-import { Tags, Trash2 } from 'lucide-react';
+import { Plus, Tags, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -26,7 +26,8 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { EditableTag } from './EditableTag';
-import { Separator } from './ui/separator';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 
 import { type Category, categoryTitles, type Tag } from '@/types/types';
 
@@ -43,6 +44,10 @@ export const TagManagementModal = ({
     const [isOpen, setIsOpen] = useState(false);
     const [tags, setTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(false);
+
+    // For creating a new tag
+    const [isCreatingTag, setIsCreatingTag] = useState(false);
+    const [newTagName, setNewTagName] = useState('');
 
     // Fetch user tags for category
     useEffect(() => {
@@ -215,6 +220,36 @@ export const TagManagementModal = ({
                         <p className="text-sm text-center text-muted-foreground">
                             No tags found for this category.
                         </p>
+                    )}
+                </div>
+
+                {/* Add New Tag */}
+                <div>
+                    {isCreatingTag ? (
+                        <div className="flex items-center gap-2">
+                            <Input
+                                placeholder="New tag name..."
+                                value={newTagName}
+                                onChange={(e) => setNewTagName(e.target.value)}
+                                autoFocus
+                            />
+                            <Button
+                                variant="secondary"
+                                onClick={() => setIsCreatingTag(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button>Save</Button>
+                        </div>
+                    ) : (
+                        <Button
+                            variant="ghost"
+                            className="w-full"
+                            onClick={() => setIsCreatingTag(true)}
+                        >
+                            <Plus className="mr-2 h-4 w-4" />
+                            New Tag
+                        </Button>
                     )}
                 </div>
             </DialogContent>
