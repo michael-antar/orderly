@@ -9,7 +9,7 @@ import { ItemForm } from './ItemForm';
 import { SortControls } from './SortControls';
 import { ItemList } from './ItemList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TagManagementModal } from '@/components/TagManagementModal';
+import { TagManager } from '@/components/TagManager';
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -176,7 +176,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 />
 
                                 {/* Tag Management Modal */}
-                                <TagManagementModal
+                                <TagManager
                                     category={category}
                                     onSuccess={handleTagUpdateSuccess}
                                 />

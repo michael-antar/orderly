@@ -31,15 +31,12 @@ import { Separator } from '@/components/ui/separator';
 
 import { type Category, categoryTitles, type Tag } from '@/types/types';
 
-type TagManagementModal = {
+type TagManagerProps = {
     category: Category;
     onSuccess: () => void;
 };
 
-export const TagManagementModal = ({
-    category,
-    onSuccess,
-}: TagManagementModal) => {
+export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [tags, setTags] = useState<Tag[]>([]);
