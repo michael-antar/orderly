@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -299,12 +299,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_tags_with_usage: {
+        Args: { p_category: Database["public"]["Enums"]["item_category"] }
+        Returns: {
+          category: Database["public"]["Enums"]["item_category"]
+          id: number
+          is_used: boolean
+          name: string
+          user_id: string
+        }[]
+      }
       get_user_id_from_item: {
         Args: { item_id: string }
         Returns: string
       }
       handle_comparison: {
-        Args: { p_winner_id: string; p_loser_id: string }
+        Args: { p_loser_id: string; p_winner_id: string }
         Returns: undefined
       }
     }

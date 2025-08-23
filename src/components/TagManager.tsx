@@ -29,7 +29,12 @@ import { EditableTag } from './EditableTag';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
-import { type Category, categoryTitles, type Tag } from '@/types/types';
+import {
+    categoryTitles,
+    type Category,
+    type Tag,
+    type TagWithUsage,
+} from '@/types/types';
 
 type TagManagerProps = {
     category: Category;
@@ -53,31 +58,16 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
         if (!user) return;
         setLoading(true);
         try {
-            // Fetch all tags for the category
-            const { data: allTags, error: tagsError } = await supabase
-                .from('tags')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('category', category)
-                .order('name', { ascending: true });
-            if (tagsError) throw tagsError;
-            if (!allTags) return;
+            const { data, error } = await supabase.rpc('get_tags_with_usage', {
+                p_category: category,
+            });
 
-            // Fetch all item-tags for the category to find which tags are used
-            const { data: usedTagLinks, error: linksError } = await supabase
-                .from('item_tags')
-                .select('tag_id')
-                .in(
-                    'tag_id',
-                    allTags.map((t) => t.id),
-                );
-            if (linksError) throw linksError;
+            if (error) throw error;
 
-            const usedTagIds = new Set(usedTagLinks.map((link) => link.tag_id));
-            const unused = allTags.filter((tag) => !usedTagIds.has(tag.id));
+            const tagsWithUsage = data as TagWithUsage[];
 
-            setTags(allTags as Tag[]);
-            setUnusedTags(unused as Tag[]);
+            setTags(tagsWithUsage);
+            setUnusedTags(tagsWithUsage.filter((tag) => !tag.is_used));
         } catch (error) {
             console.error('Error fetching tags:', error);
             toast.error('Failed to load tags');

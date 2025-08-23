@@ -13,6 +13,9 @@ export type Tag = {
     category: Category;
     user_id: string;
 };
+export type TagWithUsage = Tag & {
+    is_used: boolean;
+};
 
 // --- Database and API Types ---
 
