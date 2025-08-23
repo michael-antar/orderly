@@ -126,6 +126,55 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
         }
     };
 
+    const handleCreate = async () => {
+        if (!newTagName.trim() || !user) return;
+
+        // Check for duplicates
+        if (
+            tags.some(
+                (tag) =>
+                    tag.name.toLowerCase() === newTagName.trim().toLowerCase(),
+            )
+        ) {
+            toast.error('Duplicate Tag', {
+                description: 'A tag with this name already exists.',
+            });
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('tags')
+            .insert({
+                name: newTagName.trim(),
+                category,
+                user_id: user.id,
+            })
+            .select()
+            .single();
+
+        if (error || !data) {
+            toast.error('Create failed', {
+                description: 'There was a problem creating the new tag.',
+            });
+        } else {
+            toast.success('Tag created', {
+                description: `'${data.name}' has been added to your tags.`,
+            });
+
+            // Add to main tags and reorder
+            setTags((prev) =>
+                [...prev, data].sort((a, b) => a.name.localeCompare(b.name)),
+            );
+
+            // Add tag to unused tag list
+            setUnusedTags((prev) => [...prev, data]);
+
+            setNewTagName('');
+            setIsCreatingTag(false);
+            onSuccess();
+        }
+    };
+
     const handleDelete = async (tagToDelete: Tag) => {
         // Delete all associations from the junction table
         const { error: junctionError } = await supabase
@@ -162,45 +211,29 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
         }
     };
 
-    const handleCreateTag = async () => {
-        if (!newTagName.trim() || !user) return;
+    const handleDeleteUnused = async () => {
+        if (unusedTags.length === 0) return;
 
-        // Check for duplicates
-        if (
-            tags.some(
-                (tag) =>
-                    tag.name.toLowerCase() === newTagName.trim().toLowerCase(),
-            )
-        ) {
-            toast.error('Duplicate Tag', {
-                description: 'A tag with this name already exists.',
-            });
-            return;
-        }
-
-        const { data, error } = await supabase
+        const unusedTagIds = unusedTags.map((tag) => tag.id);
+        const { error } = await supabase
             .from('tags')
-            .insert({
-                name: newTagName.trim(),
-                category,
-                user_id: user.id,
-            })
-            .select()
-            .single();
+            .delete()
+            .in('id', unusedTagIds);
 
-        if (error || !data) {
-            toast.error('Create failed', {
-                description: 'There was a problem creating the new tag.',
+        if (error) {
+            toast.error('Delete failed', {
+                description: 'There was a problem deleting unused tags.',
             });
         } else {
-            toast.success('Tag created', {
-                description: `'${data.name}' has been added to your tags.`,
+            toast.success('Unused tags deleted', {
+                description: `${unusedTags.length} tag(s) have been removed.`,
             });
-            setTags((prev) =>
-                [...prev, data].sort((a, b) => a.name.localeCompare(b.name)),
+
+            // Refresh the UI
+            setTags((prevTags) =>
+                prevTags.filter((tag) => !unusedTagIds.includes(tag.id)),
             );
-            setNewTagName('');
-            setIsCreatingTag(false);
+            setUnusedTags([]);
             onSuccess();
         }
     };
@@ -227,7 +260,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                 <Separator />
 
                 {/* Display Tags */}
-                <div className="py-4 px-2 max-h-[400px] overflow-y-auto">
+                <div className="pt-4 px-2 max-h-[400px] overflow-y-auto">
                     {loading ? (
                         <p className="text-sm text-center text-muted-foreground">
                             Loading tags...
@@ -302,8 +335,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                                         setNewTagName(e.target.value)
                                     }
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter')
-                                            handleCreateTag();
+                                        if (e.key === 'Enter') handleCreate();
                                     }}
                                     autoFocus
                                 />
@@ -313,7 +345,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                                 >
                                     Cancel
                                 </Button>
-                                <Button onClick={handleCreateTag}>Save</Button>
+                                <Button onClick={handleCreate}>Save</Button>
                             </div>
                         ) : (
                             <Button
@@ -356,7 +388,9 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction>Delete</AlertDialogAction>
+                                <AlertDialogAction onClick={handleDeleteUnused}>
+                                    Delete
+                                </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
