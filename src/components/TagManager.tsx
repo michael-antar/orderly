@@ -319,6 +319,8 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                         {isCreatingTag ? (
                             <div className="flex items-center gap-2">
                                 <Input
+                                    id="new-tag-name"
+                                    name="new-tag-name"
                                     placeholder="New tag name..."
                                     value={newTagName}
                                     onChange={(e) =>
@@ -331,7 +333,10 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                                 />
                                 <Button
                                     variant="secondary"
-                                    onClick={() => setIsCreatingTag(false)}
+                                    onClick={() => {
+                                        setIsCreatingTag(false);
+                                        setNewTagName('');
+                                    }}
                                 >
                                     Cancel
                                 </Button>
@@ -358,7 +363,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button
-                                variant="outline"
+                                variant="destructive"
                                 className="w-full"
                                 disabled={unusedTags.length === 0 || loading}
                             >
