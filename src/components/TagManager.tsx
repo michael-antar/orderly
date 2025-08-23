@@ -46,21 +46,41 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
     const [isCreatingTag, setIsCreatingTag] = useState(false);
     const [newTagName, setNewTagName] = useState('');
 
+    // For tracking unlinked tags
+    const [unusedTags, setUnusedTags] = useState<Tag[]>([]);
+
     // Fetch user tags for category
     useEffect(() => {
         const fetchTags = async () => {
             if (!user) return;
             setLoading(true);
             try {
-                const { data, error } = await supabase
+                // Fetch all tags for the category
+                const { data: allTags, error: tagsError } = await supabase
                     .from('tags')
                     .select('*')
                     .eq('user_id', user.id)
                     .eq('category', category)
                     .order('name', { ascending: true });
+                if (tagsError) throw tagsError;
 
-                if (error) throw error;
-                setTags(data || []);
+                // Fetch all item-tags for the category
+                const { data: usedTagLinks, error: linksError } = await supabase
+                    .from('item_tags')
+                    .select('tag_id')
+                    .in(
+                        'tag_id',
+                        allTags.map((t) => t.id),
+                    );
+                if (linksError) throw linksError;
+
+                const usedTagIds = new Set(
+                    usedTagLinks.map((link) => link.tag_id),
+                );
+                const unused = allTags.filter((tag) => !usedTagIds.has(tag.id));
+
+                setTags(allTags as Tag[]);
+                setUnusedTags(unused as Tag[]);
             } catch (error) {
                 console.error('Error fetching tags:', error);
             } finally {
@@ -270,39 +290,76 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                             No tags found for this category.
                         </p>
                     )}
+
+                    {/* Add New Tag */}
+                    <div className="pt-5">
+                        {isCreatingTag ? (
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    placeholder="New tag name..."
+                                    value={newTagName}
+                                    onChange={(e) =>
+                                        setNewTagName(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter')
+                                            handleCreateTag();
+                                    }}
+                                    autoFocus
+                                />
+                                <Button
+                                    variant="secondary"
+                                    onClick={() => setIsCreatingTag(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleCreateTag}>Save</Button>
+                            </div>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                className="w-full"
+                                onClick={() => setIsCreatingTag(true)}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                New Tag
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Add New Tag */}
+                <Separator />
+
+                {/* Footer */}
                 <div>
-                    {isCreatingTag ? (
-                        <div className="flex items-center gap-2">
-                            <Input
-                                placeholder="New tag name..."
-                                value={newTagName}
-                                onChange={(e) => setNewTagName(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleCreateTag();
-                                }}
-                                autoFocus
-                            />
+                    {/* Delete Unused Tags */}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
                             <Button
-                                variant="secondary"
-                                onClick={() => setIsCreatingTag(false)}
+                                variant="outline"
+                                className="w-full"
+                                disabled={unusedTags.length === 0 || loading}
                             >
-                                Cancel
+                                Delete Unused Tags ({unusedTags.length})
                             </Button>
-                            <Button onClick={handleCreateTag}>Save</Button>
-                        </div>
-                    ) : (
-                        <Button
-                            variant="ghost"
-                            className="w-full"
-                            onClick={() => setIsCreatingTag(true)}
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            New Tag
-                        </Button>
-                    )}
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                    Are you sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will permanently delete all tags that
+                                    are not currently used on any items in this
+                                    category. This action cannot be undone.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction>Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </DialogContent>
         </Dialog>
