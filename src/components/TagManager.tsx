@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,49 +49,48 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
     // For tracking unlinked tags
     const [unusedTags, setUnusedTags] = useState<Tag[]>([]);
 
-    // Fetch user tags for category
-    useEffect(() => {
-        const fetchTags = async () => {
-            if (!user) return;
-            setLoading(true);
-            try {
-                // Fetch all tags for the category
-                const { data: allTags, error: tagsError } = await supabase
-                    .from('tags')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .eq('category', category)
-                    .order('name', { ascending: true });
-                if (tagsError) throw tagsError;
+    const fetchTags = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            // Fetch all tags for the category
+            const { data: allTags, error: tagsError } = await supabase
+                .from('tags')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('category', category)
+                .order('name', { ascending: true });
+            if (tagsError) throw tagsError;
+            if (!allTags) return;
 
-                // Fetch all item-tags for the category
-                const { data: usedTagLinks, error: linksError } = await supabase
-                    .from('item_tags')
-                    .select('tag_id')
-                    .in(
-                        'tag_id',
-                        allTags.map((t) => t.id),
-                    );
-                if (linksError) throw linksError;
-
-                const usedTagIds = new Set(
-                    usedTagLinks.map((link) => link.tag_id),
+            // Fetch all item-tags for the category to find which tags are used
+            const { data: usedTagLinks, error: linksError } = await supabase
+                .from('item_tags')
+                .select('tag_id')
+                .in(
+                    'tag_id',
+                    allTags.map((t) => t.id),
                 );
-                const unused = allTags.filter((tag) => !usedTagIds.has(tag.id));
+            if (linksError) throw linksError;
 
-                setTags(allTags as Tag[]);
-                setUnusedTags(unused as Tag[]);
-            } catch (error) {
-                console.error('Error fetching tags:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+            const usedTagIds = new Set(usedTagLinks.map((link) => link.tag_id));
+            const unused = allTags.filter((tag) => !usedTagIds.has(tag.id));
 
+            setTags(allTags as Tag[]);
+            setUnusedTags(unused as Tag[]);
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+            toast.error('Failed to load tags');
+        } finally {
+            setLoading(false);
+        }
+    }, [user, category]);
+
+    useEffect(() => {
         if (isOpen) {
             fetchTags();
         }
-    }, [isOpen, user, category]);
+    }, [isOpen, fetchTags]);
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
@@ -117,11 +116,10 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                 description: `'${tagToRename.name}' is now '${newName}'.`,
             });
             // Refresh local UI
-            setTags((prevTags) =>
-                prevTags.map((tag) =>
-                    tag.id === tagToRename.id ? { ...tag, name: newName } : tag,
-                ),
-            );
+            const updateTag = (tag: Tag) =>
+                tag.id === tagToRename.id ? { ...tag, name: newName } : tag;
+            setTags((prev) => prev.map(updateTag));
+            setUnusedTags((prev) => prev.map(updateTag));
             onSuccess();
         }
     };
@@ -157,17 +155,19 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                 description: 'There was a problem creating the new tag.',
             });
         } else {
+            const newTag = data as Tag;
             toast.success('Tag created', {
-                description: `'${data.name}' has been added to your tags.`,
+                description: `'${newTag.name}' has been added to your tags.`,
             });
 
             // Add to main tags and reorder
             setTags((prev) =>
-                [...prev, data].sort((a, b) => a.name.localeCompare(b.name)),
+                [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)),
             );
-
             // Add tag to unused tag list
-            setUnusedTags((prev) => [...prev, data]);
+            setUnusedTags((prev) =>
+                [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)),
+            );
 
             setNewTagName('');
             setIsCreatingTag(false);
@@ -204,9 +204,9 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                 description: `'${tagToDelete.name}' has been permanently deleted.`,
             });
             // Refresh the list in the UI
-            setTags((prevTags) =>
-                prevTags.filter((tag) => tag.id !== tagToDelete.id),
-            );
+            const filterOutDeleted = (tag: Tag) => tag.id !== tagToDelete.id;
+            setTags((prev) => prev.filter(filterOutDeleted));
+            setUnusedTags((prev) => prev.filter(filterOutDeleted));
             onSuccess();
         }
     };
