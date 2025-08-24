@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
-import { PanelRightOpen } from 'lucide-react';
+import { PanelRightOpen, Swords } from 'lucide-react';
 
 import { Button } from './ui/button';
+import { ComparisonModal } from './ComparisonModal';
 import { ItemDetailView } from './ItemDetailView';
 import { ItemForm } from './ItemForm';
 import { SortControls } from './SortControls';
@@ -180,6 +181,15 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     category={category}
                                     onSuccess={handleTagUpdateSuccess}
                                 />
+
+                                <ComparisonModal>
+                                    <Button variant="outline" size="icon">
+                                        <Swords className="h-4 w-4" />
+                                        <span className="sr-only">
+                                            Compare Items
+                                        </span>
+                                    </Button>
+                                </ComparisonModal>
 
                                 {/* Add Item Button */}
                                 <ItemForm

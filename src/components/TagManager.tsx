@@ -315,7 +315,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                     )}
 
                     {/* Add New Tag */}
-                    <div className="pt-5">
+                    <div className="pt-5 pb-2">
                         {isCreatingTag ? (
                             <div className="flex items-center gap-2">
                                 <Input
