@@ -4,7 +4,7 @@ import { type CombinedItem } from '@/types/types';
 // Type for a pair of items to be compared
 export type ItemPair = [CombinedItem, CombinedItem];
 
-export const useComparison = (rankedItems: CombinedItem[]) => {
+export const useComparisonQueue = (rankedItems: CombinedItem[]) => {
     // State to hold the current pair of items being compared
     const [currentPair, setCurrentPair] = useState<ItemPair | null>(null);
 
