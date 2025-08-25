@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabaseClient';
@@ -12,7 +12,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from '@/components/ui/dialog';
 import { Separator } from './ui/separator';
 
@@ -27,28 +26,39 @@ type Result = {
 };
 
 type ComparisonModalProps = {
-    children: React.ReactNode;
+    open: boolean;
+    onOpenChange: (isOpen: boolean) => void;
     rankedItems: CombinedItem[];
     onSuccess: () => void;
+    calibrationItem?: CombinedItem | null;
+    onCalibrationComplete?: () => void;
 };
 
 export const ComparisonModal = ({
-    children,
+    open,
+    onOpenChange,
     rankedItems,
     onSuccess,
+    calibrationItem,
+    onCalibrationComplete,
 }: ComparisonModalProps) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const { currentPair, getNextPair } = useComparisonQueue(rankedItems);
+    const { currentPair, getNextPair, startCalibration, isCalibrating } =
+        useComparisonQueue(rankedItems);
     const [result, setResult] = useState<Result | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     // Get the first pair when the modal opens
     useEffect(() => {
-        if (isOpen) {
-            getNextPair();
+        if (open) {
+            // If a calibration item is provided, start calibration. Otherwise, start normal comparison.
+            if (calibrationItem) {
+                startCalibration(calibrationItem);
+            } else {
+                getNextPair();
+            }
             setResult(null);
         }
-    }, [isOpen, getNextPair]);
+    }, [open, getNextPair, startCalibration, calibrationItem]);
 
     const handleChoose = async (winner: CombinedItem, loser: CombinedItem) => {
         setIsLoading(true);
@@ -97,25 +107,39 @@ export const ComparisonModal = ({
         getNextPair();
     };
 
-    const handleClose = (openState: boolean) => {
-        setIsOpen(openState);
-        if (!openState) {
-            onSuccess(); // Refresh the main list when the dialog closes
+    const handleOpenChange = useCallback(
+        (openState: boolean) => {
+            onOpenChange(openState);
+            if (!openState) {
+                if (isCalibrating && onCalibrationComplete) {
+                    onCalibrationComplete();
+                } else {
+                    onSuccess();
+                }
+            }
+        },
+        [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
+    );
+
+    // Automatically close the dialog when calibration is finished
+    useEffect(() => {
+        if (isCalibrating && !currentPair && result) {
+            setTimeout(() => handleOpenChange(false), 1500); // Close after a short delay
         }
-    };
+    }, [isCalibrating, currentPair, result, handleOpenChange]);
 
     const itemA = currentPair?.[0];
     const itemB = currentPair?.[1];
 
     return (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-            <DialogTrigger asChild>{children}</DialogTrigger>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>Which is better?</DialogTitle>
                     <DialogDescription>
-                        Select the item you prefer. Click an item's name to see
-                        more details.
+                        {isCalibrating
+                            ? 'A few quick comparisons to place your new item.'
+                            : 'Select the item you prefer.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -203,13 +227,15 @@ export const ComparisonModal = ({
                             className="w-full"
                             onClick={handleNext}
                         >
-                            Next Matchup
+                            {isCalibrating && !currentPair
+                                ? 'Finishing...'
+                                : 'Next Matchup'}
                         </Button>
                     ) : (
                         <Button
                             variant="secondary"
                             className="w-full"
-                            onClick={() => handleClose(false)}
+                            onClick={() => handleOpenChange(false)}
                         >
                             Done
                         </Button>

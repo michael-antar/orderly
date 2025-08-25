@@ -37,6 +37,12 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const [sortBy, setSortBy] = useState<SortOption>('rating');
     const [sortAsc, setSortAsc] = useState(false);
 
+    // Handle ComparisonModal
+    const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+    const [calibrationItem, setCalibrationItem] = useState<CombinedItem | null>(
+        null,
+    ); // Hold new item that needs calibration
+
     // Fetch list of items from database
     const getItems = useCallback(async () => {
         if (!user) return;
@@ -107,8 +113,19 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     // Refresh list
-    const handleAddSuccess = (newStatus: Status) => {
+    const handleAddSuccess = (newStatus: Status, newItem?: CombinedItem) => {
         setActiveTab(newStatus);
+        getItems();
+
+        if (newStatus === 'ranked' && newItem) {
+            setCalibrationItem(newItem);
+            setIsComparisonModalOpen(true);
+        }
+    };
+
+    const handleCalibrationComplete = () => {
+        setCalibrationItem(null);
+        setIsComparisonModalOpen(false);
         getItems();
     };
 
@@ -182,24 +199,37 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     onSuccess={handleTagUpdateSuccess}
                                 />
 
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => {
+                                        // Clear any leftover calibration item from a previous session
+                                        setCalibrationItem(null);
+                                        setIsComparisonModalOpen(true);
+                                    }}
+                                >
+                                    <Swords className="h-4 w-4" />
+                                    <span className="sr-only">
+                                        Compare Items
+                                    </span>
+                                </Button>
+
+                                {/* --- CHANGED: The Modal is now a sibling, controlled by state */}
                                 <ComparisonModal
+                                    open={isComparisonModalOpen}
+                                    onOpenChange={setIsComparisonModalOpen}
                                     rankedItems={rankedItems}
                                     onSuccess={getItems}
-                                >
-                                    <Button variant="outline" size="icon">
-                                        <Swords className="h-4 w-4" />
-                                        <span className="sr-only">
-                                            Compare Items
-                                        </span>
-                                    </Button>
-                                </ComparisonModal>
+                                    calibrationItem={calibrationItem}
+                                    onCalibrationComplete={
+                                        handleCalibrationComplete
+                                    }
+                                />
 
                                 {/* Add Item Button */}
                                 <ItemForm
                                     category={category}
-                                    onSuccess={(newStatus) =>
-                                        handleAddSuccess(newStatus)
-                                    }
+                                    onSuccess={handleAddSuccess}
                                     activeListStatus={activeTab}
                                 />
 

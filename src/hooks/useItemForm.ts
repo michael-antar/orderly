@@ -23,7 +23,7 @@ type UseItemFormProps = {
     mode: FormMode;
     category?: Category; // Required for 'add' mode
     item?: CombinedItem; // Required for 'edit' mode
-    onSuccess: (newStatus: Status) => void;
+    onSuccess: (newStatus: Status, newItem?: CombinedItem) => void;
 };
 
 // Helper to parse integer values from form inputs
@@ -102,15 +102,16 @@ export const useItemForm = ({
         setIsLoading(true);
 
         try {
+            let newItem: CombinedItem | null = null;
             if (mode === 'add') {
-                await handleAddItem();
+                newItem = await handleAddItem();
             } else {
                 await handleEditItem();
             }
             toast.success(`Success!`, {
                 description: `'${formData.name}' has been saved.`,
             });
-            onSuccess(formData.status as Status);
+            onSuccess(formData.status as Status, newItem || undefined);
             setIsOpen(false);
         } catch (error: unknown) {
             toast.error('Something went wrong.', {
@@ -167,6 +168,8 @@ export const useItemForm = ({
             await supabase.from('items').delete().eq('id', newItem.id);
             throw error; // Re-throw the error to be caught by handleSubmit
         }
+
+        return newItem as CombinedItem;
     };
 
     const handleEditItem = async () => {
@@ -222,6 +225,8 @@ export const useItemForm = ({
 
         // Sync tag data for item
         await handleTagSync(item!.id, formData.tags || []);
+
+        return null;
     };
 
     // Helper to extract only the relevant details for the current category
