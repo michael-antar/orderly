@@ -121,13 +121,6 @@ export const ComparisonModal = ({
         [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
     );
 
-    // Automatically close the dialog when calibration is finished
-    useEffect(() => {
-        if (isCalibrating && !currentPair && result) {
-            setTimeout(() => handleOpenChange(false), 1500); // Close after a short delay
-        }
-    }, [isCalibrating, currentPair, result, handleOpenChange]);
-
     const itemA = currentPair?.[0];
     const itemB = currentPair?.[1];
 
@@ -135,11 +128,17 @@ export const ComparisonModal = ({
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-xl">
                 <DialogHeader>
-                    <DialogTitle>Which is better?</DialogTitle>
+                    <DialogTitle>
+                        {result
+                            ? `${result.winnerName} wins!`
+                            : 'Which is better?'}
+                    </DialogTitle>
                     <DialogDescription>
-                        {isCalibrating
-                            ? 'A few quick comparisons to place your new item.'
-                            : 'Select the item you prefer.'}
+                        {result
+                            ? "The Elo ratings have been updated. Click 'Next Matchup' to continue."
+                            : isCalibrating
+                              ? 'A few quick comparisons to place your new item.'
+                              : 'Select the item you prefer.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -149,72 +148,110 @@ export const ComparisonModal = ({
                             No more pairs to compare!
                         </p>
                     )}
-                    {currentPair && !result && (
+                    {currentPair && itemA && itemB && (
                         <>
-                            {/* Left Item */}
-                            <div className="flex flex-col items-center gap-4">
+                            {/* Left Item Card */}
+                            <div
+                                className={cn(
+                                    'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
+                                    result &&
+                                        result.winnerName === itemA.name &&
+                                        'border-green-500 bg-green-500/10',
+                                    result &&
+                                        result.loserName === itemA.name &&
+                                        'border-red-500 bg-red-500/10',
+                                )}
+                            >
                                 <h3 className="text-xl font-semibold text-center h-16 flex items-center">
-                                    {itemA?.name}
+                                    {itemA.name}
                                 </h3>
-                                <Button
-                                    className="w-full"
-                                    onClick={() => handleChoose(itemA!, itemB!)}
-                                    disabled={isLoading}
-                                >
-                                    Choose
-                                </Button>
+                                {!result ? (
+                                    <Button
+                                        className="w-full"
+                                        onClick={() =>
+                                            handleChoose(itemA, itemB)
+                                        }
+                                        disabled={isLoading}
+                                    >
+                                        Choose
+                                    </Button>
+                                ) : (
+                                    <div className="h-10 flex items-center justify-center font-semibold">
+                                        {(() => {
+                                            const eloChange =
+                                                result.winnerName === itemA.name
+                                                    ? result.winnerEloChange
+                                                    : result.loserEloChange;
+                                            return (
+                                                <p
+                                                    className={cn(
+                                                        eloChange > 0
+                                                            ? 'text-green-500'
+                                                            : 'text-red-500',
+                                                    )}
+                                                >
+                                                    Elo:{' '}
+                                                    {eloChange > 0
+                                                        ? `+${eloChange}`
+                                                        : eloChange}
+                                                </p>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Right Item */}
-                            <div className="flex flex-col items-center gap-4">
+                            {/* Right Item Card */}
+                            <div
+                                className={cn(
+                                    'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
+                                    result &&
+                                        result.winnerName === itemB.name &&
+                                        'border-green-500 bg-green-500/10',
+                                    result &&
+                                        result.loserName === itemB.name &&
+                                        'border-red-500 bg-red-500/10',
+                                )}
+                            >
                                 <h3 className="text-xl font-semibold text-center h-16 flex items-center">
-                                    {itemB?.name}
+                                    {itemB.name}
                                 </h3>
-                                <Button
-                                    className="w-full"
-                                    onClick={() => handleChoose(itemB!, itemA!)}
-                                    disabled={isLoading}
-                                >
-                                    Choose
-                                </Button>
+                                {!result ? (
+                                    <Button
+                                        className="w-full"
+                                        onClick={() =>
+                                            handleChoose(itemB, itemA)
+                                        }
+                                        disabled={isLoading}
+                                    >
+                                        Choose
+                                    </Button>
+                                ) : (
+                                    <div className="h-10 flex items-center justify-center font-semibold">
+                                        {(() => {
+                                            const eloChange =
+                                                result.winnerName === itemB.name
+                                                    ? result.winnerEloChange
+                                                    : result.loserEloChange;
+                                            return (
+                                                <p
+                                                    className={cn(
+                                                        eloChange > 0
+                                                            ? 'text-green-500'
+                                                            : 'text-red-500',
+                                                    )}
+                                                >
+                                                    Elo:{' '}
+                                                    {eloChange > 0
+                                                        ? `+${eloChange}`
+                                                        : eloChange}
+                                                </p>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
                             </div>
                         </>
-                    )}
-                    {result && (
-                        <div className="col-span-2 flex flex-col items-center gap-2 text-center">
-                            <p>
-                                <span className="font-bold">
-                                    {result.winnerName}
-                                </span>{' '}
-                                won!
-                            </p>
-                            <p
-                                className={cn(
-                                    'font-semibold',
-                                    result.winnerEloChange > 0
-                                        ? 'text-green-500'
-                                        : 'text-red-500',
-                                )}
-                            >
-                                Elo:{' '}
-                                {result.winnerEloChange > 0
-                                    ? `+${result.winnerEloChange}`
-                                    : result.winnerEloChange}
-                            </p>
-                            <p
-                                className={cn(
-                                    'font-semibold',
-                                    result.loserEloChange > 0
-                                        ? 'text-green-500'
-                                        : 'text-red-500',
-                                )}
-                            >
-                                {result.loserName} Elo:{' '}
-                                {result.loserEloChange > 0
-                                    ? `+${result.loserEloChange}`
-                                    : result.loserEloChange}
-                            </p>
-                        </div>
                     )}
                 </div>
 
