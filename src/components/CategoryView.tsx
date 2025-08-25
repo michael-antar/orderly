@@ -182,7 +182,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     onSuccess={handleTagUpdateSuccess}
                                 />
 
-                                <ComparisonModal>
+                                <ComparisonModal
+                                    rankedItems={rankedItems}
+                                    onSuccess={getItems}
+                                >
                                     <Button variant="outline" size="icon">
                                         <Swords className="h-4 w-4" />
                                         <span className="sr-only">
