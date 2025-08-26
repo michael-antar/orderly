@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabaseClient';
@@ -42,26 +42,46 @@ export const ComparisonModal = ({
     calibrationItem,
     onCalibrationComplete,
 }: ComparisonModalProps) => {
-    const { currentPair, getNextPair, startCalibration, isCalibrating } =
-        useComparisonQueue(rankedItems);
+    const {
+        items,
+        currentPair,
+        getNextPair,
+        startNormalComparison,
+        startCalibration,
+        isCalibrating,
+        updateRatings,
+    } = useComparisonQueue(rankedItems);
     const [result, setResult] = useState<Result | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     // Get the first pair when the modal opens
     useEffect(() => {
         if (open) {
+            console.log('--- ComparisonModal opened ---');
             // If a calibration item is provided, start calibration. Otherwise, start normal comparison.
             if (calibrationItem) {
+                console.log(
+                    'Modal received calibrationItem: ',
+                    calibrationItem,
+                );
                 startCalibration(calibrationItem);
             } else {
-                getNextPair();
+                startNormalComparison();
             }
             setResult(null);
         }
-    }, [open, getNextPair, startCalibration, calibrationItem]);
+    }, [open, startNormalComparison, startCalibration, calibrationItem]);
 
     const handleChoose = async (winner: CombinedItem, loser: CombinedItem) => {
         setIsLoading(true);
+
+        const currentWinner = items.find((i) => i.id === winner.id);
+        const currentLoser = items.find((i) => i.id === loser.id);
+
+        // Original ratings before comparison
+        const winnerRatingBefore = currentWinner?.rating;
+        const loserRatingBefore = currentLoser?.rating;
+
         const { error } = await supabase.rpc('handle_comparison', {
             p_winner_id: winner.id,
             p_loser_id: loser.id,
@@ -94,9 +114,14 @@ export const ComparisonModal = ({
                 setResult({
                     winnerName: winner.name,
                     loserName: loser.name,
-                    winnerEloChange: newWinner.rating! - winner.rating,
-                    loserEloChange: newLoser.rating! - loser.rating,
+                    winnerEloChange: newWinner.rating! - winnerRatingBefore!,
+                    loserEloChange: newLoser.rating! - loserRatingBefore!,
                 });
+
+                updateRatings(
+                    { id: newWinner.id, rating: newWinner.rating! },
+                    { id: newLoser.id, rating: newLoser.rating! },
+                );
             }
         }
         setIsLoading(false);

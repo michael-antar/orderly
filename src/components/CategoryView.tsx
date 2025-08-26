@@ -15,6 +15,7 @@ import { TagManager } from '@/components/TagManager';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { cn } from '@/lib/utils';
+import type { PostgrestError } from '@supabase/supabase-js';
 import {
     type Category,
     type CombinedItem,
@@ -45,7 +46,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Fetch list of items from database
     const getItems = useCallback(async () => {
-        if (!user) return;
+        if (!user) return { data: [], error: null };
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -58,10 +59,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 .order(sortBy, { ascending: sortAsc, nullsFirst: false });
             if (error) throw error;
             setItems(data || []);
-            return { data, error: null };
+            return { data: data as CombinedItem[] | null, error: null };
         } catch (error) {
             console.error('Error fetching items:', error);
-            return { data: [], error };
+            return { data: [], error: error as PostgrestError };
         } finally {
             setLoading(false);
         }
@@ -112,14 +113,36 @@ export const CategoryView = ({ category }: { category: Category }) => {
         setSelectedItem((prev) => (prev?.id === item.id ? null : item));
     };
 
-    // Refresh list
-    const handleAddSuccess = (newStatus: Status, newItem?: CombinedItem) => {
+    // Refresh list and start calibration
+    const handleAddSuccess = async (
+        newStatus: Status,
+        newItem?: CombinedItem,
+    ) => {
+        console.log('--- handleAddSuccess fired ---');
         setActiveTab(newStatus);
-        getItems();
+        const { data: updatedItems } = await getItems();
 
-        if (newStatus === 'ranked' && newItem) {
-            setCalibrationItem(newItem);
-            setIsComparisonModalOpen(true);
+        if (newStatus === 'ranked' && newItem && updatedItems) {
+            console.log('Original newItem from form:', newItem);
+            console.log('Full updated list from DB:', updatedItems);
+
+            // Search inside that fresh data for the item we care about
+            const freshItem = updatedItems.find((i) => i.id === newItem.id);
+            console.log('freshItem found in list:', freshItem);
+
+            // Set the state with the correct, fresh object
+            if (freshItem) {
+                console.log(
+                    'Passing this item to setCalibrationItem:',
+                    freshItem,
+                );
+                setCalibrationItem(freshItem);
+                setIsComparisonModalOpen(true);
+            } else {
+                console.error(
+                    'DEBUG: Could not find freshItem in the updated list!',
+                );
+            }
         }
     };
 
@@ -214,7 +237,6 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     </span>
                                 </Button>
 
-                                {/* --- CHANGED: The Modal is now a sibling, controlled by state */}
                                 <ComparisonModal
                                     open={isComparisonModalOpen}
                                     onOpenChange={setIsComparisonModalOpen}
