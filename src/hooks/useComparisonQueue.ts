@@ -5,6 +5,18 @@ import { type CombinedItem } from '@/types/types';
 // Type for a pair of items to be compared
 export type ItemPair = [CombinedItem, CombinedItem];
 
+// Efficiently shuffles an array using the Fisher-Yates shuffle
+const shuffle = <T>(array: T[]): T[] => {
+    const newArray = [...array];
+
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+
+    return newArray;
+};
+
 export const useComparisonQueue = (initialItems: CombinedItem[]) => {
     const [items, setItems] = useState<CombinedItem[]>(initialItems); // Holds the list as it's modifiued by `updateRatings`
 
@@ -59,10 +71,17 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
     // Generate mixed queue of random and similar pairs for comparison
     const startNormalComparison = useCallback(() => {
         console.log('--- startNormalCalibration Fired ---');
+
+        setIsCalibrating(false);
+
         const currentItems = itemsRef.current;
         console.log('Hook is using this `items` array:', currentItems);
 
-        setIsCalibrating(false);
+        if (currentItems.length < 2) {
+            setComparisonQueue([]);
+            setCurrentPair(null);
+            return;
+        }
 
         // Within 200 elo or 2 positions
         const similarPairs: ItemPair[] = [];
@@ -85,60 +104,46 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
                 similarPairs.push([itemA, itemB]);
             }
         }
+        console.log(`Generated ${similarPairs.length} similar pairs`);
 
-        const randomPairs: ItemPair[] = [];
-        for (let i = 0; i < currentItems.length; i++) {
-            for (let j = i + 1; j < currentItems.length; j++) {
-                randomPairs.push([currentItems[i], currentItems[j]]);
-            }
-        }
+        const maxPossiblePairs =
+            (currentItems.length * (currentItems.length - 1)) / 2;
+        console.log('Maximum possible pairs:', maxPossiblePairs);
 
-        const queueSize = (currentItems.length * (currentItems.length - 1)) / 2;
-        console.log(
-            `Max queue size of: ${queueSize}\n`,
-            `\tMax Similar: ${similarPairs.length}`,
-            `\tMax Random: ${randomPairs.length}`,
-        );
-        if (queueSize === 0) {
-            setComparisonQueue([]);
-            setCurrentPair(null);
-            return;
-        }
+        const targetQueueSize = Math.min(100, maxPossiblePairs);
+        const numSimilar = Math.min(similarPairs.length, 85);
+        const numRandom = targetQueueSize - numSimilar;
+        console.log(`Pair split: ${numSimilar} similar, ${numRandom} random`);
 
-        const numSimilar = Math.min(
-            similarPairs.length,
-            Math.ceil(queueSize * 0.85),
-        );
-        const numRandom = queueSize - numSimilar;
-        console.log(
-            `Comparison type split:`,
-            `\n\tSimilar: ${numSimilar}`,
-            `\n\tRandom: ${numRandom}`,
-        );
+        const similarSubset = shuffle(similarPairs).slice(0, numSimilar);
 
-        const similarSubset = [...similarPairs]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, numSimilar);
-
-        const similarPairIds = new Set(
+        const similarPairIds = new Set<string>(
             similarSubset.map((pair) =>
                 [pair[0].id, pair[1].id].sort().join('-'),
             ),
         );
 
-        const randomPool = randomPairs.filter((pair) => {
-            const pairId = [pair[0].id, pair[1].id].sort().join('-');
-            return !similarPairIds.has(pairId);
-        });
+        let randomSubset: ItemPair[] = [];
+        if (numRandom > 0) {
+            // Generate full pool of random pairs
+            const randomPool: ItemPair[] = [];
+            for (let i = 0; i < currentItems.length; i++) {
+                for (let j = i + 1; j < currentItems.length; j++) {
+                    const itemA = currentItems[i];
+                    const itemB = currentItems[j];
+                    const pairId = [itemA.id, itemB.id].sort().join('-');
+                    // Only add pairs that aren't already in the similar set
+                    if (!similarPairIds.has(pairId)) {
+                        randomPool.push([itemA, itemB]);
+                    }
+                }
+            }
 
-        const randomSubset = [...randomPool]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, numRandom);
+            randomSubset = shuffle(randomPool).slice(0, numRandom);
+        }
 
-        const finalQueue = [...similarSubset, ...randomSubset].sort(
-            () => Math.random() - 0.5,
-        );
-        console.log('Final queue:', finalQueue);
+        const finalQueue = shuffle([...similarSubset, ...randomSubset]);
+        console.log('Generated final queue:', finalQueue);
 
         setComparisonQueue(finalQueue);
         setCurrentPair(finalQueue[0] || null);
