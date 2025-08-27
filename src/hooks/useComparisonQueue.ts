@@ -64,16 +64,25 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
         setIsCalibrating(false);
 
+        // Within 200 elo or 2 positions
         const similarPairs: ItemPair[] = [];
         for (let i = 0; i < currentItems.length; i++) {
+            const itemA = currentItems[i];
             for (let j = i + 1; j < currentItems.length; j++) {
-                const itemA = currentItems[i];
                 const itemB = currentItems[j];
-                if (itemA.rating !== null && itemB.rating !== null) {
-                    if (Math.abs(itemA.rating - itemB.rating) <= 200) {
-                        similarPairs.push([itemA, itemB]);
-                    }
+
+                const indexDifference = j - i;
+                const ratingDifference =
+                    itemA.rating !== null && itemB.rating !== null
+                        ? itemA.rating - itemB.rating
+                        : Infinity;
+
+                // Break early if impossible for any future matches
+                if (indexDifference > 2 && ratingDifference > 200) {
+                    break;
                 }
+
+                similarPairs.push([itemA, itemB]);
             }
         }
 

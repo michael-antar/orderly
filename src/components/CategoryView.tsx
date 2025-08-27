@@ -92,6 +92,15 @@ export const CategoryView = ({ category }: { category: Category }) => {
         [items],
     );
 
+    // Always sorted list of ranked items by elo (desc), for use in comparison modal
+    const comparisonRankedItems = useMemo(() => {
+        return [...rankedItems].sort((a, b) => {
+            if (a.rating === null) return 1;
+            if (b.rating === null) return -1;
+            return b.rating - a.rating;
+        });
+    }, [rankedItems]);
+
     // Unselect item and set new active tab for form
     const handleTabChange = (value: Status) => {
         setSelectedItem(null);
@@ -240,7 +249,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 <ComparisonModal
                                     open={isComparisonModalOpen}
                                     onOpenChange={setIsComparisonModalOpen}
-                                    rankedItems={rankedItems}
+                                    rankedItems={comparisonRankedItems}
                                     onSuccess={getItems}
                                     calibrationItem={calibrationItem}
                                     onCalibrationComplete={
