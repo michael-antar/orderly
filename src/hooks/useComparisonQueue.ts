@@ -116,6 +116,7 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         console.log(`Pair split: ${numSimilar} similar, ${numRandom} random`);
 
         const similarSubset = shuffle(similarPairs).slice(0, numSimilar);
+        console.log('Similar pairs:', similarSubset);
 
         const similarPairIds = new Set<string>(
             similarSubset.map((pair) =>
@@ -124,26 +125,55 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         );
 
         let randomSubset: ItemPair[] = [];
+
         if (numRandom > 0) {
-            // Generate full pool of random pairs
-            const randomPool: ItemPair[] = [];
-            for (let i = 0; i < currentItems.length; i++) {
-                for (let j = i + 1; j < currentItems.length; j++) {
+            const availableRandomPairs = maxPossiblePairs - similarPairIds.size;
+            console.log(
+                `Generating ${numRandom} random pairs from ${availableRandomPairs} available random pairs.`,
+            );
+
+            if (numRandom > availableRandomPairs / 4) {
+                // Shuffle and slice (for dense selection)
+                console.log('Generating using shuffle and slice method');
+                const randomPool: ItemPair[] = [];
+                for (let i = 0; i < currentItems.length; i++) {
+                    for (let j = i + 1; j < currentItems.length; j++) {
+                        const itemA = currentItems[i];
+                        const itemB = currentItems[j];
+                        const pairId = [itemA.id, itemB.id].sort().join('-');
+                        if (!similarPairIds.has(pairId)) {
+                            randomPool.push([itemA, itemB]);
+                        }
+                    }
+                }
+                randomSubset = shuffle(randomPool).slice(0, numRandom);
+            } else {
+                // Rejection sampling (for sparse selections)
+                console.log('Generating using rejection sampling method');
+                const addedPairIds = new Set<string>(similarPairIds);
+                const listSize = currentItems.length;
+
+                while (randomSubset.length < numRandom) {
+                    const i = Math.floor(Math.random() * listSize);
+                    let j = Math.floor(Math.random() * listSize);
+                    if (i === j) j = (j + 1) % listSize;
+
                     const itemA = currentItems[i];
                     const itemB = currentItems[j];
                     const pairId = [itemA.id, itemB.id].sort().join('-');
-                    // Only add pairs that aren't already in the similar set
-                    if (!similarPairIds.has(pairId)) {
-                        randomPool.push([itemA, itemB]);
+
+                    if (!addedPairIds.has(pairId)) {
+                        addedPairIds.add(pairId);
+                        randomSubset.push([itemA, itemB]);
                     }
                 }
             }
 
-            randomSubset = shuffle(randomPool).slice(0, numRandom);
+            console.log('Random pairs:', randomSubset);
         }
 
         const finalQueue = shuffle([...similarSubset, ...randomSubset]);
-        console.log('Generated final queue:', finalQueue);
+        console.log('Final queue:', finalQueue);
 
         setComparisonQueue(finalQueue);
         setCurrentPair(finalQueue[0] || null);
