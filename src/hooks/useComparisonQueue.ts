@@ -208,6 +208,8 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         );
         if (otherItems.length === 0) {
             console.warn('Premature Exit: No other items to compare against.');
+            setComparisonQueue([]);
+            setCurrentPair(null);
             return;
         }
 
