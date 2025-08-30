@@ -68,8 +68,19 @@ export const useItemForm = ({
     // Reset state when item changes or form opens
     useEffect(() => {
         const fetchTags = async () => {
-            if (!user) return;
-            const { data, error } = await supabase
+            console.groupCollapsed(`[fetchTags] Fetching tags`);
+
+            if (!user) {
+                console.warn('Cannot fetch tags: user is not available.');
+                console.groupEnd();
+                return;
+            }
+
+            console.log('Fetching tags for:', {
+                userId: user.id,
+                category: effectiveCategory,
+            });
+            const { data: tags, error } = await supabase
                 .from('tags')
                 .select('*')
                 .eq('user_id', user.id)
@@ -78,13 +89,28 @@ export const useItemForm = ({
             if (error) {
                 console.error('Error fetching tags:', error);
             } else {
-                setAvailableTags(data || []);
+                console.log('Successfully fetched tags:', tags);
+                setAvailableTags(tags || []);
             }
+            console.groupEnd();
         };
 
         if (isOpen) {
-            setFormData(getInitialState());
-            fetchTags();
+            const runEffect = async () => {
+                console.group(
+                    '[useEffect] Item Form opened, resetting state and fetching data.',
+                );
+
+                console.log('Resetting form data to initial state.');
+                setFormData(getInitialState());
+
+                console.log('--> Executing: fetchTags');
+                await fetchTags();
+
+                console.groupEnd();
+            };
+
+            runEffect();
         }
     }, [isOpen, getInitialState, user, effectiveCategory]);
 
@@ -98,22 +124,39 @@ export const useItemForm = ({
     // --- SUBMISSION LOGIC ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !user) return;
+
+        console.group(`[handleSubmit] Submitting form in '${mode}' mode`);
+        console.log('Initial form data:', formData);
+        console.log('User present:', !!user);
+
+        if (!formData.name || !user) {
+            console.warn('Submission aborted: Missing name or user');
+            console.groupEnd();
+            return;
+        }
         setIsLoading(true);
 
         try {
             let newItem: CombinedItem | null = null;
             if (mode === 'add') {
+                console.log('--> Executing: handleAddItem');
                 newItem = await handleAddItem();
             } else {
+                console.log('--> Executing: handleEditItem');
                 await handleEditItem();
             }
             toast.success(`Success!`, {
                 description: `'${formData.name}' has been saved.`,
             });
+            console.log(
+                'Submission successful. Calling onSuccess callback.',
+                formData.status,
+                newItem,
+            );
             onSuccess(formData.status as Status, newItem || undefined);
             setIsOpen(false);
         } catch (error: unknown) {
+            console.error('Submission failed:', error);
             toast.error('Something went wrong.', {
                 description:
                     error instanceof Error
@@ -122,10 +165,12 @@ export const useItemForm = ({
             });
         } finally {
             setIsLoading(false);
+            console.groupEnd();
         }
     };
 
     const handleAddItem = async () => {
+        console.group('[handleAddItem] Logic');
         // Insert into 'items' table
         const itemToInsert: Omit<
             Item,
@@ -142,16 +187,24 @@ export const useItemForm = ({
                     : formData.description!,
         };
 
+        console.log('Inserting into "items" table. Payload:', itemToInsert);
         const { data: newItem, error: itemError } = await supabase
             .from('items')
             .insert(itemToInsert)
             .select()
             .single();
-        if (itemError) throw new Error('Failed to create a new item.');
+        if (itemError) {
+            console.error('Error inserting item:', itemError);
+            console.groupEnd();
+            throw new Error('Failed to create a new item.');
+        }
+        console.log('Item insertion successful. Result:', newItem);
 
         try {
             // Perform inserts sequentially to ensure type safety and handle rollbacks
             const detailsToInsert = getDetailsObject();
+
+            console.log('Inserting item details. Payload:', detailsToInsert);
             const handler = config.handleDetailsInsert as (
                 itemId: string,
                 details: Partial<AnyDetails>,
@@ -160,19 +213,38 @@ export const useItemForm = ({
                 newItem.id,
                 detailsToInsert,
             );
-            if (detailsError) throw new Error('Failed to save item details.');
+            if (detailsError) {
+                console.error('Error inserting item details:', detailsError);
+                throw new Error('Failed to save item details.');
+            }
+            console.log('Item details insertion successful.');
 
+            // Sync tag data for item
+            console.log('--> Executing: handleTagSync', {
+                itemId: newItem.id,
+                finalTags: formData.tags,
+            });
             await handleTagSync(newItem.id, formData.tags || []);
+            console.log('Tag sync successful.');
         } catch (error) {
             // If any of the subsequent inserts fail, roll back the main item creation
+            console.error(
+                'Error during details/tag sync. Rolling back...',
+                error,
+            );
             await supabase.from('items').delete().eq('id', newItem.id);
+            console.groupEnd();
             throw error; // Re-throw the error to be caught by handleSubmit
         }
 
+        console.log('Returning new item:', newItem);
+        console.groupEnd();
         return newItem as CombinedItem;
     };
 
     const handleEditItem = async () => {
+        console.group('[handleEditItem] Logic');
+
         const updatedItem: Partial<Item> = {
             name: formData.name,
             status: formData.status as Status,
@@ -183,29 +255,58 @@ export const useItemForm = ({
         };
         // If status has changed, update rating
         if (item && formData.status !== item.status) {
-            updatedItem.rating = formData.status === 'ranked' ? 1000 : null;
+            const updatedRating = formData.status === 'ranked' ? 1000 : null;
+            console.log(
+                `Item status changed to ${updatedItem.status}, setting rating to ${updatedRating}`,
+            );
+            updatedItem.rating = updatedRating;
         }
 
         // Update 'items' table
+        console.log('Updating "items" table. Payload:', updatedItem);
         const { error: itemError } = await supabase
             .from('items')
             .update(updatedItem)
             .eq('id', item!.id);
-        if (itemError) throw new Error('Failed to update the item.');
+        if (itemError) {
+            console.error('Error updating item:', updatedItem);
+            console.groupEnd();
+            throw new Error('Failed to update the item.');
+        }
+        console.log('Item update successful.');
 
-        // Update category-specific 'details' table
-        const detailsToUpdate = getDetailsObject();
-        const handler = config.handleDetailsUpdate as (
-            itemId: string,
-            details: Partial<AnyDetails>,
-        ) => SupabaseMutationResponse;
-        const { error: detailsError } = await handler(
-            item!.id,
-            detailsToUpdate,
-        );
+        try {
+            // Update category-specific 'details' table
+            const detailsToUpdate = getDetailsObject();
 
-        if (detailsError) {
-            // Rollback the main item update if details update fails
+            console.log('Updating item details. Payload:', detailsToUpdate);
+            const handler = config.handleDetailsUpdate as (
+                itemId: string,
+                details: Partial<AnyDetails>,
+            ) => SupabaseMutationResponse;
+            const { error: detailsError } = await handler(
+                item!.id,
+                detailsToUpdate,
+            );
+            if (detailsError) {
+                console.error('Error updating item details:', detailsError);
+                throw new Error('Failed to update item details.');
+            }
+            console.log('Item details update successful.');
+
+            // Sync tag data for item
+            console.log('--> Executing: handleTagSync', {
+                itemId: item!.id,
+                tags: formData.tags,
+            });
+            await handleTagSync(item!.id, formData.tags || []);
+            console.log('Tag sync successful.');
+        } catch (error) {
+            // If any of the subsequent updates fail, roll back the main item update
+            console.error(
+                'Error during details/tag sync. Rolling back...',
+                error,
+            );
             const { error: rollbackError } = await supabase
                 .from('items')
                 .update({
@@ -215,22 +316,27 @@ export const useItemForm = ({
                     rating: item!.rating,
                 })
                 .eq('id', item!.id);
-            if (rollbackError)
-                console.error(
-                    'CRITICAL: Failed to rollback item update.',
-                    rollbackError,
-                );
-            throw new Error('Failed to update item details.');
+            if (rollbackError) {
+                console.error('Failed to rollback item update.', rollbackError);
+            }
+
+            console.groupEnd();
+            throw error;
         }
 
-        // Sync tag data for item
-        await handleTagSync(item!.id, formData.tags || []);
-
-        return null;
+        console.log('Returning updatedItem:', updatedItem);
+        console.groupEnd();
+        return updatedItem as CombinedItem;
     };
 
     // Helper to extract only the relevant details for the current category
     const getDetailsObject = useCallback((): Partial<AnyDetails> => {
+        console.groupCollapsed(
+            '[getDetailsObject] Constructing details payload',
+        );
+        console.log('Source formData:', formData);
+        console.log('Relevant fields for category:', config.fields);
+
         const details: { [key: string]: string | number | null } = {};
         for (const field of config.fields) {
             const key = field as keyof ItemFormData;
@@ -250,35 +356,54 @@ export const useItemForm = ({
                         : value || null;
             }
         }
+        console.log('Constructed details object:', details);
+        console.groupEnd();
         return details as Partial<AnyDetails>;
     }, [config.fields, formData]);
 
     const handleTagSync = async (itemId: string, finalTags: Tag[]) => {
+        console.group('[handleTagSync] Logic');
+        console.log('Item ID:', itemId);
+        console.log('Final tags from form:', finalTags);
+        console.log('Original item tags:', item?.tags);
+
         const originalTagIds = item?.tags?.map((t) => t.id) || [];
+        console.log('Original tag IDs:', originalTagIds);
 
         // Create any new tags that were added by the user
         // New tags will have been created with a generated id using Date(now), which will always be over 1,000,000
         const tagsToCreate = finalTags.filter((t) => t.id > 1_000_000);
         let newTagIds: number[] = [];
         if (tagsToCreate.length > 0) {
+            console.log('Tags to create:', tagsToCreate);
+
+            const payload = tagsToCreate.map((t) => ({
+                name: t.name,
+                category: t.category,
+                user_id: user!.id,
+            }));
+            console.log('Creating new tags with payload:', payload);
+
             const { data: createdTags, error: createError } = await supabase
                 .from('tags')
-                .insert(
-                    tagsToCreate.map((t) => ({
-                        name: t.name,
-                        category: t.category,
-                        user_id: user!.id,
-                    })),
-                )
+                .insert(payload)
                 .select('id');
-            if (createError) throw new Error('Failed to create new tags.');
+            if (createError) {
+                console.error('Error creating new tags:', createError);
+                console.groupEnd();
+                throw new Error('Failed to create new tags.');
+            }
             newTagIds = createdTags.map((t) => t.id);
+            console.log('Successfully created tags. New IDs:', newTagIds);
+        } else {
+            console.log('No new tags to create.');
         }
 
         const allFinalTagIds = [
             ...finalTags.filter((t) => t.id < 1_000_000).map((t) => t.id),
             ...newTagIds,
         ];
+        console.log('All final tag IDs for linking:', allFinalTagIds);
 
         // Determine which tags to link and unlink
         const tagsToLink = allFinalTagIds.filter(
@@ -287,24 +412,39 @@ export const useItemForm = ({
         const tagsToUnlink = originalTagIds.filter(
             (id) => !allFinalTagIds.includes(id),
         );
+        console.log('Tags to link (junction table insert):', tagsToLink);
+        console.log('Tags to unlink (junction table delete):', tagsToUnlink);
 
         // Perform the linking and unlinking in the junction 'item_tags' table
         if (tagsToLink.length > 0) {
+            console.log(`Linking tags for item_id ${itemId}:`, tagsToLink);
             const { error } = await supabase
                 .from('item_tags')
                 .insert(
                     tagsToLink.map((tag_id) => ({ item_id: itemId, tag_id })),
                 );
-            if (error) throw new Error('Failed to link new tags.');
+            if (error) {
+                console.error('Error linking tags:', error);
+                console.groupEnd();
+                throw new Error('Failed to link new tags.');
+            }
+            console.log('Successfully linked tags.');
         }
         if (tagsToUnlink.length > 0) {
+            console.log(`Unlinking tags for item_id ${itemId}:`, tagsToUnlink);
             const { error } = await supabase
                 .from('item_tags')
                 .delete()
                 .eq('item_id', itemId)
                 .in('tag_id', tagsToUnlink);
-            if (error) throw new Error('Failed to unlink old tags.');
+            if (error) {
+                console.error('Error unlinking tags:', error);
+                console.groupEnd();
+                throw new Error('Failed to unlink old tags.');
+            }
+            console.log('Successfully unlinked tags.');
         }
+        console.groupEnd();
     };
 
     // Memoize the FieldsComponent to prevent re-renders
