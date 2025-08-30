@@ -253,6 +253,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                         setCalibrationItem(null);
                                         setIsComparisonModalOpen(true);
                                     }}
+                                    disabled={
+                                        activeTab === 'backlog' ||
+                                        rankedItems.length < 2
+                                    }
                                 >
                                     <Swords className="h-4 w-4" />
                                     <span className="sr-only">
