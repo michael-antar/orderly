@@ -24,7 +24,7 @@ type ItemDetailViewProps = {
     item: CombinedItem | null;
     activeListStatus: Status;
     onClose: () => void;
-    onEdit: (newStatus: Status) => void;
+    onEdit: (newStatus: Status, updatedItem: CombinedItem) => void;
     onDelete: () => void;
 };
 
@@ -88,7 +88,9 @@ export const ItemDetailView = ({
                     {/* Edit Item Form */}
                     <ItemForm
                         item={item}
-                        onSuccess={(newStatus) => onEdit(newStatus)}
+                        onSuccess={(newStatus, newItem) =>
+                            onEdit(newStatus, newItem)
+                        }
                         activeListStatus={activeListStatus}
                     />
 

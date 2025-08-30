@@ -125,13 +125,13 @@ export const CategoryView = ({ category }: { category: Category }) => {
     // Refresh list and start calibration
     const handleAddSuccess = async (
         newStatus: Status,
-        newItem?: CombinedItem,
+        newItem: CombinedItem,
     ) => {
         console.log('--- handleAddSuccess fired ---');
         setActiveTab(newStatus);
         const { data: updatedItems } = await getItems();
 
-        if (newStatus === 'ranked' && newItem && updatedItems) {
+        if (newStatus === 'ranked' && updatedItems) {
             console.log('Original newItem from form:', newItem);
             console.log('Full updated list from DB:', updatedItems);
 
@@ -155,23 +155,37 @@ export const CategoryView = ({ category }: { category: Category }) => {
         }
     };
 
+    // Set new active tab, refresh edited item, and start calibration if moved to ranked
+    const handleEditSuccess = async (
+        newStatus: Status,
+        updatedItem: CombinedItem,
+    ) => {
+        console.log('--- handleEditSuccess fired ---');
+        console.log('updatedItem:', updatedItem);
+
+        const previousStatus = selectedItem?.status;
+
+        setActiveTab(newStatus);
+        await getItems();
+
+        // If item was successfully updated, check if it needs calibration
+        setSelectedItem(updatedItem); // Keep detail view in sync
+
+        // Check if item was moved from backlog to ranked
+        if (previousStatus === 'backlog' && newStatus === 'ranked') {
+            console.log(
+                'Item moved from backlog to ranked, starting calibration for:',
+                updatedItem,
+            );
+            setCalibrationItem(updatedItem);
+            setIsComparisonModalOpen(true);
+        }
+    };
+
     const handleCalibrationComplete = () => {
         setCalibrationItem(null);
         setIsComparisonModalOpen(false);
         getItems();
-    };
-
-    // Set new active tab and refresh edited item
-    const handleEditSuccess = async (newStatus: Status) => {
-        setActiveTab(newStatus);
-
-        const result = await getItems();
-        if (result?.data && selectedItem) {
-            const updatedItem = result.data.find(
-                (item) => item.id === selectedItem.id,
-            );
-            setSelectedItem(updatedItem || null);
-        }
     };
 
     // Unselect item and refresh list

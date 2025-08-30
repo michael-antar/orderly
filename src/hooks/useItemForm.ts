@@ -23,7 +23,7 @@ type UseItemFormProps = {
     mode: FormMode;
     category?: Category; // Required for 'add' mode
     item?: CombinedItem; // Required for 'edit' mode
-    onSuccess: (newStatus: Status, newItem?: CombinedItem) => void;
+    onSuccess: (newStatus: Status, newItem: CombinedItem) => void;
 };
 
 // Helper to parse integer values from form inputs
@@ -143,17 +143,16 @@ export const useItemForm = ({
                 newItem = await handleAddItem();
             } else {
                 console.log('--> Executing: handleEditItem');
-                await handleEditItem();
+                newItem = await handleEditItem();
             }
             toast.success(`Success!`, {
                 description: `'${formData.name}' has been saved.`,
             });
-            console.log(
-                'Submission successful. Calling onSuccess callback.',
-                formData.status,
-                newItem,
-            );
-            onSuccess(formData.status as Status, newItem || undefined);
+            console.log('Submission successful. Calling onSuccess callback.', {
+                status: formData.status,
+                newItem: newItem,
+            });
+            onSuccess(formData.status as Status, newItem);
             setIsOpen(false);
         } catch (error: unknown) {
             console.error('Submission failed:', error);
@@ -237,7 +236,7 @@ export const useItemForm = ({
             throw error; // Re-throw the error to be caught by handleSubmit
         }
 
-        console.log('Returning new item:', newItem);
+        console.log('Returning new item:', newItem as CombinedItem);
         console.groupEnd();
         return newItem as CombinedItem;
     };
@@ -275,10 +274,9 @@ export const useItemForm = ({
         }
         console.log('Item update successful.');
 
+        const detailsToUpdate = getDetailsObject();
         try {
             // Update category-specific 'details' table
-            const detailsToUpdate = getDetailsObject();
-
             console.log('Updating item details. Payload:', detailsToUpdate);
             const handler = config.handleDetailsUpdate as (
                 itemId: string,
@@ -324,9 +322,14 @@ export const useItemForm = ({
             throw error;
         }
 
-        console.log('Returning updatedItem:', updatedItem);
+        const fullUpdatedItem: CombinedItem = {
+            ...item!,
+            ...updatedItem,
+        };
+
+        console.log('Returning updated item:', fullUpdatedItem);
         console.groupEnd();
-        return updatedItem as CombinedItem;
+        return fullUpdatedItem as CombinedItem;
     };
 
     // Helper to extract only the relevant details for the current category
