@@ -70,14 +70,17 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
     // Generate mixed queue of random and similar pairs for comparison
     const startNormalComparison = useCallback(() => {
-        console.log('--- startNormalCalibration Fired ---');
+        console.group('[startNormalComparison] Generate queue for comparisons');
 
         setIsCalibrating(false);
 
         const currentItems = itemsRef.current;
-        console.log('Hook is using this `items` array:', currentItems);
+        console.log({ currentItems: currentItems });
 
         if (currentItems.length < 2) {
+            console.log('currentItems too small for comparisons, ending.');
+            console.groupEnd();
+
             setComparisonQueue([]);
             setCurrentPair(null);
             return;
@@ -177,37 +180,32 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
         setComparisonQueue(finalQueue);
         setCurrentPair(finalQueue[0] || null);
+
+        console.groupEnd();
     }, []);
 
     // Generate and start a calibration queue
     const startCalibration = useCallback((newItem: CombinedItem) => {
-        console.log('--- startCalibration Fired ---');
-        const currentItems = itemsRef.current;
-        console.log('Received newItem:', newItem);
-        console.log('Hook is using this `items` array:', currentItems);
-
+        console.group('[startCalibration] Generate queue for calibration');
         setIsCalibrating(true);
+        const currentItems = itemsRef.current;
+        console.log({ newItem: newItem, currentItems: currentItems });
 
         const itemInList = currentItems.find((item) => item.id === newItem.id);
-        console.log('Found itemInList:', itemInList);
         if (!itemInList) {
-            console.error(
-                'Premature Exit: newItem was not found in the main items list.',
-            );
+            console.error('newItem was not found in the main items list.');
+            console.groupEnd();
             return;
         }
 
         const otherItems = currentItems.filter(
             (item) => item.id !== newItem.id,
         );
-        console.log(
-            'Found otherItems:',
-            otherItems,
-            'Count:',
-            otherItems.length,
-        );
+        console.log({ otherItems: otherItems });
         if (otherItems.length === 0) {
-            console.warn('Premature Exit: No other items to compare against.');
+            console.log('No other items to compare against. Ending.');
+            console.groupEnd();
+
             setComparisonQueue([]);
             setCurrentPair(null);
             return;
@@ -233,6 +231,8 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         });
 
         console.log('Final queue being set:', queue);
+        console.groupEnd();
+
         setComparisonQueue(queue);
         setCurrentPair(queue[0] || null);
     }, []);
