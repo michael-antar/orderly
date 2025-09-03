@@ -57,18 +57,17 @@ export const ComparisonModal = ({
     // Get the first pair when the modal opens
     useEffect(() => {
         if (open) {
-            console.log('--- ComparisonModal opened ---');
-            // If a calibration item is provided, start calibration. Otherwise, start normal comparison.
+            console.group(
+                '[ComparisonModal] Opened. Starting calibration or comparison.',
+            );
             if (calibrationItem) {
-                console.log(
-                    'Modal received calibrationItem: ',
-                    calibrationItem,
-                );
+                console.log('Received calibrationItem: ', calibrationItem);
                 startCalibration(calibrationItem);
             } else {
                 startNormalComparison();
             }
             setResult(null);
+            console.groupEnd();
         }
     }, [open, startNormalComparison, startCalibration, calibrationItem]);
 

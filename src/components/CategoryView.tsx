@@ -127,7 +127,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
         newStatus: Status,
         newItem: CombinedItem,
     ) => {
-        console.log('--- handleAddSuccess fired ---');
+        console.groupCollapsed(
+            '[handleAddSuccess] Refreshing list and starting calibration',
+        );
         setActiveTab(newStatus);
         const { data: updatedItems } = await getItems();
 
@@ -153,6 +155,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 );
             }
         }
+
+        console.groupEnd();
     };
 
     // Set new active tab, refresh edited item, and start calibration if moved to ranked
@@ -160,26 +164,39 @@ export const CategoryView = ({ category }: { category: Category }) => {
         newStatus: Status,
         updatedItem: CombinedItem,
     ) => {
-        console.log('--- handleEditSuccess fired ---');
-        console.log('updatedItem:', updatedItem);
-
         const previousStatus = selectedItem?.status;
 
         setActiveTab(newStatus);
         await getItems();
-
-        // If item was successfully updated, check if it needs calibration
         setSelectedItem(updatedItem); // Keep detail view in sync
 
-        // Check if item was moved from backlog to ranked
-        if (previousStatus === 'backlog' && newStatus === 'ranked') {
-            console.log(
-                'Item moved from backlog to ranked, starting calibration for:',
-                updatedItem,
-            );
+        const wasMovedToRanked =
+            previousStatus === 'backlog' && newStatus === 'ranked';
+
+        if (wasMovedToRanked) {
             setCalibrationItem(updatedItem);
             setIsComparisonModalOpen(true);
         }
+
+        console.groupCollapsed(
+            '[handleEditSuccess] Setting new active tab, refreshing edited item, ',
+            'and starting calibration if moved from backlog to ranked',
+        );
+        console.log('Using information:', {
+            updatedItem: updatedItem,
+            previousStatus: previousStatus,
+            newStatus: newStatus,
+        });
+
+        if (wasMovedToRanked) {
+            console.log(
+                'Item moved from backlog to ranked, starting calibration...',
+            );
+        } else {
+            console.log('No calibration needed');
+        }
+
+        console.groupEnd();
     };
 
     const handleCalibrationComplete = () => {

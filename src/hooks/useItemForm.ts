@@ -169,7 +169,9 @@ export const useItemForm = ({
     };
 
     const handleAddItem = async () => {
-        console.group('[handleAddItem] Logic');
+        console.group(
+            '[handleAddItem] Inserting new item to tables and returning new item',
+        );
         // Insert into 'items' table
         const itemToInsert: Omit<
             Item,
@@ -365,13 +367,15 @@ export const useItemForm = ({
     }, [config.fields, formData]);
 
     const handleTagSync = async (itemId: string, finalTags: Tag[]) => {
-        console.group('[handleTagSync] Logic');
-        console.log('Item ID:', itemId);
-        console.log('Final tags from form:', finalTags);
-        console.log('Original item tags:', item?.tags);
+        console.group('[handleTagSync] Syncing tags');
 
         const originalTagIds = item?.tags?.map((t) => t.id) || [];
-        console.log('Original tag IDs:', originalTagIds);
+        console.log({
+            itemId: itemId,
+            finalTags: finalTags,
+            originalTags: item?.tags,
+            originalTagIds: originalTagIds,
+        });
 
         // Create any new tags that were added by the user
         // New tags will have been created with a generated id using Date(now), which will always be over 1,000,000
