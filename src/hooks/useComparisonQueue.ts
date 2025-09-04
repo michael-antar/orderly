@@ -70,7 +70,9 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
     // Generate mixed queue of random and similar pairs for comparison
     const startNormalComparison = useCallback(() => {
-        console.group('[startNormalComparison] Generate queue for comparisons');
+        console.groupCollapsed(
+            '[startNormalComparison] Generate queue for comparisons',
+        );
 
         setIsCalibrating(false);
 

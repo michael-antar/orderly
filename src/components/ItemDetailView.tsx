@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabaseClient';
-import { getCategoryDetails } from '@/lib/utils';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 
 import {
@@ -14,8 +13,9 @@ import {
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
+import { ItemDetailsContent } from './ItemDetailsContent';
 import { ItemForm } from './ItemForm';
-import { TagBadge } from './TagBadge';
+
 import { toast } from 'sonner';
 
 import { type CombinedItem, type Status } from '@/types/types';
@@ -65,8 +65,6 @@ export const ItemDetailView = ({
             </div>
         );
     }
-
-    const details = getCategoryDetails(item);
 
     return (
         <div className="flex flex-col mx-4 pt-4 md:pt-0">
@@ -132,48 +130,8 @@ export const ItemDetailView = ({
                 </div>
             </div>
 
-            {/* General Item Information */}
-            <div>
-                <h2 className="text-3xl font-bold truncate">{item.name}</h2>
-                <p className="text-muted-foreground capitalize">
-                    {item.status === 'ranked'
-                        ? `Elo: ${item.rating}`
-                        : 'Backlog'}
-                </p>
-
-                {item.description && (
-                    <p className="mt-4 text-sm whitespace-pre-wrap break-words">
-                        {item.description}
-                    </p>
-                )}
-            </div>
-
-            {/* Tags Section */}
-            {item.tags && item.tags.length > 0 && (
-                <div className="mt-6 space-y-2 border-t pt-4">
-                    <h4 className="font-semibold text-muted-foreground text-sm">
-                        Tags
-                    </h4>
-                    <div className="flex flex-wrap gap-2">
-                        {item.tags.map((tag) => (
-                            <TagBadge key={tag.id} name={tag.name} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Category Specific Details */}
-            <div className="mt-6 space-y-2 border-t pt-4">
-                {details.map(([key, value]) => (
-                    <div key={key} className="flex justify-between text-sm">
-                        <span className="font-semibold text-muted-foreground">
-                            {key}
-                        </span>
-                        <span className="text-foreground text-right truncate">
-                            {value}
-                        </span>
-                    </div>
-                ))}
+            <div className="flex-1 mt-4 overflow-y-auto">
+                <ItemDetailsContent item={item} />
             </div>
         </div>
     );
