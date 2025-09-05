@@ -302,7 +302,10 @@ export const ComparisonModal = ({
                         )}
                     </div>
 
-                    <SheetContent side="top" className="h-3/4 overflow-y-auto">
+                    <SheetContent
+                        side="bottom"
+                        className="h-2/3 overflow-y-auto"
+                    >
                         <SheetHeader>
                             <SheetTitle>Item Details</SheetTitle>
                         </SheetHeader>
