@@ -143,12 +143,18 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
             // Set the state with the correct, fresh object
             if (freshItem) {
-                console.log(
-                    'Passing this item to setCalibrationItem:',
-                    freshItem,
-                );
-                setCalibrationItem(freshItem);
-                setIsComparisonModalOpen(true);
+                if (rankedItems.length >= 1) {
+                    console.log(
+                        'Passing this item to setCalibrationItem:',
+                        freshItem,
+                    );
+                    setCalibrationItem(freshItem);
+                    setIsComparisonModalOpen(true);
+                } else {
+                    console.log(
+                        'Skipping calibration: Not enough ranked items to compare.',
+                    );
+                }
             } else {
                 console.error(
                     'DEBUG: Could not find freshItem in the updated list!',
