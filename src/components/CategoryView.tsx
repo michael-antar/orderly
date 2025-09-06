@@ -199,11 +199,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
         console.groupEnd();
     };
 
-    const handleCalibrationComplete = () => {
+    const handleCalibrationComplete = useCallback(() => {
         setCalibrationItem(null);
         setIsComparisonModalOpen(false);
         getItems();
-    };
+    }, [getItems]);
 
     // Unselect item and refresh list
     const handleDeleteSuccess = () => {

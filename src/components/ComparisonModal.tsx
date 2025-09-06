@@ -61,24 +61,22 @@ export const ComparisonModal = ({
     } = useComparisonQueue(rankedItems);
     const [result, setResult] = useState<Result | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [hasStarted, setHasStarted] = useState(false);
     const [itemToView, setItemToView] = useState<CombinedItem | null>(null);
 
-    // Get the first pair when the modal opens
-    useEffect(() => {
-        if (open) {
-            console.group(
-                '[ComparisonModal] Opened. Starting calibration or comparison.',
-            );
-            if (calibrationItem) {
-                console.log('Received calibrationItem: ', calibrationItem);
-                startCalibration(calibrationItem);
-            } else {
-                startNormalComparison();
+    const handleOpenChange = useCallback(
+        (openState: boolean) => {
+            onOpenChange(openState);
+            if (!openState) {
+                if (isCalibrating && onCalibrationComplete) {
+                    onCalibrationComplete();
+                } else {
+                    onSuccess();
+                }
             }
-            setResult(null);
-            console.groupEnd();
-        }
-    }, [open, startNormalComparison, startCalibration, calibrationItem]);
+        },
+        [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
+    );
 
     const handleChoose = async (winner: CombinedItem, loser: CombinedItem) => {
         setIsLoading(true);
@@ -140,19 +138,30 @@ export const ComparisonModal = ({
         getNextPair();
     };
 
-    const handleOpenChange = useCallback(
-        (openState: boolean) => {
-            onOpenChange(openState);
-            if (!openState) {
-                if (isCalibrating && onCalibrationComplete) {
-                    onCalibrationComplete();
-                } else {
-                    onSuccess();
-                }
+    // Get the first pair when the modal opens
+    useEffect(() => {
+        if (open) {
+            console.group(
+                '[ComparisonModal] Opened. Starting calibration or comparison.',
+            );
+            if (calibrationItem) {
+                console.log('Received calibrationItem: ', calibrationItem);
+                startCalibration(calibrationItem);
+            } else {
+                startNormalComparison();
             }
-        },
-        [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
-    );
+            setResult(null);
+            setHasStarted(true);
+            console.groupEnd();
+        }
+    }, [open, startNormalComparison, startCalibration, calibrationItem]);
+
+    // Automatically close the modal when the queue is empty
+    useEffect(() => {
+        if (hasStarted && !currentPair && !result) {
+            handleOpenChange(false);
+        }
+    }, [currentPair, result, hasStarted, handleOpenChange]);
 
     const itemA = currentPair?.[0];
     const itemB = currentPair?.[1];
@@ -180,11 +189,6 @@ export const ComparisonModal = ({
                     onOpenChange={(isOpen) => !isOpen && setItemToView(null)}
                 >
                     <div className="grid grid-cols-2 gap-4 py-4">
-                        {!currentPair && !result && (
-                            <p className="col-span-2 text-center text-muted-foreground">
-                                No more pairs to compare!
-                            </p>
-                        )}
                         {currentPair && itemA && itemB && (
                             <>
                                 {/* Left Item Card */}
