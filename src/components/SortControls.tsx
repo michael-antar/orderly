@@ -1,6 +1,7 @@
-import { ArrowDown, ArrowUp, SlidersHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, X } from 'lucide-react';
 
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Label } from '@/components/ui/label';
 import {
     Popover,
@@ -15,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { TagInput } from './TagInput';
 
 import { type SortOption } from '@/types/types';
 
@@ -47,10 +49,14 @@ export const SortControls = ({
                             Sort Options
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                            Arrange the list based on your preference.
+                            Arrange and filter the list to find what you're
+                            looking for.
                         </p>
                     </div>
+
                     <Separator />
+
+                    {/* Sort Section */}
                     <div className="grid grid-cols-3 items-center gap-4">
                         <Label>Sort by</Label>
                         <div className="col-span-2 flex items-center gap-2">
@@ -91,6 +97,70 @@ export const SortControls = ({
                                 </span>
                             </Button>
                         </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Filter Section */}
+                    <div className="space-y-4">
+                        <Label>Filter by</Label>
+
+                        {/* Tag Filter */}
+                        <TagInput
+                            selectedTags={[]}
+                            availableTags={[]}
+                            onTagsChange={() => {}}
+                            category="movie"
+                            popoverOpen={false}
+                            onPopoverOpenChange={() => {}}
+                        />
+
+                        {/* Category Field Filter */}
+                        <Label>Fields</Label>
+                        <div className="flex items-center gap-2">
+                            <Select defaultValue="director">
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Field" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="director">
+                                        Director
+                                    </SelectItem>
+                                    <SelectItem value="release_year">
+                                        Release Year
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Select defaultValue="is">
+                                <SelectTrigger className="w-2/3">
+                                    <SelectValue placeholder="Operator" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="is">is</SelectItem>
+                                    <SelectItem value="is_not">
+                                        is not
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <Input placeholder="Value..." />
+                        <Button variant="outline" size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Filter
+                        </Button>
+
+                        {/* Clear Button */}
+                        <Separator />
+                        <Button variant="ghost" size="sm">
+                            Clear All Filters
+                        </Button>
                     </div>
                 </div>
             </PopoverContent>
