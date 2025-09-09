@@ -17,6 +17,32 @@ export type TagWithUsage = Tag & {
     is_used: boolean;
 };
 
+// - Filter Types -
+export type FilterOperator = 'is' | 'is_not' | 'contains' | 'gt' | 'lt';
+export type FilterField =
+    | 'artist'
+    | 'release_year'
+    | 'author'
+    | 'director'
+    | 'price_range'
+    | 'series_name'
+    | 'series_order'
+    | 'address'
+    | 'start_year'
+    | 'end_year';
+
+export type FilterRule = {
+    id: string;
+    field: FilterField | '';
+    operator: FilterOperator | '';
+    value: string | number;
+};
+
+export type AppliedFilters = {
+    tags: Tag[];
+    rules: FilterRule[];
+};
+
 // --- Database and API Types ---
 
 // Base item stored in 'items' table

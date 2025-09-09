@@ -14,12 +14,19 @@ import {
     type SupabaseMutationResponse,
     type DetailsMap,
     type DetailTableNames,
+    type FilterField,
     type AlbumDetails,
     type BookDetails,
     type MovieDetails,
     type RestaurantDetails,
     type ShowDetails,
 } from '@/types/types';
+
+export type FilterableField = {
+    value: FilterField;
+    label: string;
+    type: 'string' | 'number' | 'price_range'; // Added type property
+};
 
 type CategoryConfigMap = {
     [K in Category]: {
@@ -33,6 +40,7 @@ type CategoryConfigMap = {
             details: Partial<DetailsMap[K]>,
         ) => SupabaseMutationResponse;
         fields: Array<keyof DetailsMap[K]>;
+        filterableFields: FilterableField[];
     };
 };
 
@@ -62,25 +70,47 @@ export const categoryConfig: CategoryConfigMap = {
         FieldsComponent: AlbumFields,
         ...createDetailsHandlers<AlbumDetails>('album_details'),
         fields: ['artist', 'release_year'],
+        filterableFields: [
+            { value: 'artist', label: 'Artist', type: 'string' },
+            { value: 'release_year', label: 'Release Year', type: 'number' },
+        ],
     },
     book: {
         FieldsComponent: BookFields,
         ...createDetailsHandlers<BookDetails>('book_details'),
         fields: ['author', 'release_year', 'series_name', 'series_order'],
+        filterableFields: [
+            { value: 'author', label: 'Author', type: 'string' },
+            { value: 'release_year', label: 'Release Year', type: 'number' },
+            { value: 'series_name', label: 'Series Name', type: 'string' },
+            { value: 'series_order', label: 'Series Order', type: 'number' },
+        ],
     },
     movie: {
         FieldsComponent: MovieFields,
         ...createDetailsHandlers<MovieDetails>('movie_details'),
         fields: ['director', 'release_year'],
+        filterableFields: [
+            { value: 'director', label: 'Director', type: 'string' },
+            { value: 'release_year', label: 'Release Year', type: 'number' },
+        ],
     },
     restaurant: {
         FieldsComponent: RestaurantFields,
         ...createDetailsHandlers<RestaurantDetails>('restaurant_details'),
         fields: ['address', 'price_range'],
+        filterableFields: [
+            { value: 'address', label: 'Address', type: 'string' },
+            { value: 'price_range', label: 'Price Range', type: 'price_range' },
+        ],
     },
     show: {
         FieldsComponent: ShowFields,
         ...createDetailsHandlers<ShowDetails>('show_details'),
         fields: ['start_year', 'end_year'],
+        filterableFields: [
+            { value: 'start_year', label: 'Start Year', type: 'number' },
+            { value: 'end_year', label: 'End Year', type: 'number' },
+        ],
     },
 };

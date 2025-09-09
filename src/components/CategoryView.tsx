@@ -17,12 +17,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { PostgrestError } from '@supabase/supabase-js';
 import {
+    type AppliedFilters,
     type Category,
     type CombinedItem,
     type SortOption,
     type Status,
     categoryTitles,
 } from '@/types/types';
+
+const detailTableMap: Record<Category, string> = {
+    movie: 'movie_details',
+    restaurant: 'restaurant_details',
+    album: 'album_details',
+    book: 'book_details',
+    show: 'show_details',
+};
 
 export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
@@ -34,9 +43,13 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
-    // Handle list sorting
+    // Handle list sorting and filtering
     const [sortBy, setSortBy] = useState<SortOption>('rating');
     const [sortAsc, setSortAsc] = useState(false);
+    const [filters, setFilters] = useState<AppliedFilters>({
+        tags: [],
+        rules: [],
+    });
 
     // Handle ComparisonModal
     const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
@@ -48,15 +61,59 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const getItems = useCallback(async () => {
         if (!user) return { data: [], error: null };
         setLoading(true);
+
         try {
-            const { data, error } = await supabase
+            const detailTable = detailTableMap[category];
+
+            // Start building the query
+            let query = supabase
                 .from('items')
                 .select(
                     `*, tags(*), movie_details(*), restaurant_details(*), album_details(*), book_details(*), show_details(*)`,
                 )
                 .eq('user_id', user.id)
-                .eq('category', category)
-                .order(sortBy, { ascending: sortAsc, nullsFirst: false });
+                .eq('category', category);
+
+            // Apply tag filters
+            if (filters.tags.length > 0) {
+                const tagIds = filters.tags.map((tag) => tag.id);
+                // This checks if the item's tags array contains all of the selected tag IDs
+                query = query.contains('tags.id', tagIds);
+            }
+
+            // Apply rule based filters
+            filters.rules.forEach((rule) => {
+                // Ensure the rule is complete before applying it
+                if (!rule.field || !rule.operator || rule.value === '') return;
+
+                const filterColumn = `${detailTable}.${rule.field}`;
+
+                switch (rule.operator) {
+                    case 'is':
+                        query = query.eq(filterColumn, rule.value);
+                        break;
+                    case 'is_not':
+                        query = query.neq(filterColumn, rule.value);
+                        break;
+                    case 'contains':
+                        // Using ilike for case-insensitive "contains" search
+                        query = query.ilike(filterColumn, `%${rule.value}%`);
+                        break;
+                    case 'gt':
+                        query = query.gt(filterColumn, rule.value);
+                        break;
+                    case 'lt':
+                        query = query.lt(filterColumn, rule.value);
+                        break;
+                }
+            });
+
+            // Apply sorting and execute query
+            const { data, error } = await query.order(sortBy, {
+                ascending: sortAsc,
+                nullsFirst: false,
+            });
+
             if (error) throw error;
             setItems(data || []);
             return { data: data as CombinedItem[] | null, error: null };
@@ -66,7 +123,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
         } finally {
             setLoading(false);
         }
-    }, [user, category, sortBy, sortAsc]);
+    }, [user, category, sortBy, sortAsc, filters]);
 
     // Initial fetch on component mount or category change
     useEffect(() => {
@@ -228,6 +285,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
         }
     };
 
+    const handleFiltersChange = (newFilters: AppliedFilters) => {
+        setFilters(newFilters);
+    };
+
     return (
         <div className="relative h-full overflow-hidden md:flex">
             {/* Left Column: Item List */}
@@ -260,6 +321,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     onSortDirChange={() =>
                                         setSortAsc((prev) => !prev)
                                     }
+                                    filters={filters}
+                                    onFiltersChange={handleFiltersChange}
+                                    category={category}
                                 />
 
                                 {/* Tag Management Modal */}
