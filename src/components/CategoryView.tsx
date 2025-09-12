@@ -64,13 +64,30 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
         try {
             const detailTable = detailTableMap[category];
+            const allDetailTables = Object.values(detailTableMap);
 
-            // Start building the query
+            const hasDetailRules = filters.rules.some(
+                (rule) => rule.field && rule.operator && rule.value !== '',
+            );
+
+            const selectParts = ['*', 'tags(*)'];
+
+            const mainDetailSelect = hasDetailRules
+                ? `${detailTable}!inner(*)`
+                : `${detailTable}(*)`;
+            selectParts.push(mainDetailSelect);
+
+            allDetailTables
+                .filter((table) => table !== detailTable)
+                .forEach((table) => {
+                    selectParts.push(`${table}(*)`);
+                });
+
+            const selectString = selectParts.join(', ');
+
             let query = supabase
                 .from('items')
-                .select(
-                    `*, tags(*), movie_details(*), restaurant_details(*), album_details(*), book_details(*), show_details(*)`,
-                )
+                .select(selectString)
                 .eq('user_id', user.id)
                 .eq('category', category);
 
@@ -96,7 +113,6 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         query = query.neq(filterColumn, rule.value);
                         break;
                     case 'contains':
-                        // Using ilike for case-insensitive "contains" search
                         query = query.ilike(filterColumn, `%${rule.value}%`);
                         break;
                     case 'gt':
@@ -115,8 +131,11 @@ export const CategoryView = ({ category }: { category: Category }) => {
             });
 
             if (error) throw error;
-            setItems(data || []);
-            return { data: data as CombinedItem[] | null, error: null };
+            setItems((data as unknown as CombinedItem[]) || []);
+            return {
+                data: (data as unknown as CombinedItem[]) || null,
+                error: null,
+            };
         } catch (error) {
             console.error('Error fetching items:', error);
             return { data: [], error: error as PostgrestError };
