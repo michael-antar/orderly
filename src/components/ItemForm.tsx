@@ -53,7 +53,15 @@ export function ItemForm({
         onSuccess,
     });
 
+    const [openSelectsCount, setOpenSelectsCount] = useState(0);
     const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
+
+    const handleSelectOpenChange = (isOpen: boolean) => {
+        setOpenSelectsCount(
+            (currentCount) =>
+                isOpen ? currentCount + 1 : Math.max(0, currentCount - 1), // Prevent going below zero
+        );
+    };
 
     useEffect(() => {
         if (mode === 'add' && isOpen && activeListStatus) {
@@ -72,7 +80,11 @@ export function ItemForm({
     const statusText = formData.status === 'ranked' ? 'Review' : 'Notes';
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            // modal={openSelectsCount === 0}
+        >
             <DialogTrigger asChild>
                 {mode === 'add' ? (
                     <Button size="icon">
@@ -87,10 +99,17 @@ export function ItemForm({
             <DialogContent
                 className="sm:max-w-[425px]"
                 onEscapeKeyDown={(e) => {
-                    // If the tag popover is open, prevent the dialog from closing
-                    if (isTagPopoverOpen) {
+                    if (openSelectsCount > 0 || isTagPopoverOpen) {
                         e.preventDefault();
-                        setTagPopoverOpen(false);
+                        if (isTagPopoverOpen) {
+                            setTagPopoverOpen(false);
+                        } else {
+                            console.warn(
+                                'Escape key pressed when select is open within dialog.',
+                                'Preventing both from closing.',
+                                'Sorry, this is the only way I could fix an error where both would close simulatiously and brick the mouse functionality',
+                            );
+                        }
                     }
                 }}
             >
@@ -172,6 +191,7 @@ export function ItemForm({
                     <FieldsComponent
                         formData={formData}
                         onFieldChange={handleFieldChange}
+                        onSelectOpenChange={handleSelectOpenChange}
                     />
 
                     <Separator />

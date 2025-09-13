@@ -267,7 +267,6 @@ export const SortControls = ({
                         <Label>Filter by</Label>
 
                         {/* Tag Filter */}
-                        {/* TODO: Implement using handleDescendantOpenChange */}
                         <TagInput
                             selectedTags={localFilters.tags}
                             availableTags={availableTags}

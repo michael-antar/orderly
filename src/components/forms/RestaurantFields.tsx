@@ -15,6 +15,7 @@ const priceOptions: PriceRange[] = ['$', '$$', '$$$', '$$$$'];
 export const RestaurantFields = ({
     formData,
     onFieldChange,
+    onSelectOpenChange,
 }: CategoryFieldsProps) => {
     return (
         <>
@@ -28,6 +29,7 @@ export const RestaurantFields = ({
                     onValueChange={(value) =>
                         onFieldChange('price_range', value as PriceRange)
                     }
+                    onOpenChange={onSelectOpenChange}
                 >
                     <SelectTrigger id="priceRange" className="col-span-3">
                         <SelectValue placeholder="Select a price range" />

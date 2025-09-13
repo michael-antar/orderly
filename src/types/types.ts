@@ -152,6 +152,7 @@ export type CategoryFieldsProps = {
         field: K,
         value: ItemFormData[K],
     ) => void;
+    onSelectOpenChange?: (isOpen: boolean) => void;
 };
 
 // --- UI and Navigation Constants ---
