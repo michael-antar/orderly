@@ -59,25 +59,31 @@ type SortControlsProps = {
     sortBy: SortOption;
     sortAsc: boolean;
     isEloDisabled: boolean;
-    onSortByChange: (value: SortOption) => void;
-    onSortDirChange: () => void;
     filters: AppliedFilters;
-    onFiltersChange: (newFilters: AppliedFilters) => void;
     category: Category;
+    onApply: (
+        newSortBy: SortOption,
+        newSortAsc: boolean,
+        newFilters: AppliedFilters,
+    ) => void;
 };
 
 export const SortControls = ({
     sortBy,
     sortAsc,
     isEloDisabled,
-    onSortByChange,
-    onSortDirChange,
     filters,
-    onFiltersChange,
     category,
+    onApply,
 }: SortControlsProps) => {
     const { user } = useAuth();
     const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+
+    // Manages popover and its "draft" values
+    const [isOpen, setIsOpen] = useState(false);
+    const [localSortBy, setLocalSortBy] = useState<SortOption>(sortBy);
+    const [localSortAsc, setLocalSortAsc] = useState(sortAsc);
+    const [localFilters, setLocalFilters] = useState<AppliedFilters>(filters);
 
     const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
 
@@ -94,6 +100,23 @@ export const SortControls = ({
         fetchTags();
     }, [user, category]);
 
+    // Reset sort/filter values upon open
+    useEffect(() => {
+        if (isOpen) {
+            setLocalSortBy(sortBy);
+            setLocalSortAsc(sortAsc);
+            setLocalFilters(filters);
+        }
+    }, [isOpen, sortBy, sortAsc, filters]);
+
+    const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
+        // When the popover closes, apply the changes
+        if (!open) {
+            onApply(localSortBy, localSortAsc, localFilters);
+        }
+    };
+
     const handleAddRule = () => {
         const newRule: FilterRule = {
             id: Date.now().toString(),
@@ -101,31 +124,34 @@ export const SortControls = ({
             operator: '',
             value: '',
         };
-        onFiltersChange({ ...filters, rules: [...filters.rules, newRule] });
-    };
-
-    const handleRemoveRule = (id: string) => {
-        onFiltersChange({
-            ...filters,
-            rules: filters.rules.filter((rule) => rule.id !== id),
+        setLocalFilters({
+            ...localFilters,
+            rules: [...localFilters.rules, newRule],
         });
     };
 
-    const handleRuleChange = (
+    const handleRemoveRule = (id: string) => {
+        setLocalFilters({
+            ...localFilters,
+            rules: localFilters.rules.filter((rule) => rule.id !== id),
+        });
+    };
+
+    const handleChangeRule = (
         id: string,
         field: keyof FilterRule,
         value: string | number,
     ) => {
-        onFiltersChange({
-            ...filters,
-            rules: filters.rules.map((rule) =>
+        setLocalFilters({
+            ...localFilters,
+            rules: localFilters.rules.map((rule) =>
                 rule.id === id ? { ...rule, [field]: value } : rule,
             ),
         });
     };
 
     const handleClearFilters = () => {
-        onFiltersChange({ tags: [], rules: [] });
+        setLocalFilters({ tags: [], rules: [] });
     };
 
     const { filterableFields } = categoryConfig[category];
@@ -151,7 +177,7 @@ export const SortControls = ({
     };
 
     return (
-        <Popover>
+        <Popover open={isOpen} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button variant="outline" size="icon">
                     <SlidersHorizontal className="h-4 w-4" />
@@ -185,8 +211,10 @@ export const SortControls = ({
                         <Label>Sort by</Label>
                         <div className="col-span-2 flex items-center gap-2">
                             <Select
-                                value={sortBy}
-                                onValueChange={onSortByChange}
+                                value={localSortBy}
+                                onValueChange={(val) =>
+                                    setLocalSortBy(val as SortOption)
+                                }
                             >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select..." />
@@ -209,9 +237,9 @@ export const SortControls = ({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={onSortDirChange}
+                                onClick={() => setLocalSortAsc((prev) => !prev)}
                             >
-                                {sortAsc ? (
+                                {localSortAsc ? (
                                     <ArrowUp className="h-4 w-4" />
                                 ) : (
                                     <ArrowDown className="h-4 w-4" />
@@ -231,10 +259,13 @@ export const SortControls = ({
 
                         {/* Tag Filter */}
                         <TagInput
-                            selectedTags={filters.tags}
+                            selectedTags={localFilters.tags}
                             availableTags={availableTags}
                             onTagsChange={(newTags) =>
-                                onFiltersChange({ ...filters, tags: newTags })
+                                setLocalFilters({
+                                    ...localFilters,
+                                    tags: newTags,
+                                })
                             }
                             category={category}
                             popoverOpen={isTagPopoverOpen}
@@ -242,7 +273,7 @@ export const SortControls = ({
                         />
 
                         {/* Category Field Filter */}
-                        {filters.rules.map((rule, index) => (
+                        {localFilters.rules.map((rule, index) => (
                             <div key={rule.id} className="space-y-2">
                                 <Label className="text-xs text-muted-foreground">
                                     Rule {index + 1}
@@ -251,7 +282,7 @@ export const SortControls = ({
                                     <Select
                                         value={rule.field}
                                         onValueChange={(value) =>
-                                            handleRuleChange(
+                                            handleChangeRule(
                                                 rule.id,
                                                 'field',
                                                 value,
@@ -275,7 +306,7 @@ export const SortControls = ({
                                     <Select
                                         value={rule.operator}
                                         onValueChange={(value) =>
-                                            handleRuleChange(
+                                            handleChangeRule(
                                                 rule.id,
                                                 'operator',
                                                 value,
@@ -314,7 +345,7 @@ export const SortControls = ({
                                     <Select
                                         value={String(rule.value)}
                                         onValueChange={(value) =>
-                                            handleRuleChange(
+                                            handleChangeRule(
                                                 rule.id,
                                                 'value',
                                                 value,
@@ -344,7 +375,7 @@ export const SortControls = ({
                                                 : 'text'
                                         }
                                         onChange={(e) =>
-                                            handleRuleChange(
+                                            handleChangeRule(
                                                 rule.id,
                                                 'value',
                                                 e.target.value,

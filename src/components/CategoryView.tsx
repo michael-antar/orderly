@@ -328,7 +328,17 @@ export const CategoryView = ({ category }: { category: Category }) => {
         }
     };
 
-    const handleFiltersChange = (newFilters: AppliedFilters) => {
+    // const handleFiltersChange = (newFilters: AppliedFilters) => {
+    //     setFilters(newFilters);
+    // };
+
+    const handleSortAndFilterApply = (
+        newSortBy: SortOption,
+        newSortAsc: boolean,
+        newFilters: AppliedFilters,
+    ) => {
+        setSortBy(newSortBy);
+        setSortAsc(newSortAsc);
         setFilters(newFilters);
     };
 
@@ -360,13 +370,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                     sortBy={sortBy}
                                     sortAsc={sortAsc}
                                     isEloDisabled={activeTab === 'backlog'}
-                                    onSortByChange={setSortBy}
-                                    onSortDirChange={() =>
-                                        setSortAsc((prev) => !prev)
-                                    }
                                     filters={filters}
-                                    onFiltersChange={handleFiltersChange}
                                     category={category}
+                                    onApply={handleSortAndFilterApply}
                                 />
 
                                 {/* Tag Management Modal */}
