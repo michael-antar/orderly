@@ -85,6 +85,8 @@ export const SortControls = ({
     const [localSortAsc, setLocalSortAsc] = useState(sortAsc);
     const [localFilters, setLocalFilters] = useState<AppliedFilters>(filters);
 
+    // Count of how many descendent components (selects, popovers) are open in order to prevent propagation closing of parent modal
+    const [openDescendants, setOpenDescendants] = useState(0);
     const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
 
     useEffect(() => {
@@ -106,6 +108,7 @@ export const SortControls = ({
             setLocalSortBy(sortBy);
             setLocalSortAsc(sortAsc);
             setLocalFilters(filters);
+            setOpenDescendants(0);
         }
     }, [isOpen, sortBy, sortAsc, filters]);
 
@@ -115,6 +118,10 @@ export const SortControls = ({
         if (!open) {
             onApply(localSortBy, localSortAsc, localFilters);
         }
+    };
+
+    const handleDescendantOpenChange = (open: boolean) => {
+        setOpenDescendants((prev) => (open ? prev + 1 : Math.max(0, prev - 1)));
     };
 
     const handleAddRule = () => {
@@ -185,11 +192,10 @@ export const SortControls = ({
             </PopoverTrigger>
             <PopoverContent
                 className="w-80"
-                onEscapeKeyDown={(e) => {
-                    // If the tag popover is open, prevent the dialog from closing
-                    if (isTagPopoverOpen) {
+                onPointerDownOutside={(e) => {
+                    // If any descendant is open, prevent the main popover from closing
+                    if (openDescendants > 0) {
                         e.preventDefault();
-                        setTagPopoverOpen(false);
                     }
                 }}
             >
@@ -215,11 +221,14 @@ export const SortControls = ({
                                 onValueChange={(val) =>
                                     setLocalSortBy(val as SortOption)
                                 }
+                                onOpenChange={handleDescendantOpenChange}
                             >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent
+                                    onEscapeKeyDown={(e) => e.preventDefault()}
+                                >
                                     <SelectItem
                                         value="rating"
                                         disabled={isEloDisabled}
@@ -258,6 +267,7 @@ export const SortControls = ({
                         <Label>Filter by</Label>
 
                         {/* Tag Filter */}
+                        {/* TODO: Implement using handleDescendantOpenChange */}
                         <TagInput
                             selectedTags={localFilters.tags}
                             availableTags={availableTags}
@@ -288,6 +298,9 @@ export const SortControls = ({
                                                 value,
                                             )
                                         }
+                                        onOpenChange={
+                                            handleDescendantOpenChange
+                                        }
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Field" />
@@ -313,6 +326,9 @@ export const SortControls = ({
                                             )
                                         }
                                         disabled={!rule.field}
+                                        onOpenChange={
+                                            handleDescendantOpenChange
+                                        }
                                     >
                                         <SelectTrigger className="w-2/3">
                                             <SelectValue placeholder="Operator" />
@@ -350,6 +366,9 @@ export const SortControls = ({
                                                 'value',
                                                 value,
                                             )
+                                        }
+                                        onOpenChange={
+                                            handleDescendantOpenChange
                                         }
                                     >
                                         <SelectTrigger>

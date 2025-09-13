@@ -59,9 +59,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Fetch list of items from database
     const getItems = useCallback(async () => {
-        console.groupCollapsed(
-            '[getItems] Fetching items from supabase for category and user with filters and order',
-        );
+        console.groupCollapsed('[getItems] Fetching items from supabase');
 
         if (!user) {
             console.warn('No user found, exiting.');
@@ -327,10 +325,6 @@ export const CategoryView = ({ category }: { category: Category }) => {
             setSelectedItem(updatedItem || null);
         }
     };
-
-    // const handleFiltersChange = (newFilters: AppliedFilters) => {
-    //     setFilters(newFilters);
-    // };
 
     const handleSortAndFilterApply = (
         newSortBy: SortOption,
