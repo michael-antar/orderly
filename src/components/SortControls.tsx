@@ -44,8 +44,8 @@ const stringOperators: { value: FilterOperator; label: string }[] = [
 const numberOperators: { value: FilterOperator; label: string }[] = [
     { value: 'is', label: 'is' },
     { value: 'is_not', label: 'is not' },
-    { value: 'gt', label: 'is greater than' },
-    { value: 'lt', label: 'is less than' },
+    { value: 'gt', label: '>' },
+    { value: 'lt', label: '<' },
 ];
 
 const priceRangeOperators: { value: FilterOperator; label: string }[] = [
@@ -78,6 +78,8 @@ export const SortControls = ({
 }: SortControlsProps) => {
     const { user } = useAuth();
     const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+
+    const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
 
     useEffect(() => {
         const fetchTags = async () => {
@@ -155,7 +157,16 @@ export const SortControls = ({
                     <SlidersHorizontal className="h-4 w-4" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent
+                className="w-80"
+                onEscapeKeyDown={(e) => {
+                    // If the tag popover is open, prevent the dialog from closing
+                    if (isTagPopoverOpen) {
+                        e.preventDefault();
+                        setTagPopoverOpen(false);
+                    }
+                }}
+            >
                 <div className="grid gap-4">
                     <div className="space-y-2">
                         <h4 className="font-medium leading-none">
@@ -226,8 +237,8 @@ export const SortControls = ({
                                 onFiltersChange({ ...filters, tags: newTags })
                             }
                             category={category}
-                            popoverOpen={false}
-                            onPopoverOpenChange={() => {}}
+                            popoverOpen={isTagPopoverOpen}
+                            onPopoverOpenChange={setTagPopoverOpen}
                         />
 
                         {/* Category Field Filter */}
