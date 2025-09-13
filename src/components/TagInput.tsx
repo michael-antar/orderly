@@ -127,7 +127,7 @@ export const TagInput = ({
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent
-                        className="w-[--radix-popover-trigger-width] p-0"
+                        className="w-[--radix-popover-trigger-width] p-0 pointer-events-auto"
                         align="start"
                     >
                         <Command shouldFilter={false}>
