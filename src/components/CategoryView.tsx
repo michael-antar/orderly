@@ -59,18 +59,31 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Fetch list of items from database
     const getItems = useCallback(async () => {
-        if (!user) return { data: [], error: null };
+        console.groupCollapsed(
+            '[getItems] Fetching items from supabase for category and user with filters and order',
+        );
+
+        if (!user) {
+            console.warn('No user found, exiting.');
+            console.groupEnd();
+            return { data: [], error: null };
+        }
         setLoading(true);
 
         try {
             const detailTable = detailTableMap[category];
             const allDetailTables = Object.values(detailTableMap);
 
+            // Determine which joins need to be inner vs left
+            const hasTagRules = filters.tags.length > 0;
             const hasDetailRules = filters.rules.some(
                 (rule) => rule.field && rule.operator && rule.value !== '',
             );
 
-            const selectParts = ['*', 'tags(*)'];
+            // Build select string
+            const selectParts = ['*'];
+
+            selectParts.push(hasTagRules ? 'tags!inner(*)' : 'tags(*)');
 
             const mainDetailSelect = hasDetailRules
                 ? `${detailTable}!inner(*)`
@@ -85,6 +98,13 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
             const selectString = selectParts.join(', ');
 
+            // Start generating db query
+            console.log('Generating base query', {
+                category: category,
+                active_filters: filters,
+                select_string: selectString,
+            });
+
             let query = supabase
                 .from('items')
                 .select(selectString)
@@ -92,10 +112,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 .eq('category', category);
 
             // Apply tag filters
-            if (filters.tags.length > 0) {
+            if (hasTagRules) {
                 const tagIds = filters.tags.map((tag) => tag.id);
-                // This checks if the item's tags array contains all of the selected tag IDs
-                query = query.contains('tags.id', tagIds);
+                console.log('Applying tag filter with IDs:', tagIds);
+                query = query.in('tags.id', tagIds);
             }
 
             // Apply rule based filters
@@ -130,7 +150,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 nullsFirst: false,
             });
 
+            console.log('Supabase Response:', { data, error });
+
             if (error) throw error;
+
             setItems((data as unknown as CombinedItem[]) || []);
             return {
                 data: (data as unknown as CombinedItem[]) || null,
@@ -140,6 +163,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             console.error('Error fetching items:', error);
             return { data: [], error: error as PostgrestError };
         } finally {
+            console.groupEnd();
             setLoading(false);
         }
     }, [user, category, sortBy, sortAsc, filters]);
