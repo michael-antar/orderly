@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 import { PanelRightOpen, Swords } from 'lucide-react';
@@ -185,6 +185,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
         () => items.filter((item) => item.status === 'ranked'),
         [items],
     );
+    const rankedItemsRef = useRef(rankedItems);
+    rankedItemsRef.current = rankedItems;
+
     const backlogItems = useMemo(
         () => items.filter((item) => item.status === 'backlog'),
         [items],
@@ -221,87 +224,86 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     // Refresh list and start calibration
-    const handleAddSuccess = async (
-        newStatus: Status,
-        newItem: CombinedItem,
-    ) => {
-        console.groupCollapsed(
-            '[handleAddSuccess] Refreshing list and starting calibration',
-        );
-        setActiveTab(newStatus);
-        const { data: updatedItems } = await getItems();
+    const handleAddSuccess = useCallback(
+        async (newStatus: Status, newItem: CombinedItem) => {
+            console.groupCollapsed(
+                '[handleAddSuccess] Refreshing list and starting calibration',
+            );
+            setActiveTab(newStatus);
+            const { data: updatedItems } = await getItems();
 
-        if (newStatus === 'ranked' && updatedItems) {
-            console.log('Original newItem from form:', newItem);
-            console.log('Full updated list from DB:', updatedItems);
+            if (newStatus === 'ranked' && updatedItems) {
+                console.log('Original newItem from form:', newItem);
+                console.log('Full updated list from DB:', updatedItems);
 
-            // Search inside that fresh data for the item we care about
-            const freshItem = updatedItems.find((i) => i.id === newItem.id);
-            console.log('freshItem found in list:', freshItem);
+                // Search inside that fresh data for the item we care about
+                const freshItem = updatedItems.find((i) => i.id === newItem.id);
+                console.log('freshItem found in list:', freshItem);
 
-            // Set the state with the correct, fresh object
-            if (freshItem) {
-                if (rankedItems.length >= 1) {
-                    console.log(
-                        'Passing this item to setCalibrationItem:',
-                        freshItem,
-                    );
-                    setCalibrationItem(freshItem);
-                    setIsComparisonModalOpen(true);
+                // Set the state with the correct, fresh object
+                if (freshItem) {
+                    if (rankedItemsRef.current.length >= 1) {
+                        console.log(
+                            'Passing this item to setCalibrationItem:',
+                            freshItem,
+                        );
+                        setCalibrationItem(freshItem);
+                        setIsComparisonModalOpen(true);
+                    } else {
+                        console.log(
+                            'Skipping calibration: Not enough ranked items to compare.',
+                        );
+                    }
                 } else {
-                    console.log(
-                        'Skipping calibration: Not enough ranked items to compare.',
+                    console.error(
+                        'DEBUG: Could not find freshItem in the updated list!',
                     );
                 }
-            } else {
-                console.error(
-                    'DEBUG: Could not find freshItem in the updated list!',
-                );
             }
-        }
-
-        console.groupEnd();
-    };
+            console.groupEnd();
+        },
+        [getItems],
+    );
 
     // Set new active tab, refresh edited item, and start calibration if moved to ranked
-    const handleEditSuccess = async (
-        newStatus: Status,
-        updatedItem: CombinedItem,
-    ) => {
-        const previousStatus = selectedItem?.status;
+    const handleEditSuccess = useCallback(
+        async (newStatus: Status, updatedItem: CombinedItem) => {
+            const previousStatus = selectedItem?.status;
 
-        setActiveTab(newStatus);
-        await getItems();
-        setSelectedItem(updatedItem); // Keep detail view in sync
+            setActiveTab(newStatus);
+            await getItems();
+            setSelectedItem(updatedItem); // Keep detail view in sync
 
-        const wasMovedToRanked =
-            previousStatus === 'backlog' && newStatus === 'ranked';
+            const wasMovedToRanked =
+                previousStatus === 'backlog' && newStatus === 'ranked';
 
-        if (wasMovedToRanked) {
-            setCalibrationItem(updatedItem);
-            setIsComparisonModalOpen(true);
-        }
+            if (wasMovedToRanked) {
+                setCalibrationItem(updatedItem);
+                setIsComparisonModalOpen(true);
+            }
 
-        console.groupCollapsed(
-            '[handleEditSuccess] Setting new active tab, refreshing edited item, ',
-            'and starting calibration if moved from backlog to ranked',
-        );
-        console.log('Using information:', {
-            updatedItem: updatedItem,
-            previousStatus: previousStatus,
-            newStatus: newStatus,
-        });
-
-        if (wasMovedToRanked) {
-            console.log(
-                'Item moved from backlog to ranked, starting calibration...',
+            console.groupCollapsed(
+                '[handleEditSuccess] Setting new active tab, refreshing edited item, ',
+                'and starting calibration if moved from backlog to ranked',
             );
-        } else {
-            console.log('No calibration needed');
-        }
+            console.log('Using information:', {
+                updatedItem: updatedItem,
+                previousStatus: previousStatus,
+                newStatus: newStatus,
+            });
 
-        console.groupEnd();
-    };
+            if (wasMovedToRanked) {
+                console.log(
+                    'Item moved from backlog to ranked, starting calibration...',
+                );
+            } else {
+                console.log('No calibration needed');
+            }
+
+            console.groupEnd();
+        },
+        [getItems, selectedItem?.status],
+    );
 
     const handleCalibrationComplete = useCallback(() => {
         setCalibrationItem(null);

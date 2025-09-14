@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 
@@ -65,39 +65,41 @@ export const useItemForm = ({
 
     const [formData, setFormData] = useState<ItemFormData>(getInitialState);
 
+    const prevIsOpenRef = useRef(isOpen);
+
     // Reset state when item changes or form opens
     useEffect(() => {
-        const fetchTags = async () => {
-            console.groupCollapsed(`[fetchTags] Fetching tags`);
+        if (isOpen && !prevIsOpenRef.current) {
+            const fetchTags = async () => {
+                console.groupCollapsed(`[fetchTags] Fetching tags`);
 
-            if (!user) {
-                console.warn('Cannot fetch tags: user is not available.');
+                if (!user) {
+                    console.warn('Cannot fetch tags: user is not available.');
+                    console.groupEnd();
+                    return;
+                }
+
+                console.log('Fetching tags for:', {
+                    userId: user.id,
+                    category: effectiveCategory,
+                });
+                const { data: tags, error } = await supabase
+                    .from('tags')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('category', effectiveCategory);
+
+                if (error) {
+                    console.error('Error fetching tags:', error);
+                } else {
+                    console.log('Successfully fetched tags:', tags);
+                    setAvailableTags(tags || []);
+                }
                 console.groupEnd();
-                return;
-            }
+            };
 
-            console.log('Fetching tags for:', {
-                userId: user.id,
-                category: effectiveCategory,
-            });
-            const { data: tags, error } = await supabase
-                .from('tags')
-                .select('*')
-                .eq('user_id', user.id)
-                .eq('category', effectiveCategory);
-
-            if (error) {
-                console.error('Error fetching tags:', error);
-            } else {
-                console.log('Successfully fetched tags:', tags);
-                setAvailableTags(tags || []);
-            }
-            console.groupEnd();
-        };
-
-        if (isOpen) {
             const runEffect = async () => {
-                console.group(
+                console.groupCollapsed(
                     '[useEffect] Item Form opened, resetting state and fetching data.',
                 );
 
@@ -112,6 +114,8 @@ export const useItemForm = ({
 
             runEffect();
         }
+
+        prevIsOpenRef.current = isOpen;
     }, [isOpen, getInitialState, user, effectiveCategory]);
 
     const handleFieldChange = useCallback(

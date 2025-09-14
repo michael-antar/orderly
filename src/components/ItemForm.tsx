@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 
 import { Plus, Pencil } from 'lucide-react';
 
@@ -29,7 +29,7 @@ type ItemFormProps = {
     activeListStatus: Status;
 };
 
-export function ItemForm({
+export const ItemForm = memo(function ItemForm({
     item,
     category,
     onSuccess,
@@ -80,11 +80,7 @@ export function ItemForm({
     const statusText = formData.status === 'ranked' ? 'Review' : 'Notes';
 
     return (
-        <Dialog
-            open={isOpen}
-            onOpenChange={setIsOpen}
-            // modal={openSelectsCount === 0}
-        >
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 {mode === 'add' ? (
                     <Button size="icon">
@@ -220,4 +216,4 @@ export function ItemForm({
             </DialogContent>
         </Dialog>
     );
-}
+});
