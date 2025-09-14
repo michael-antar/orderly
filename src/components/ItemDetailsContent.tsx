@@ -4,12 +4,20 @@ import { TagBadge } from './TagBadge';
 
 import { type CombinedItem } from '@/types/types';
 
+const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+});
+
 type ItemDetailsContentProps = {
     item: CombinedItem;
 };
 
 export const ItemDetailsContent = ({ item }: ItemDetailsContentProps) => {
     const details = getCategoryDetails(item);
+
+    const formattedDate = dateFormatter.format(new Date(item.created_at));
 
     return (
         <>
@@ -22,6 +30,9 @@ export const ItemDetailsContent = ({ item }: ItemDetailsContentProps) => {
                     {item.status === 'ranked'
                         ? `Elo: ${item.rating}`
                         : 'Backlog'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    {`Created: ${formattedDate}`}
                 </p>
 
                 {item.description && (
