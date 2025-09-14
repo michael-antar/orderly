@@ -7,6 +7,7 @@ import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -93,7 +94,7 @@ export const ItemForm = memo(function ItemForm({
                 )}
             </DialogTrigger>
             <DialogContent
-                className="sm:max-w-[425px]"
+                className="sm:max-w-[425px] flex flex-col max-h-[90dvh]"
                 onEscapeKeyDown={(e) => {
                     if (openSelectsCount > 0 || isTagPopoverOpen) {
                         e.preventDefault();
@@ -109,7 +110,7 @@ export const ItemForm = memo(function ItemForm({
                     }
                 }}
             >
-                <DialogHeader className="overflow-hidden">
+                <DialogHeader className="overflow-hidden flex-shrink-0">
                     <DialogTitle className="break-words">
                         {dialogTitle}
                     </DialogTitle>
@@ -125,94 +126,106 @@ export const ItemForm = memo(function ItemForm({
                         )}
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-                    {/* Common Fields */}
+                <form
+                    id="item-form"
+                    onSubmit={handleSubmit}
+                    className="flex-1 overflow-y-auto pr-4"
+                >
+                    <div className="grid gap-4 py-4">
+                        {/* --- Common Fields --- */}
 
-                    {/* Status Toggle */}
-                    <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        value={formData.status}
-                        onValueChange={(value: Status) => {
-                            if (value) handleFieldChange('status', value);
-                        }}
-                        className="w-full"
-                    >
-                        <ToggleGroupItem value="ranked" className="flex-1">
-                            Ranked
-                        </ToggleGroupItem>
-                        <ToggleGroupItem value="backlog" className="flex-1">
-                            Backlog
-                        </ToggleGroupItem>
-                    </ToggleGroup>
-
-                    <Separator />
-
-                    {/* Name Field */}
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="name" className="text-right">
-                            Name <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) =>
-                                handleFieldChange('name', e.target.value)
-                            }
-                            className="col-span-3 break-words"
-                            autoComplete="off"
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-4 items-start gap-4">
-                        <Label
-                            htmlFor="description"
-                            className="text-right pt-2"
+                        {/* Status Toggle */}
+                        <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={formData.status}
+                            onValueChange={(value: Status) => {
+                                if (value) handleFieldChange('status', value);
+                            }}
+                            className="w-full"
                         >
-                            {statusText}
-                        </Label>
-                        <Textarea
-                            id="description"
-                            value={formData.description}
-                            onChange={(e) =>
-                                handleFieldChange('description', e.target.value)
+                            <ToggleGroupItem value="ranked" className="flex-1">
+                                Ranked
+                            </ToggleGroupItem>
+                            <ToggleGroupItem value="backlog" className="flex-1">
+                                Backlog
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+
+                        <Separator />
+
+                        {/* Name Field */}
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                                Name <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
+                                id="name"
+                                value={formData.name}
+                                onChange={(e) =>
+                                    handleFieldChange('name', e.target.value)
+                                }
+                                className="col-span-3 break-words"
+                                autoComplete="off"
+                                required
+                            />
+                        </div>
+
+                        {/* Description Field */}
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label
+                                htmlFor="description"
+                                className="text-right pt-2"
+                            >
+                                {statusText}
+                            </Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) =>
+                                    handleFieldChange(
+                                        'description',
+                                        e.target.value,
+                                    )
+                                }
+                                className="col-span-3"
+                            />
+                        </div>
+
+                        <Separator />
+
+                        {/* Category Specific Fields */}
+                        <FieldsComponent
+                            formData={formData}
+                            onFieldChange={handleFieldChange}
+                            onSelectOpenChange={handleSelectOpenChange}
+                        />
+
+                        <Separator />
+
+                        {/* Tag Input component */}
+                        <TagInput
+                            selectedTags={formData.tags || []}
+                            availableTags={availableTags}
+                            onTagsChange={(newTags) =>
+                                handleFieldChange('tags', newTags)
                             }
-                            className="col-span-3"
+                            category={effectiveCategory}
+                            popoverOpen={isTagPopoverOpen}
+                            onPopoverOpenChange={setTagPopoverOpen}
                         />
                     </div>
-
-                    <Separator />
-
-                    {/* Category Specific Fields */}
-                    <FieldsComponent
-                        formData={formData}
-                        onFieldChange={handleFieldChange}
-                        onSelectOpenChange={handleSelectOpenChange}
-                    />
-
-                    <Separator />
-
-                    {/* Tag Input component */}
-                    <TagInput
-                        selectedTags={formData.tags || []}
-                        availableTags={availableTags}
-                        onTagsChange={(newTags) =>
-                            handleFieldChange('tags', newTags)
-                        }
-                        category={effectiveCategory}
-                        popoverOpen={isTagPopoverOpen}
-                        onPopoverOpenChange={setTagPopoverOpen}
-                    />
-
+                </form>
+                <DialogFooter className="flex-shrink-0">
                     {/* Submit Button */}
-                    <Button type="submit" disabled={isLoading}>
+                    <Button type="submit" form="item-form" disabled={isLoading}>
                         {isLoading
                             ? 'Saving...'
                             : mode === 'add'
                               ? 'Add Item'
                               : 'Save Changes'}
                     </Button>
-                </form>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );
