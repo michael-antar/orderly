@@ -18,9 +18,9 @@ import { Separator } from './ui/separator';
 import {
     Sheet,
     SheetContent,
+    SheetDescription,
     SheetHeader,
     SheetTitle,
-    // SheetTrigger,
 } from '@/components/ui/sheet';
 
 import { useComparisonQueue } from '@/hooks/useComparisonQueue';
@@ -179,8 +179,8 @@ export const ComparisonModal = ({
                         {result
                             ? "The Elo ratings have been updated. Click 'Next Matchup' to continue."
                             : isCalibrating
-                              ? 'A few quick comparisons to place your new item.'
-                              : 'Select the item you prefer.'}
+                              ? 'A few quick comparisons to place your new item. Click on an item to view its details.'
+                              : 'Select the item you prefer. Click on an item to view its details.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -312,6 +312,9 @@ export const ComparisonModal = ({
                     >
                         <SheetHeader>
                             <SheetTitle>Item Details</SheetTitle>
+                            <SheetDescription>
+                                Detailed information for the selected item.
+                            </SheetDescription>
                         </SheetHeader>
                         <div className="py-4">
                             {itemToView && (
