@@ -11,7 +11,7 @@ export const BookFields = ({
             {/* Author Field */}
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="author" className="text-left">
-                    Director
+                    Author
                 </Label>
                 <Input
                     id="author"
