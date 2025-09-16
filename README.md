@@ -8,6 +8,8 @@ Orderly was born out of a frustration with the limitations of traditional 5-star
 
 The ideal user is anyone who loves to track and rank their experiences. Whether you want to organize a single category or track everything you see, eat, and read, Orderly provides the tools to create a definitive, personal list of your favorites. With features like custom tagging, the system is designed to be completely personal and adaptable to the way you see the world.
 
+![Book Page](docs/main_photo.png)
+
 ## Key Features
 
 - **Head-to-Head Ranking**: Utilizes an Elo-based system to create a true, ordered list.
@@ -59,6 +61,8 @@ To keep the ranking system healthy and accurate, item matchups are generated usi
 
 The database is designed around a central `items` table, which stores the core information for every entity a user can rank. This table is extended by category-specific tables (e.g., `movie_details`, `restaurant_details`) using a one-to-one relationship to hold unique metadata. A `tags` table and a many-to-many `item_tags` junction table provide the flexible tagging system. Finally, a `comparisons` table logs the history of every matchup to track Elo rating changes over time.
 
+![Database Schema](docs/db_schema.svg)
+
 ## Roadmap
 
 ### Glicko Rating System
@@ -90,6 +94,10 @@ $$
 > Where $c$ is the central angle, $R$ is the Earth's radius, and $d$ is the final distance
 
 Calculating distance using actual driving distance could be implemented in the future using a service like **Openrouteservice**.
+
+### Matchup History
+
+View the real-time rise and fall of ... TODO
 
 ## Getting Started
 
