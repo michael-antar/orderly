@@ -442,7 +442,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 loading={loading}
                                 selectedItem={selectedItem}
                                 onSelectItem={handleSelectItem}
-                                emptyMessage="No ranked items found."
+                                emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
                             />
                         </TabsContent>
                         <TabsContent value="backlog">
@@ -451,7 +451,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 loading={loading}
                                 selectedItem={selectedItem}
                                 onSelectItem={handleSelectItem}
-                                emptyMessage="No backlog items found."
+                                emptyMessage="No backlog items found. Add your first item by pressing the plus button!"
                             />
                         </TabsContent>
                     </div>

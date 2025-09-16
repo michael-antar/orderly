@@ -30,7 +30,11 @@ export const ItemList = ({
     }
 
     if (items.length === 0) {
-        return <p className="text-muted-foreground">{emptyMessage}</p>;
+        return (
+            <div className="flex justify-center mt-5">
+                <p className="text-muted-foreground">{emptyMessage}</p>
+            </div>
+        );
     }
 
     return (
