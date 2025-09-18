@@ -437,13 +437,21 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         onClick={() => setSelectedItem(null)}
                     >
                         <TabsContent value="ranked">
-                            <ItemList
-                                items={rankedItems}
-                                loading={loading}
-                                selectedItem={selectedItem}
-                                onSelectItem={handleSelectItem}
-                                emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
-                            />
+                            {(() => {
+                                const showPodium =
+                                    sortBy === 'rating' && sortAsc === false;
+
+                                return (
+                                    <ItemList
+                                        items={rankedItems}
+                                        loading={loading}
+                                        selectedItem={selectedItem}
+                                        onSelectItem={handleSelectItem}
+                                        emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
+                                        showPodium={showPodium}
+                                    />
+                                );
+                            })()}
                         </TabsContent>
                         <TabsContent value="backlog">
                             <ItemList

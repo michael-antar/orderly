@@ -8,6 +8,7 @@ type ItemListProps = {
     selectedItem: CombinedItem | null;
     onSelectItem: (item: CombinedItem) => void;
     emptyMessage: string;
+    showPodium?: boolean;
 };
 
 export const ItemList = ({
@@ -16,6 +17,7 @@ export const ItemList = ({
     selectedItem,
     onSelectItem,
     emptyMessage,
+    showPodium = false,
 }: ItemListProps) => {
     // Use skeleton if loading
     if (loading) {
@@ -37,16 +39,38 @@ export const ItemList = ({
         );
     }
 
+    const podiumStyles: { [key: number]: string } = {
+        0: 'border-yellow-500', // Gold
+        1: 'border-slate-500', // Silver
+        2: 'border-orange-500', // Bronze
+    };
+
     return (
         <div onClick={(e) => e.stopPropagation()}>
-            {items.map((item) => (
-                <ItemCard
-                    key={item.id}
-                    item={item}
-                    onSelect={() => onSelectItem(item)}
-                    isSelected={selectedItem?.id === item.id}
-                />
-            ))}
+            {items.map((item, index) => {
+                const podiumClass = showPodium
+                    ? (podiumStyles[index] ?? '')
+                    : '';
+
+                return (
+                    <div key={item.id} className="flex items-center gap-4">
+                        {/* Index Number */}
+                        <span className="w-8 text-center text-lg font-semibold text-muted-foreground">
+                            {index + 1}
+                        </span>
+
+                        {/* Item Card */}
+                        <div className="flex-1">
+                            <ItemCard
+                                item={item}
+                                onSelect={() => onSelectItem(item)}
+                                isSelected={selectedItem?.id === item.id}
+                                podiumClass={podiumClass}
+                            />
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };
