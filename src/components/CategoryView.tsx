@@ -339,9 +339,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     return (
-        <div className="relative h-full overflow-hidden md:flex">
+        <div className="relative h-full overflow-hidden lg:flex">
             {/* Left Column: Item List */}
-            <div className="w-full h-full flex flex-col md:w-1/2">
+            <div className="w-full h-full flex flex-col lg:w-1/2">
                 <Tabs
                     value={activeTab}
                     className="flex flex-col h-full gap-0"
@@ -418,7 +418,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 <Button
                                     size="icon"
                                     variant="outline"
-                                    className="md:hidden"
+                                    className="lg:hidden"
                                     onClick={() => setIsDetailViewOpen(true)}
                                     disabled={!selectedItem} // Disable button if no item is selected
                                 >
@@ -461,7 +461,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Overlay for mobile view */}
             {isDetailViewOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 md:hidden"
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
                     onClick={() => setIsDetailViewOpen(false)}
                 />
             )}
@@ -469,7 +469,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Right Column: Detail View */}
             <div
                 className={cn(
-                    'overflow-y-auto absolute top-0 right-0 h-screen w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:h-auto md:translate-x-0',
+                    'overflow-y-auto absolute top-0 right-0 h-screen w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 lg:static lg:w-1/2 lg:h-auto lg:translate-x-0',
                     isDetailViewOpen ? 'translate-x-0' : 'translate-x-full',
                 )}
             >

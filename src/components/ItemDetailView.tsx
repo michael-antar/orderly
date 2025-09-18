@@ -67,14 +67,14 @@ export const ItemDetailView = ({
     }
 
     return (
-        <div className="flex flex-col m-4 pt-4 md:pt-0">
+        <div className="flex flex-col m-4 pt-4 lg:pt-0">
             {/* Button Row */}
-            <div className="flex gap-2 justify-between md:justify-end">
+            <div className="flex gap-2 justify-between lg:justify-end">
                 {/* Close Button */}
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="md:hidden"
+                    className="lg:hidden"
                     onClick={onClose}
                 >
                     <ArrowLeft className="h-5 w-5" />
