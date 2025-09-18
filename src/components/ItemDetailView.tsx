@@ -67,7 +67,7 @@ export const ItemDetailView = ({
     }
 
     return (
-        <div className="flex flex-col mx-4 pt-4 md:pt-0">
+        <div className="flex flex-col m-4 pt-4 md:pt-0">
             {/* Button Row */}
             <div className="flex gap-2 justify-between md:justify-end">
                 {/* Close Button */}
@@ -130,9 +130,7 @@ export const ItemDetailView = ({
                 </div>
             </div>
 
-            <div className="flex-1 mt-4 overflow-y-auto">
-                <ItemDetailsContent item={item} />
-            </div>
+            <ItemDetailsContent item={item} />
         </div>
     );
 };

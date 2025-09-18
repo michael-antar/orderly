@@ -469,7 +469,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Right Column: Detail View */}
             <div
                 className={cn(
-                    'absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:h-auto md:my-4 md:translate-x-0',
+                    'overflow-y-auto absolute top-0 right-0 h-screen w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:h-auto md:translate-x-0',
                     isDetailViewOpen ? 'translate-x-0' : 'translate-x-full',
                 )}
             >
