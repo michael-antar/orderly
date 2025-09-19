@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TagManager } from '@/components/TagManager';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { usePrevious } from '@/hooks/usePrevious';
 
 import { cn } from '@/lib/utils';
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -56,6 +57,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const [calibrationItem, setCalibrationItem] = useState<CombinedItem | null>(
         null,
     ); // Hold new item that needs calibration
+
+    const prevCategory = usePrevious(category);
 
     // Fetch list of items from database
     const getItems = useCallback(async () => {
@@ -168,17 +171,29 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Initial fetch on component mount or category change
     useEffect(() => {
+        if (prevCategory && prevCategory !== category) {
+            return;
+        }
         getItems();
-    }, [getItems]);
+    }, [getItems, category, prevCategory]);
 
     // Toggle opening detail view on mobile
     useEffect(() => {
         setIsDetailViewOpen(selectedItem ? true : false);
     }, [selectedItem]);
 
-    // When category changes, clear the selected item
+    // When category changes
     useEffect(() => {
+        // Clear selected item
         setSelectedItem(null);
+
+        // Clear sort/filter options
+        setSortBy('rating');
+        setSortAsc(false);
+        setFilters({
+            tags: [],
+            rules: [],
+        });
     }, [category]);
 
     const rankedItems = useMemo(
