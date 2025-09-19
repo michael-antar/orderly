@@ -125,13 +125,18 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 if (!rule.field || !rule.operator || rule.value === '') return;
 
                 const filterColumn = `${detailTable}.${rule.field}`;
+                const filterValue = rule.value;
 
                 switch (rule.operator) {
                     case 'is':
-                        query = query.eq(filterColumn, rule.value);
+                        query = query.ilike(filterColumn, String(filterValue));
                         break;
                     case 'is_not':
-                        query = query.neq(filterColumn, rule.value);
+                        query = query.not(
+                            filterColumn,
+                            'ilike',
+                            String(filterValue),
+                        );
                         break;
                     case 'contains':
                         query = query.ilike(filterColumn, `%${rule.value}%`);
