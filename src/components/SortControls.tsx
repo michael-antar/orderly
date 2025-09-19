@@ -45,7 +45,9 @@ const numberOperators: { value: FilterOperator; label: string }[] = [
     { value: 'is', label: 'is' },
     { value: 'is_not', label: 'is not' },
     { value: 'gt', label: '>' },
+    { value: 'gte', label: '≥' },
     { value: 'lt', label: '<' },
+    { value: 'lte', label: '≤' },
 ];
 
 const priceRangeOperators: { value: FilterOperator; label: string }[] = [

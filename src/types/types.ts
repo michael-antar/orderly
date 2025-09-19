@@ -18,7 +18,14 @@ export type TagWithUsage = Tag & {
 };
 
 // - Filter Types -
-export type FilterOperator = 'is' | 'is_not' | 'contains' | 'gt' | 'lt';
+export type FilterOperator =
+    | 'is'
+    | 'is_not'
+    | 'contains'
+    | 'gt'
+    | 'gte'
+    | 'lt'
+    | 'lte';
 export type FilterField =
     | 'artist'
     | 'release_year'

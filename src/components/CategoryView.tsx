@@ -139,13 +139,19 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         );
                         break;
                     case 'contains':
-                        query = query.ilike(filterColumn, `%${rule.value}%`);
+                        query = query.ilike(filterColumn, `%${filterValue}%`);
                         break;
                     case 'gt':
-                        query = query.gt(filterColumn, rule.value);
+                        query = query.gt(filterColumn, filterValue);
+                        break;
+                    case 'gte':
+                        query = query.gte(filterColumn, filterValue);
                         break;
                     case 'lt':
-                        query = query.lt(filterColumn, rule.value);
+                        query = query.lt(filterColumn, filterValue);
+                        break;
+                    case 'lte':
+                        query = query.lte(filterColumn, filterValue);
                         break;
                 }
             });
