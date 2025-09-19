@@ -23,7 +23,7 @@ export const ItemList = ({
     if (loading) {
         const skeletonCount = items.length > 0 ? items.length : 5;
         return (
-            <div>
+            <div className="ml-10">
                 {Array.from({ length: skeletonCount }).map((_, index) => (
                     <ItemCardSkeleton key={index} />
                 ))}
