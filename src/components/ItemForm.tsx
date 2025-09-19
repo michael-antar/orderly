@@ -188,7 +188,7 @@ export const ItemForm = memo(function ItemForm({
                                         e.target.value,
                                     )
                                 }
-                                className="col-span-3"
+                                className="col-span-3 max-h-40"
                             />
                         </div>
 
