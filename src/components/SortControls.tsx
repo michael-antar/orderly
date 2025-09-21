@@ -216,7 +216,7 @@ export const SortControls = ({
 
                     {/* Sort Section */}
                     <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Sort by</Label>
+                        <Label htmlFor="sort-by-select">Sort by</Label>
                         <div className="col-span-2 flex items-center gap-2">
                             <Select
                                 value={localSortBy}
@@ -225,7 +225,10 @@ export const SortControls = ({
                                 }
                                 onOpenChange={handleDescendantOpenChange}
                             >
-                                <SelectTrigger className="w-full">
+                                <SelectTrigger
+                                    id="sort-by-select"
+                                    className="w-full"
+                                >
                                     <SelectValue placeholder="Select..." />
                                 </SelectTrigger>
                                 <SelectContent
@@ -286,7 +289,10 @@ export const SortControls = ({
                         {/* Category Field Filter */}
                         {localFilters.rules.map((rule, index) => (
                             <div key={rule.id} className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">
+                                <Label
+                                    htmlFor={`field-${rule.id}`}
+                                    className="text-xs text-muted-foreground"
+                                >
                                     Rule {index + 1}
                                 </Label>
                                 <div className="flex items-center gap-2">
@@ -303,7 +309,7 @@ export const SortControls = ({
                                             handleDescendantOpenChange
                                         }
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger id={`field-${rule.id}`}>
                                             <SelectValue placeholder="Field" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -317,6 +323,13 @@ export const SortControls = ({
                                             ))}
                                         </SelectContent>
                                     </Select>
+
+                                    <Label
+                                        htmlFor={`operator-${rule.id}`}
+                                        className="sr-only"
+                                    >
+                                        Operator for Rule {index + 1}
+                                    </Label>
                                     <Select
                                         value={rule.operator}
                                         onValueChange={(value) =>
@@ -331,7 +344,10 @@ export const SortControls = ({
                                             handleDescendantOpenChange
                                         }
                                     >
-                                        <SelectTrigger className="w-2/3">
+                                        <SelectTrigger
+                                            id={`operator-${rule.id}`}
+                                            className="w-2/3"
+                                        >
                                             <SelectValue placeholder="Operator" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -358,6 +374,13 @@ export const SortControls = ({
                                         <X className="h-4 w-4" />
                                     </Button>
                                 </div>
+
+                                <Label
+                                    htmlFor={`value-${rule.id}`}
+                                    className="sr-only"
+                                >
+                                    Value for Rule {index + 1}
+                                </Label>
                                 {isPriceRangeField(rule.field) ? (
                                     <Select
                                         value={String(rule.value)}
@@ -372,7 +395,7 @@ export const SortControls = ({
                                             handleDescendantOpenChange
                                         }
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger id={`value-${rule.id}`}>
                                             <SelectValue placeholder="Select a price..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -385,6 +408,7 @@ export const SortControls = ({
                                     </Select>
                                 ) : (
                                     <Input
+                                        id={`value-${rule.id}`}
                                         placeholder="Value..."
                                         value={rule.value}
                                         type={
