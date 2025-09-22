@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
-import { PanelRightOpen, Swords } from 'lucide-react';
+import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 
 import { Button } from './ui/button';
 import { ComparisonModal } from './ComparisonModal';
@@ -38,6 +38,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
     const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<PostgrestError | null>(null);
     const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
 
     // Handle DetailView
@@ -70,6 +71,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             return { data: [], error: null };
         }
         setLoading(true);
+        setError(null);
 
         try {
             const detailTable = detailTableMap[category];
@@ -173,6 +175,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             };
         } catch (error) {
             console.error('Error fetching items:', error);
+            setError(error as PostgrestError);
             return { data: [], error: error as PostgrestError };
         } finally {
             console.groupEnd();
@@ -364,6 +367,10 @@ export const CategoryView = ({ category }: { category: Category }) => {
         setFilters(newFilters);
     };
 
+    const handleRetry = () => {
+        getItems();
+    };
+
     return (
         <div className="relative h-full overflow-hidden lg:flex">
             {/* Left Column: Item List */}
@@ -467,32 +474,39 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         className="flex-1 p-4 pt-6 overflow-y-auto"
                         onClick={() => setSelectedItem(null)}
                     >
-                        <TabsContent value="ranked">
-                            {(() => {
-                                const showPodium =
-                                    sortBy === 'rating' && sortAsc === false;
+                        {error ? (
+                            <ErrorState onRetry={handleRetry} />
+                        ) : (
+                            <>
+                                <TabsContent value="ranked">
+                                    {(() => {
+                                        const showPodium =
+                                            sortBy === 'rating' &&
+                                            sortAsc === false;
 
-                                return (
+                                        return (
+                                            <ItemList
+                                                items={rankedItems}
+                                                loading={loading}
+                                                selectedItem={selectedItem}
+                                                onSelectItem={handleSelectItem}
+                                                emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
+                                                showPodium={showPodium}
+                                            />
+                                        );
+                                    })()}
+                                </TabsContent>
+                                <TabsContent value="backlog">
                                     <ItemList
-                                        items={rankedItems}
+                                        items={backlogItems}
                                         loading={loading}
                                         selectedItem={selectedItem}
                                         onSelectItem={handleSelectItem}
-                                        emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
-                                        showPodium={showPodium}
+                                        emptyMessage="No backlog items found. Add your first item by pressing the plus button!"
                                     />
-                                );
-                            })()}
-                        </TabsContent>
-                        <TabsContent value="backlog">
-                            <ItemList
-                                items={backlogItems}
-                                loading={loading}
-                                selectedItem={selectedItem}
-                                onSelectItem={handleSelectItem}
-                                emptyMessage="No backlog items found. Add your first item by pressing the plus button!"
-                            />
-                        </TabsContent>
+                                </TabsContent>
+                            </>
+                        )}
                     </div>
                 </Tabs>
             </div>
@@ -523,3 +537,17 @@ export const CategoryView = ({ category }: { category: Category }) => {
         </div>
     );
 };
+
+const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
+    <div className="flex items-center justify-center h-full text-center p-4">
+        <div className="flex flex-col items-center gap-4 max-w-sm p-8 border rounded-lg bg-card text-card-foreground shadow">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <h3 className="text-xl font-semibold">Something went wrong</h3>
+            <p className="text-muted-foreground">
+                We couldn't load your items. Please check your internet
+                connection and try again.
+            </p>
+            <Button onClick={onRetry}>Retry</Button>
+        </div>
+    </div>
+);
