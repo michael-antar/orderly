@@ -373,11 +373,15 @@ export const CategoryView = ({ category }: { category: Category }) => {
                     className="flex flex-col h-full gap-0"
                     onValueChange={(value) => handleTabChange(value as Status)}
                 >
-                    <header className="flex flex-col m-4 mb-0 gap-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
+                    {/* Left Side Header */}
+                    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 m-4 mb-0 pb-4 border-b">
+                        {/* Category Title */}
                         <h1 className="text-4xl font-bold text-foreground">
                             {categoryTitles[category]}
                         </h1>
-                        <div className="flex items-center justify-between w-full lg:flex-1">
+
+                        {/* All controls */}
+                        <div className="flex flex-grow flex-wrap items-center justify-between gap-4">
                             {/* Status Tabs */}
                             <TabsList>
                                 <TabsTrigger value="ranked">Ranked</TabsTrigger>
@@ -386,6 +390,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 </TabsTrigger>
                             </TabsList>
 
+                            {/* Action Buttons */}
                             <div className="flex items-center gap-2">
                                 {/* Sort Controls */}
                                 <SortControls
