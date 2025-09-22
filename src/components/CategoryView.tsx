@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
-import { PanelRightOpen, Swords } from 'lucide-react';
+import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 
 import { Button } from './ui/button';
 import { ComparisonModal } from './ComparisonModal';
@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TagManager } from '@/components/TagManager';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { usePrevious } from '@/hooks/usePrevious';
 
 import { cn } from '@/lib/utils';
 import type { PostgrestError } from '@supabase/supabase-js';
@@ -37,6 +38,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     const { user } = useAuth();
     const [items, setItems] = useState<CombinedItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<PostgrestError | null>(null);
     const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
 
     // Handle DetailView
@@ -57,6 +59,8 @@ export const CategoryView = ({ category }: { category: Category }) => {
         null,
     ); // Hold new item that needs calibration
 
+    const prevCategory = usePrevious(category);
+
     // Fetch list of items from database
     const getItems = useCallback(async () => {
         console.groupCollapsed('[getItems] Fetching items from supabase');
@@ -67,6 +71,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             return { data: [], error: null };
         }
         setLoading(true);
+        setError(null);
 
         try {
             const detailTable = detailTableMap[category];
@@ -122,22 +127,33 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 if (!rule.field || !rule.operator || rule.value === '') return;
 
                 const filterColumn = `${detailTable}.${rule.field}`;
+                const filterValue = rule.value;
 
                 switch (rule.operator) {
                     case 'is':
-                        query = query.eq(filterColumn, rule.value);
+                        query = query.ilike(filterColumn, String(filterValue));
                         break;
                     case 'is_not':
-                        query = query.neq(filterColumn, rule.value);
+                        query = query.not(
+                            filterColumn,
+                            'ilike',
+                            String(filterValue),
+                        );
                         break;
                     case 'contains':
-                        query = query.ilike(filterColumn, `%${rule.value}%`);
+                        query = query.ilike(filterColumn, `%${filterValue}%`);
                         break;
                     case 'gt':
-                        query = query.gt(filterColumn, rule.value);
+                        query = query.gt(filterColumn, filterValue);
+                        break;
+                    case 'gte':
+                        query = query.gte(filterColumn, filterValue);
                         break;
                     case 'lt':
-                        query = query.lt(filterColumn, rule.value);
+                        query = query.lt(filterColumn, filterValue);
+                        break;
+                    case 'lte':
+                        query = query.lte(filterColumn, filterValue);
                         break;
                 }
             });
@@ -159,6 +175,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             };
         } catch (error) {
             console.error('Error fetching items:', error);
+            setError(error as PostgrestError);
             return { data: [], error: error as PostgrestError };
         } finally {
             console.groupEnd();
@@ -168,17 +185,29 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Initial fetch on component mount or category change
     useEffect(() => {
+        if (prevCategory && prevCategory !== category) {
+            return;
+        }
         getItems();
-    }, [getItems]);
+    }, [getItems, category, prevCategory]);
 
     // Toggle opening detail view on mobile
     useEffect(() => {
         setIsDetailViewOpen(selectedItem ? true : false);
     }, [selectedItem]);
 
-    // When category changes, clear the selected item
+    // When category changes
     useEffect(() => {
+        // Clear selected item
         setSelectedItem(null);
+
+        // Clear sort/filter options
+        setSortBy('rating');
+        setSortAsc(false);
+        setFilters({
+            tags: [],
+            rules: [],
+        });
     }, [category]);
 
     const rankedItems = useMemo(
@@ -338,20 +367,28 @@ export const CategoryView = ({ category }: { category: Category }) => {
         setFilters(newFilters);
     };
 
+    const handleRetry = () => {
+        getItems();
+    };
+
     return (
-        <div className="relative h-full overflow-hidden md:flex">
+        <div className="relative h-full overflow-hidden lg:flex">
             {/* Left Column: Item List */}
-            <div className="w-full h-full flex flex-col md:w-1/2">
+            <div className="w-full h-full flex flex-col lg:w-1/2">
                 <Tabs
                     value={activeTab}
                     className="flex flex-col h-full gap-0"
                     onValueChange={(value) => handleTabChange(value as Status)}
                 >
-                    <header className="flex flex-col m-4 mb-0 gap-4 pb-4 border-b lg:flex-row lg:items-center lg:justify-between">
+                    {/* Left Side Header */}
+                    <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 m-4 mb-0 pb-4 border-b">
+                        {/* Category Title */}
                         <h1 className="text-4xl font-bold text-foreground">
                             {categoryTitles[category]}
                         </h1>
-                        <div className="flex items-center justify-between w-full lg:flex-1">
+
+                        {/* All controls */}
+                        <div className="flex flex-grow flex-wrap items-center justify-between gap-4">
                             {/* Status Tabs */}
                             <TabsList>
                                 <TabsTrigger value="ranked">Ranked</TabsTrigger>
@@ -360,6 +397,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 </TabsTrigger>
                             </TabsList>
 
+                            {/* Action Buttons */}
                             <div className="flex items-center gap-2">
                                 {/* Sort Controls */}
                                 <SortControls
@@ -418,7 +456,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                                 <Button
                                     size="icon"
                                     variant="outline"
-                                    className="md:hidden"
+                                    className="lg:hidden"
                                     onClick={() => setIsDetailViewOpen(true)}
                                     disabled={!selectedItem} // Disable button if no item is selected
                                 >
@@ -436,24 +474,39 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         className="flex-1 p-4 pt-6 overflow-y-auto"
                         onClick={() => setSelectedItem(null)}
                     >
-                        <TabsContent value="ranked">
-                            <ItemList
-                                items={rankedItems}
-                                loading={loading}
-                                selectedItem={selectedItem}
-                                onSelectItem={handleSelectItem}
-                                emptyMessage="No ranked items found."
-                            />
-                        </TabsContent>
-                        <TabsContent value="backlog">
-                            <ItemList
-                                items={backlogItems}
-                                loading={loading}
-                                selectedItem={selectedItem}
-                                onSelectItem={handleSelectItem}
-                                emptyMessage="No backlog items found."
-                            />
-                        </TabsContent>
+                        {error ? (
+                            <ErrorState onRetry={handleRetry} />
+                        ) : (
+                            <>
+                                <TabsContent value="ranked">
+                                    {(() => {
+                                        const showPodium =
+                                            sortBy === 'rating' &&
+                                            sortAsc === false;
+
+                                        return (
+                                            <ItemList
+                                                items={rankedItems}
+                                                loading={loading}
+                                                selectedItem={selectedItem}
+                                                onSelectItem={handleSelectItem}
+                                                emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
+                                                showPodium={showPodium}
+                                            />
+                                        );
+                                    })()}
+                                </TabsContent>
+                                <TabsContent value="backlog">
+                                    <ItemList
+                                        items={backlogItems}
+                                        loading={loading}
+                                        selectedItem={selectedItem}
+                                        onSelectItem={handleSelectItem}
+                                        emptyMessage="No backlog items found. Add your first item by pressing the plus button!"
+                                    />
+                                </TabsContent>
+                            </>
+                        )}
                     </div>
                 </Tabs>
             </div>
@@ -461,7 +514,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Overlay for mobile view */}
             {isDetailViewOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-20 md:hidden"
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
                     onClick={() => setIsDetailViewOpen(false)}
                 />
             )}
@@ -469,7 +522,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             {/* Right Column: Detail View */}
             <div
                 className={cn(
-                    'absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 md:static md:w-1/2 md:h-auto md:my-4 md:translate-x-0',
+                    'overflow-y-auto absolute top-0 right-0 h-screen w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 lg:static lg:w-1/2 lg:h-auto lg:translate-x-0',
                     isDetailViewOpen ? 'translate-x-0' : 'translate-x-full',
                 )}
             >
@@ -484,3 +537,17 @@ export const CategoryView = ({ category }: { category: Category }) => {
         </div>
     );
 };
+
+const ErrorState = ({ onRetry }: { onRetry: () => void }) => (
+    <div className="flex items-center justify-center h-full text-center p-4">
+        <div className="flex flex-col items-center gap-4 max-w-sm p-8 border rounded-lg bg-card text-card-foreground shadow">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <h3 className="text-xl font-semibold">Something went wrong</h3>
+            <p className="text-muted-foreground">
+                We couldn't load your items. Please check your internet
+                connection and try again.
+            </p>
+            <Button onClick={onRetry}>Retry</Button>
+        </div>
+    </div>
+);

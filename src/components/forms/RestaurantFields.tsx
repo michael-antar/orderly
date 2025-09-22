@@ -25,6 +25,7 @@ export const RestaurantFields = ({
                     Price Range
                 </Label>
                 <Select
+                    name="PriceRangeSelect"
                     value={formData.price_range || ''}
                     onValueChange={(value) =>
                         onFieldChange('price_range', value as PriceRange)

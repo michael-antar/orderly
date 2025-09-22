@@ -248,7 +248,7 @@ export const useItemForm = ({
     };
 
     const handleEditItem = async () => {
-        console.group('[handleEditItem] Logic');
+        console.groupCollapsed('[handleEditItem] Logic');
 
         const updatedItem: Partial<Item> = {
             name: formData.name,
@@ -328,14 +328,36 @@ export const useItemForm = ({
             throw error;
         }
 
-        const fullUpdatedItem: CombinedItem = {
-            ...item!,
-            ...updatedItem,
-        };
+        // const fullUpdatedItem: CombinedItem = {
+        //     ...item!,
+        //     ...updatedItem,
+        // };
 
-        console.log('Returning updated item:', fullUpdatedItem);
+        // console.log('Returning updated item:', fullUpdatedItem);
+        // console.groupEnd();
+        // return fullUpdatedItem as CombinedItem;
+
+        console.log('Re-fetching updated item to ensure data consistency...');
+        const detailTables = Object.keys(categoryConfig)
+            .map((key) => `${key}_details(*)`)
+            .join(',');
+        const selectString = `*, tags(*), ${detailTables}`;
+
+        const { data: refreshedItem, error: fetchError } = await supabase
+            .from('items')
+            .select(selectString)
+            .eq('id', item!.id)
+            .single();
+
+        if (fetchError) {
+            console.error('Failed to re-fetch updated item:', fetchError);
+            const fullUpdatedItem: CombinedItem = { ...item!, ...updatedItem };
+            return fullUpdatedItem;
+        }
+
+        console.log('Returning updated item:', refreshedItem);
         console.groupEnd();
-        return fullUpdatedItem as CombinedItem;
+        return refreshedItem as unknown as CombinedItem;
     };
 
     // Helper to extract only the relevant details for the current category

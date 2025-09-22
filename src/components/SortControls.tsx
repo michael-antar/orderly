@@ -45,7 +45,9 @@ const numberOperators: { value: FilterOperator; label: string }[] = [
     { value: 'is', label: 'is' },
     { value: 'is_not', label: 'is not' },
     { value: 'gt', label: '>' },
+    { value: 'gte', label: '≥' },
     { value: 'lt', label: '<' },
+    { value: 'lte', label: '≤' },
 ];
 
 const priceRangeOperators: { value: FilterOperator; label: string }[] = [
@@ -191,7 +193,7 @@ export const SortControls = ({
                 </Button>
             </PopoverTrigger>
             <PopoverContent
-                className="w-80"
+                className="w-80 p-0"
                 onPointerDownOutside={(e) => {
                     // If any descendant is open, prevent the main popover from closing
                     if (openDescendants > 0) {
@@ -199,231 +201,275 @@ export const SortControls = ({
                     }
                 }}
             >
-                <div className="grid gap-4">
-                    <div className="space-y-2">
-                        <h4 className="font-medium leading-none">
-                            Sort & Filter
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                            Arrange and filter the list to find what you're
-                            looking for.
-                        </p>
+                {/* Flex container for entire popover */}
+                <div className="flex flex-col max-h-[75vh]">
+                    {/* Header + Sort Content (not scrollable) */}
+                    <div className="p-4 pb-0 flex-shrink 0">
+                        {/* Header */}
+                        <div className="space-y-2">
+                            <h4 className="font-medium leading-none">
+                                Sort & Filter
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                                Arrange and filter the list to find what you're
+                                looking for.
+                            </p>
+                        </div>
+
+                        <Separator className="my-4" />
+
+                        {/* Sort Section */}
+                        <div className="grid grid-cols-3 items-center gap-4">
+                            <Label htmlFor="sort-by-select">Sort by</Label>
+                            <div className="col-span-2 flex items-center gap-2">
+                                <Select
+                                    value={localSortBy}
+                                    onValueChange={(val) =>
+                                        setLocalSortBy(val as SortOption)
+                                    }
+                                    onOpenChange={handleDescendantOpenChange}
+                                >
+                                    <SelectTrigger
+                                        id="sort-by-select"
+                                        className="w-full"
+                                    >
+                                        <SelectValue placeholder="Select..." />
+                                    </SelectTrigger>
+                                    <SelectContent
+                                        onEscapeKeyDown={(e) =>
+                                            e.preventDefault()
+                                        }
+                                    >
+                                        <SelectItem
+                                            value="rating"
+                                            disabled={isEloDisabled}
+                                        >
+                                            Elo
+                                        </SelectItem>
+                                        <SelectItem value="name">
+                                            Alphabetical
+                                        </SelectItem>
+                                        <SelectItem value="created_at">
+                                            Date Added
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() =>
+                                        setLocalSortAsc((prev) => !prev)
+                                    }
+                                >
+                                    {localSortAsc ? (
+                                        <ArrowUp className="h-4 w-4" />
+                                    ) : (
+                                        <ArrowDown className="h-4 w-4" />
+                                    )}
+                                    <span className="sr-only">
+                                        Toggle sort direction
+                                    </span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Separator className="my-4" />
                     </div>
 
-                    <Separator />
+                    {/* Filter Content (scrollable) */}
+                    <div className="flex-1 overflow-y-auto p-4">
+                        {/* Filter Section */}
+                        <div className="space-y-4">
+                            <Label>Filter by</Label>
 
-                    {/* Sort Section */}
-                    <div className="grid grid-cols-3 items-center gap-4">
-                        <Label>Sort by</Label>
-                        <div className="col-span-2 flex items-center gap-2">
-                            <Select
-                                value={localSortBy}
-                                onValueChange={(val) =>
-                                    setLocalSortBy(val as SortOption)
+                            {/* Tag Filter */}
+                            <TagInput
+                                selectedTags={localFilters.tags}
+                                availableTags={availableTags}
+                                onTagsChange={(newTags) =>
+                                    setLocalFilters({
+                                        ...localFilters,
+                                        tags: newTags,
+                                    })
                                 }
-                                onOpenChange={handleDescendantOpenChange}
-                            >
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select..." />
-                                </SelectTrigger>
-                                <SelectContent
-                                    onEscapeKeyDown={(e) => e.preventDefault()}
-                                >
-                                    <SelectItem
-                                        value="rating"
-                                        disabled={isEloDisabled}
+                                category={category}
+                                popoverOpen={isTagPopoverOpen}
+                                onPopoverOpenChange={setTagPopoverOpen}
+                            />
+
+                            {/* Category Field Filter */}
+                            {localFilters.rules.map((rule, index) => (
+                                <div key={rule.id} className="space-y-2">
+                                    <Label
+                                        htmlFor={`field-${rule.id}`}
+                                        className="text-xs text-muted-foreground"
                                     >
-                                        Elo
-                                    </SelectItem>
-                                    <SelectItem value="name">
-                                        Alphabetical
-                                    </SelectItem>
-                                    <SelectItem value="created_at">
-                                        Date Added
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                                        Rule {index + 1}
+                                    </Label>
+                                    <div className="flex items-center gap-2">
+                                        <Select
+                                            value={rule.field}
+                                            onValueChange={(value) =>
+                                                handleChangeRule(
+                                                    rule.id,
+                                                    'field',
+                                                    value,
+                                                )
+                                            }
+                                            onOpenChange={
+                                                handleDescendantOpenChange
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id={`field-${rule.id}`}
+                                            >
+                                                <SelectValue placeholder="Field" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {filterableFields.map((f) => (
+                                                    <SelectItem
+                                                        key={f.value}
+                                                        value={f.value}
+                                                    >
+                                                        {f.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+
+                                        <Label
+                                            htmlFor={`operator-${rule.id}`}
+                                            className="sr-only"
+                                        >
+                                            Operator for Rule {index + 1}
+                                        </Label>
+                                        <Select
+                                            value={rule.operator}
+                                            onValueChange={(value) =>
+                                                handleChangeRule(
+                                                    rule.id,
+                                                    'operator',
+                                                    value,
+                                                )
+                                            }
+                                            disabled={!rule.field}
+                                            onOpenChange={
+                                                handleDescendantOpenChange
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id={`operator-${rule.id}`}
+                                                className="w-2/3"
+                                            >
+                                                <SelectValue placeholder="Operator" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {getOperatorsForField(
+                                                    rule.field,
+                                                ).map((o) => (
+                                                    <SelectItem
+                                                        key={o.value}
+                                                        value={o.value}
+                                                    >
+                                                        {o.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() =>
+                                                handleRemoveRule(rule.id)
+                                            }
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+
+                                    <Label
+                                        htmlFor={`value-${rule.id}`}
+                                        className="sr-only"
+                                    >
+                                        Value for Rule {index + 1}
+                                    </Label>
+                                    {isPriceRangeField(rule.field) ? (
+                                        <Select
+                                            value={String(rule.value)}
+                                            onValueChange={(value) =>
+                                                handleChangeRule(
+                                                    rule.id,
+                                                    'value',
+                                                    value,
+                                                )
+                                            }
+                                            onOpenChange={
+                                                handleDescendantOpenChange
+                                            }
+                                        >
+                                            <SelectTrigger
+                                                id={`value-${rule.id}`}
+                                            >
+                                                <SelectValue placeholder="Select a price..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {priceOptions.map((p) => (
+                                                    <SelectItem
+                                                        key={p}
+                                                        value={p}
+                                                    >
+                                                        {p}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input
+                                            id={`value-${rule.id}`}
+                                            placeholder="Value..."
+                                            value={rule.value}
+                                            type={
+                                                filterableFields.find(
+                                                    (f) =>
+                                                        f.value === rule.field,
+                                                )?.type === 'number'
+                                                    ? 'number'
+                                                    : 'text'
+                                            }
+                                            onChange={(e) =>
+                                                handleChangeRule(
+                                                    rule.id,
+                                                    'value',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            disabled={!rule.operator}
+                                        />
+                                    )}
+                                </div>
+                            ))}
+
+                            {/* Add Rule Button */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddRule}
+                            >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Rule
+                            </Button>
+
+                            {/* Clear Button */}
+                            <Separator />
                             <Button
                                 variant="ghost"
-                                size="icon"
-                                onClick={() => setLocalSortAsc((prev) => !prev)}
+                                size="sm"
+                                onClick={handleClearFilters}
                             >
-                                {localSortAsc ? (
-                                    <ArrowUp className="h-4 w-4" />
-                                ) : (
-                                    <ArrowDown className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">
-                                    Toggle sort direction
-                                </span>
+                                Clear All Filters
                             </Button>
                         </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Filter Section */}
-                    <div className="space-y-4">
-                        <Label>Filter by</Label>
-
-                        {/* Tag Filter */}
-                        <TagInput
-                            selectedTags={localFilters.tags}
-                            availableTags={availableTags}
-                            onTagsChange={(newTags) =>
-                                setLocalFilters({
-                                    ...localFilters,
-                                    tags: newTags,
-                                })
-                            }
-                            category={category}
-                            popoverOpen={isTagPopoverOpen}
-                            onPopoverOpenChange={setTagPopoverOpen}
-                        />
-
-                        {/* Category Field Filter */}
-                        {localFilters.rules.map((rule, index) => (
-                            <div key={rule.id} className="space-y-2">
-                                <Label className="text-xs text-muted-foreground">
-                                    Rule {index + 1}
-                                </Label>
-                                <div className="flex items-center gap-2">
-                                    <Select
-                                        value={rule.field}
-                                        onValueChange={(value) =>
-                                            handleChangeRule(
-                                                rule.id,
-                                                'field',
-                                                value,
-                                            )
-                                        }
-                                        onOpenChange={
-                                            handleDescendantOpenChange
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Field" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {filterableFields.map((f) => (
-                                                <SelectItem
-                                                    key={f.value}
-                                                    value={f.value}
-                                                >
-                                                    {f.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select
-                                        value={rule.operator}
-                                        onValueChange={(value) =>
-                                            handleChangeRule(
-                                                rule.id,
-                                                'operator',
-                                                value,
-                                            )
-                                        }
-                                        disabled={!rule.field}
-                                        onOpenChange={
-                                            handleDescendantOpenChange
-                                        }
-                                    >
-                                        <SelectTrigger className="w-2/3">
-                                            <SelectValue placeholder="Operator" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {getOperatorsForField(
-                                                rule.field,
-                                            ).map((o) => (
-                                                <SelectItem
-                                                    key={o.value}
-                                                    value={o.value}
-                                                >
-                                                    {o.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                            handleRemoveRule(rule.id)
-                                        }
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                                {isPriceRangeField(rule.field) ? (
-                                    <Select
-                                        value={String(rule.value)}
-                                        onValueChange={(value) =>
-                                            handleChangeRule(
-                                                rule.id,
-                                                'value',
-                                                value,
-                                            )
-                                        }
-                                        onOpenChange={
-                                            handleDescendantOpenChange
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a price..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {priceOptions.map((p) => (
-                                                <SelectItem key={p} value={p}>
-                                                    {p}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                ) : (
-                                    <Input
-                                        placeholder="Value..."
-                                        value={rule.value}
-                                        type={
-                                            filterableFields.find(
-                                                (f) => f.value === rule.field,
-                                            )?.type === 'number'
-                                                ? 'number'
-                                                : 'text'
-                                        }
-                                        onChange={(e) =>
-                                            handleChangeRule(
-                                                rule.id,
-                                                'value',
-                                                e.target.value,
-                                            )
-                                        }
-                                        disabled={!rule.operator}
-                                    />
-                                )}
-                            </div>
-                        ))}
-
-                        {/* Add Rule Button */}
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddRule}
-                        >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Rule
-                        </Button>
-
-                        {/* Clear Button */}
-                        <Separator />
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearFilters}
-                        >
-                            Clear All Filters
-                        </Button>
                     </div>
                 </div>
             </PopoverContent>

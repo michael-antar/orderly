@@ -89,11 +89,14 @@ export const TagInput = ({
 
     return (
         <div className="grid grid-cols-4 items-start gap-4">
-            <Label className="text-right pt-2">Tags</Label>
+            <Label htmlFor="tag-input" className="text-right pt-2">
+                Tags
+            </Label>
             <div className="col-span-3">
                 <Popover open={popoverOpen} onOpenChange={onPopoverOpenChange}>
                     <PopoverTrigger asChild>
                         <Button
+                            id="tag-input"
                             variant="outline"
                             className="w-full justify-start text-left font-normal h-auto"
                         >

@@ -9,9 +9,15 @@ type ItemCardProps = {
     item: CombinedItem;
     onSelect: () => void;
     isSelected: boolean;
+    podiumClass?: string;
 };
 
-export const ItemCard = ({ item, onSelect, isSelected }: ItemCardProps) => {
+export const ItemCard = ({
+    item,
+    onSelect,
+    isSelected,
+    podiumClass,
+}: ItemCardProps) => {
     const { name, status, rating, tags } = item;
     const detailsString = getCategoryDetails(item)
         .map((detail) => detail[1])
@@ -22,6 +28,7 @@ export const ItemCard = ({ item, onSelect, isSelected }: ItemCardProps) => {
             className={cn(
                 'mb-4 p-4 cursor-default',
                 isSelected ? 'bg-muted' : 'hover:bg-muted/50',
+                podiumClass,
             )}
             onClick={onSelect}
         >
