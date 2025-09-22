@@ -6,7 +6,13 @@ import removeConsole from 'vite-plugin-remove-console';
 
 // https://vite.dev/config/
 export default defineConfig({
-    plugins: [react(), tailwindcss(), removeConsole()],
+    plugins: [
+        react(),
+        tailwindcss(),
+        removeConsole({
+            includes: ['log', 'group', 'groupCollapsed', 'groupEnd'],
+        }),
+    ],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
