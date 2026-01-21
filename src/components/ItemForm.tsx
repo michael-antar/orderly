@@ -1,6 +1,6 @@
-import { memo, useEffect, useState } from 'react';
+import { memo } from 'react';
 
-import { Plus, Pencil } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,103 +16,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { TagInput } from '@/components/TagInput';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
+import { DynamicFieldRenderer } from '@/components/DynamicFieldRenderer';
+import { TagInput } from '@/components/TagInput';
+
 import { useItemForm } from '@/hooks/useItemForm';
-import { type CombinedItem, type Category, type Status } from '@/types/types';
+import type { Item, CategoryDefintion, Status } from '@/types/types';
 
 type ItemFormProps = {
     // Determine mode by checking if 'item' prop exists
-    item?: CombinedItem;
-    category?: Category;
-    onSuccess: (newStatus: Status, newItem: CombinedItem) => void;
-    activeListStatus: Status;
+    item?: Item;
+    categoryDef: CategoryDefintion;
+    mode: 'add' | 'edit';
+    trigger?: React.ReactNode;
+    onSuccess: (newStatus: Status, newItem: Item) => void;
 };
 
 export const ItemForm = memo(function ItemForm({
     item,
-    category,
+    categoryDef,
+    mode,
+    trigger,
     onSuccess,
-    activeListStatus,
 }: ItemFormProps) {
-    const mode = item ? 'edit' : 'add';
     const {
         isOpen,
         setIsOpen,
         isLoading,
         formData,
-        handleFieldChange,
+        handleMainFieldChange,
+        handlePropertyChange,
         handleSubmit,
-        FieldsComponent,
-        effectiveCategory,
         availableTags,
     } = useItemForm({
         mode,
+        categoryDef,
         item,
-        category,
         onSuccess,
     });
-
-    const [openSelectsCount, setOpenSelectsCount] = useState(0);
-    const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
-
-    const handleSelectOpenChange = (isOpen: boolean) => {
-        setOpenSelectsCount(
-            (currentCount) =>
-                isOpen ? currentCount + 1 : Math.max(0, currentCount - 1), // Prevent going below zero
-        );
-    };
-
-    useEffect(() => {
-        if (mode === 'add' && isOpen && activeListStatus) {
-            handleFieldChange('status', activeListStatus);
-        }
-    }, [isOpen, activeListStatus, mode, handleFieldChange]);
-
-    const capitalizedCategory =
-        effectiveCategory.charAt(0).toUpperCase() + effectiveCategory.slice(1);
-    const addModeStatusText =
-        formData.status === 'ranked' ? 'Review' : 'to Backlog';
-    const dialogTitle =
-        mode === 'add'
-            ? `Add New ${capitalizedCategory} ${addModeStatusText}`
-            : `Edit ${item?.name}`;
-    const statusText = formData.status === 'ranked' ? 'Review' : 'Notes';
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                {mode === 'add' ? (
-                    <Button size="icon">
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                ) : (
-                    <Button variant="ghost" size="icon">
-                        <Pencil className="h-5 w-5" />
+                {trigger || (
+                    <Button>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add {categoryDef.name}
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent
-                className="sm:max-w-[425px] flex flex-col max-h-[90dvh]"
-                onEscapeKeyDown={(e) => {
-                    if (openSelectsCount > 0 || isTagPopoverOpen) {
-                        e.preventDefault();
-                        if (isTagPopoverOpen) {
-                            setTagPopoverOpen(false);
-                        } else {
-                            console.warn(
-                                'Escape key pressed when select is open within dialog.',
-                                'Preventing both from closing.',
-                                'Sorry, this is the only way I could fix an error where both would close simulatiously and brick the mouse functionality',
-                            );
-                        }
-                    }
-                }}
-            >
-                <DialogHeader className="overflow-hidden flex-shrink-0">
-                    <DialogTitle className="break-words">
-                        {dialogTitle}
+
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
+                <DialogHeader>
+                    <DialogTitle>
+                        {mode === 'add'
+                            ? `Add New ${categoryDef.name}`
+                            : `Edit ${categoryDef.name}`}
                     </DialogTitle>
                     <DialogDescription>
                         {mode === 'add' ? (
@@ -126,21 +86,21 @@ export const ItemForm = memo(function ItemForm({
                         )}
                     </DialogDescription>
                 </DialogHeader>
+
                 <form
-                    id="item-form"
+                    // id="item-form"
                     onSubmit={handleSubmit}
-                    className="flex-1 overflow-y-auto pr-4"
+                    className="space-y-6 py-4"
                 >
                     <div className="grid gap-4 py-4">
-                        {/* --- Common Fields --- */}
-
                         {/* Status Toggle */}
                         <ToggleGroup
                             type="single"
                             variant="outline"
                             value={formData.status}
                             onValueChange={(value: Status) => {
-                                if (value) handleFieldChange('status', value);
+                                if (value)
+                                    handleMainFieldChange('status', value);
                             }}
                             className="w-full"
                         >
@@ -152,9 +112,7 @@ export const ItemForm = memo(function ItemForm({
                             </ToggleGroupItem>
                         </ToggleGroup>
 
-                        <Separator />
-
-                        {/* Name Field */}
+                        {/* Name */}
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="name" className="text-right">
                                 Name <span className="text-destructive">*</span>
@@ -163,7 +121,10 @@ export const ItemForm = memo(function ItemForm({
                                 id="name"
                                 value={formData.name}
                                 onChange={(e) =>
-                                    handleFieldChange('name', e.target.value)
+                                    handleMainFieldChange(
+                                        'name',
+                                        e.target.value,
+                                    )
                                 }
                                 className="col-span-3 break-words"
                                 autoComplete="off"
@@ -171,51 +132,64 @@ export const ItemForm = memo(function ItemForm({
                             />
                         </div>
 
-                        {/* Description Field */}
-                        <div className="grid grid-cols-4 items-start gap-4">
-                            <Label
-                                htmlFor="description"
-                                className="text-right pt-2"
-                            >
-                                {statusText}
-                            </Label>
-                            <Textarea
-                                id="description"
-                                value={formData.description}
-                                onChange={(e) =>
-                                    handleFieldChange(
-                                        'description',
-                                        e.target.value,
-                                    )
+                        {/* Tags */}
+                        <div className="space-y-2">
+                            <Label>Tags</Label>
+                            <TagInput
+                                selectedTags={formData.tags || []}
+                                availableTags={availableTags}
+                                onTagsChange={(tags) =>
+                                    handleMainFieldChange('tags', tags)
                                 }
-                                className="col-span-3 max-h-40"
                             />
                         </div>
 
                         <Separator />
 
-                        {/* Category Specific Fields */}
-                        <FieldsComponent
-                            formData={formData}
-                            onFieldChange={handleFieldChange}
-                            onSelectOpenChange={handleSelectOpenChange}
-                        />
+                        {/* Description */}
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label
+                                htmlFor="description"
+                                className="text-right pt-2"
+                            >
+                                Description
+                            </Label>
+                            <Textarea
+                                id="description"
+                                className="col-span-3 max-h-40"
+                                placeholder="Optional notes..."
+                                value={formData.description}
+                                onChange={(e) =>
+                                    handleMainFieldChange(
+                                        'description',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                        </div>
 
                         <Separator />
 
-                        {/* Tag Input component */}
-                        <TagInput
-                            selectedTags={formData.tags || []}
-                            availableTags={availableTags}
-                            onTagsChange={(newTags) =>
-                                handleFieldChange('tags', newTags)
-                            }
-                            category={effectiveCategory}
-                            popoverOpen={isTagPopoverOpen}
-                            onPopoverOpenChange={setTagPopoverOpen}
-                        />
+                        {/* Dynamic Fields */}
+                        <div className="space-y-4 rounded-md bg-muted/30 p-4">
+                            <h4 className="mb-2 text-sm font-semibold text-muted-foreground">
+                                {categoryDef.name} Details
+                            </h4>
+
+                            {categoryDef.field_definitions.map((field) => (
+                                <DynamicFieldRenderer
+                                    key={field.key}
+                                    field={field}
+                                    value={formData.properties[field.key]}
+                                    onChange={(val) =>
+                                        handlePropertyChange(field.key, val)
+                                    }
+                                />
+                            ))}
+                        </div>
                     </div>
                 </form>
+
                 <DialogFooter className="flex-shrink-0">
                     {/* Submit Button */}
                     <Button type="submit" form="item-form" disabled={isLoading}>
