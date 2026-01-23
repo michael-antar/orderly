@@ -11,43 +11,41 @@ import { SortControls } from './SortControls';
 import { ItemList } from './ItemList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TagManager } from '@/components/TagManager';
+import { DynamicIcon } from './DynamicIcon';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrevious } from '@/hooks/usePrevious';
 
 import { cn } from '@/lib/utils';
 import type { PostgrestError } from '@supabase/supabase-js';
-import {
-    type AppliedFilters,
-    type Category,
-    type CombinedItem,
-    type SortOption,
-    type Status,
-    categoryTitles,
+import type {
+    CategoryDefinition,
+    Item,
+    AppliedFilters,
+    Status,
 } from '@/types/types';
 
-const detailTableMap: Record<Category, string> = {
-    movie: 'movie_details',
-    restaurant: 'restaurant_details',
-    album: 'album_details',
-    book: 'book_details',
-    show: 'show_details',
-};
-
-export const CategoryView = ({ category }: { category: Category }) => {
+export const CategoryView = ({ categoryId }: { categoryId: string }) => {
     const { user } = useAuth();
-    const [items, setItems] = useState<CombinedItem[]>([]);
+
+    // Category Schema
+    const [categoryDef, setCategoryDef] = useState<CategoryDefinition | null>(
+        null,
+    );
+    const [defLoading, setDefLoading] = useState(true);
+
+    const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<PostgrestError | null>(null);
     const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
 
     // Handle DetailView
-    const [selectedItem, setSelectedItem] = useState<CombinedItem | null>(null); // For highlighting item in list and displaying item details
+    const [selectedItem, setSelectedItem] = useState<Item | null>(null); // For highlighting item in list and displaying item details
     const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
-    // Handle list sorting and filtering
-    const [sortBy, setSortBy] = useState<SortOption>('rating');
-    const [sortAsc, setSortAsc] = useState(false);
+    // Handle list sorting/filtering
+    const [sortBy, setSortBy] = useState<string>('rating');
+    const [sortAsc, setSortAsc] = useState<boolean>(false);
     const [filters, setFilters] = useState<AppliedFilters>({
         tags: [],
         rules: [],
@@ -55,124 +53,123 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
     // Handle ComparisonModal
     const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
-    const [calibrationItem, setCalibrationItem] = useState<CombinedItem | null>(
-        null,
-    ); // Hold new item that needs calibration
+    const [calibrationItem, setCalibrationItem] = useState<Item | null>(null); // Hold new item that needs calibration
 
-    const prevCategory = usePrevious(category);
+    // TODO: Is this still needed?
+    const prevCategoryId = usePrevious(categoryId);
 
-    // Fetch list of items from database
+    // Fetch the CategoryDefinition (schema)
+    useEffect(() => {
+        const fetchDefinition = async () => {
+            if (!categoryId || !user) return;
+
+            setDefLoading(true);
+            setItems([]); // Clear old items while switching
+
+            const { data, error } = await supabase
+                .from('category_definitions')
+                .select('*')
+                .eq('id', categoryId)
+                .single();
+
+            if (data) {
+                // TODO: IDK what is causing this mismatch
+                setCategoryDef(data as CategoryDefinition);
+            } else if (error) {
+                console.error('Error fetching category definition:', error);
+                setError(error);
+            }
+            setDefLoading(false);
+        };
+
+        fetchDefinition();
+    }, [categoryId, user]);
+
+    // Fetch items
     const getItems = useCallback(async () => {
-        console.groupCollapsed('[getItems] Fetching items from supabase');
+        if (!user || !categoryDef) return { data: [], error: null };
 
-        if (!user) {
-            console.warn('No user found, exiting.');
-            console.groupEnd();
-            return { data: [], error: null };
-        }
+        console.groupCollapsed(`[getItems] Fetching ${categoryDef.name} items`);
         setLoading(true);
         setError(null);
 
         try {
-            const detailTable = detailTableMap[category];
-            const allDetailTables = Object.values(detailTableMap);
-
-            // Determine which joins need to be inner vs left
-            const hasTagRules = filters.tags.length > 0;
-            const hasDetailRules = filters.rules.some(
-                (rule) => rule.field && rule.operator && rule.value !== '',
-            );
-
-            // Build select string
-            const selectParts = ['*'];
-
-            selectParts.push(hasTagRules ? 'tags!inner(*)' : 'tags(*)');
-
-            const mainDetailSelect = hasDetailRules
-                ? `${detailTable}!inner(*)`
-                : `${detailTable}(*)`;
-            selectParts.push(mainDetailSelect);
-
-            allDetailTables
-                .filter((table) => table !== detailTable)
-                .forEach((table) => {
-                    selectParts.push(`${table}(*)`);
-                });
-
-            const selectString = selectParts.join(', ');
-
-            // Start generating db query
-            console.log('Generating base query', {
-                category: category,
-                active_filters: filters,
-                select_string: selectString,
-            });
-
+            // Base query
             let query = supabase
                 .from('items')
-                .select(selectString)
+                .select('*, tags(*)')
                 .eq('user_id', user.id)
-                .eq('category', category);
+                .eq('category_def_id', categoryDef.id);
 
-            // Apply tag filters
-            if (hasTagRules) {
+            // Search using tag filters if included
+            if (filters.tags.length > 0) {
                 const tagIds = filters.tags.map((tag) => tag.id);
-                console.log('Applying tag filter with IDs:', tagIds);
-                query = query.in('tags.id', tagIds);
+                query = supabase
+                    .from('items')
+                    .select('*, tags!inner(*)')
+                    .eq('user_id', user.id)
+                    .eq('category_def_id', categoryDef.id)
+                    .in('tags.id', tagIds);
             }
 
-            // Apply rule based filters
+            // Add field filters if included
             filters.rules.forEach((rule) => {
-                // Ensure the rule is complete before applying it
-                if (!rule.field || !rule.operator || rule.value === '') return;
+                if (!rule.field_key || !rule.operator || rule.value === '')
+                    return;
 
-                const filterColumn = `${detailTable}.${rule.field}`;
-                const filterValue = rule.value;
+                let column = rule.field_key;
+                if (column.startsWith('properties.')) {
+                    const key = column.split('.')[1];
+                    // Use arrow syntax for JSON path: properties->>key (text)
+                    column = `properties->>${key}`;
+                }
+
+                const val = String(rule.value);
 
                 switch (rule.operator) {
                     case 'is':
-                        query = query.ilike(filterColumn, String(filterValue));
+                        query = query.eq(column, val); // 'eq' is safer than ilike for non-text
                         break;
                     case 'is_not':
-                        query = query.not(
-                            filterColumn,
-                            'ilike',
-                            String(filterValue),
-                        );
+                        query = query.neq(column, val);
                         break;
                     case 'contains':
-                        query = query.ilike(filterColumn, `%${filterValue}%`);
+                        query = query.ilike(column, `%${val}%`);
                         break;
                     case 'gt':
-                        query = query.gt(filterColumn, filterValue);
+                        query = query.gt(column, val);
                         break;
                     case 'gte':
-                        query = query.gte(filterColumn, filterValue);
+                        query = query.gte(column, val);
                         break;
                     case 'lt':
-                        query = query.lt(filterColumn, filterValue);
+                        query = query.lt(column, val);
                         break;
                     case 'lte':
-                        query = query.lte(filterColumn, filterValue);
+                        query = query.lte(column, val);
                         break;
                 }
             });
 
-            // Apply sorting and execute query
-            const { data, error } = await query.order(sortBy, {
+            // Apply sorting
+            let sortColumn = sortBy;
+            // Map "properties.key" to "properties->key" or "properties->>key" for sorting
+            // TODO: This might get iffy when trying to sort with Numerical field, but this works for now
+            if (sortBy.startsWith('properties.')) {
+                const key = sortBy.split('.')[1];
+                sortColumn = `properties->>${key}`;
+            }
+
+            const { data, error } = await query.order(sortColumn, {
                 ascending: sortAsc,
                 nullsFirst: false,
             });
 
-            console.log('Supabase Response:', { data, error });
-
             if (error) throw error;
 
-            setItems((data as unknown as CombinedItem[]) || []);
-            return {
-                data: (data as unknown as CombinedItem[]) || null,
-                error: null,
-            };
+            console.log('Fetched Items:', data);
+            setItems((data as Item[]) || []);
+            return { data: (data as Item[]) || null, error: null };
         } catch (error) {
             console.error('Error fetching items:', error);
             setError(error as PostgrestError);
@@ -181,22 +178,16 @@ export const CategoryView = ({ category }: { category: Category }) => {
             console.groupEnd();
             setLoading(false);
         }
-    }, [user, category, sortBy, sortAsc, filters]);
+    }, [user, categoryDef, filters, sortBy, sortAsc]);
 
-    // Initial fetch on component mount or category change
+    // Initial Fetch when Definition Loads
     useEffect(() => {
-        if (prevCategory && prevCategory !== category) {
-            return;
+        if (categoryDef) {
+            getItems();
         }
-        getItems();
-    }, [getItems, category, prevCategory]);
+    }, [categoryDef, getItems]);
 
-    // Toggle opening detail view on mobile
-    useEffect(() => {
-        setIsDetailViewOpen(selectedItem ? true : false);
-    }, [selectedItem]);
-
-    // When category changes
+    // Reset UI when switching categories
     useEffect(() => {
         // Clear selected item
         setSelectedItem(null);
@@ -208,7 +199,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
             tags: [],
             rules: [],
         });
-    }, [category]);
+    }, [categoryId, prevCategoryId]);
 
     const rankedItems = useMemo(
         () => items.filter((item) => item.status === 'ranked'),
@@ -248,88 +239,41 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     // Toggle selection of item
-    const handleSelectItem = (item: CombinedItem) => {
+    const handleSelectItem = (item: Item) => {
         setSelectedItem((prev) => (prev?.id === item.id ? null : item));
+        setIsDetailViewOpen(true);
     };
 
     // Refresh list and start calibration
     const handleAddSuccess = useCallback(
-        async (newStatus: Status, newItem: CombinedItem) => {
-            console.groupCollapsed(
-                '[handleAddSuccess] Refreshing list and starting calibration',
-            );
+        async (newStatus: Status, newItem: Item) => {
             setActiveTab(newStatus);
             const { data: updatedItems } = await getItems();
 
+            // Perform calibration if new item is ranked
             if (newStatus === 'ranked' && updatedItems) {
-                console.log('Original newItem from form:', newItem);
-                console.log('Full updated list from DB:', updatedItems);
-
-                // Search inside that fresh data for the item we care about
                 const freshItem = updatedItems.find((i) => i.id === newItem.id);
-                console.log('freshItem found in list:', freshItem);
-
-                // Set the state with the correct, fresh object
-                if (freshItem) {
-                    if (rankedItemsRef.current.length >= 1) {
-                        console.log(
-                            'Passing this item to setCalibrationItem:',
-                            freshItem,
-                        );
-                        setCalibrationItem(freshItem);
-                        setIsComparisonModalOpen(true);
-                    } else {
-                        console.log(
-                            'Skipping calibration: Not enough ranked items to compare.',
-                        );
-                    }
-                } else {
-                    console.error(
-                        'DEBUG: Could not find freshItem in the updated list!',
-                    );
+                if (freshItem && rankedItemsRef.current.length >= 1) {
+                    setCalibrationItem(freshItem);
+                    setIsComparisonModalOpen(true);
                 }
             }
-            console.groupEnd();
         },
         [getItems],
     );
 
     // Set new active tab, refresh edited item, and start calibration if moved to ranked
     const handleEditSuccess = useCallback(
-        async (newStatus: Status, updatedItem: CombinedItem) => {
+        async (newStatus: Status, updatedItem: Item) => {
             const previousStatus = selectedItem?.status;
-
             setActiveTab(newStatus);
             await getItems();
             setSelectedItem(updatedItem); // Keep detail view in sync
 
-            const wasMovedToRanked =
-                previousStatus === 'backlog' && newStatus === 'ranked';
-
-            if (wasMovedToRanked) {
+            if (previousStatus === 'backlog' && newStatus === 'ranked') {
                 setCalibrationItem(updatedItem);
                 setIsComparisonModalOpen(true);
             }
-
-            console.groupCollapsed(
-                '[handleEditSuccess] Setting new active tab, refreshing edited item, ',
-                'and starting calibration if moved from backlog to ranked',
-            );
-            console.log('Using information:', {
-                updatedItem: updatedItem,
-                previousStatus: previousStatus,
-                newStatus: newStatus,
-            });
-
-            if (wasMovedToRanked) {
-                console.log(
-                    'Item moved from backlog to ranked, starting calibration...',
-                );
-            } else {
-                console.log('No calibration needed');
-            }
-
-            console.groupEnd();
         },
         [getItems, selectedItem?.status],
     );
@@ -347,6 +291,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     // Refresh both the list and the item detail view
+    // TODO: Is this still needed, or can it just be replaced by getItems()?
     const handleTagUpdateSuccess = async () => {
         const result = await getItems();
         if (result?.data && selectedItem) {
@@ -358,7 +303,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
     };
 
     const handleSortAndFilterApply = (
-        newSortBy: SortOption,
+        newSortBy: string,
         newSortAsc: boolean,
         newFilters: AppliedFilters,
     ) => {
@@ -371,6 +316,22 @@ export const CategoryView = ({ category }: { category: Category }) => {
         getItems();
     };
 
+    if (defLoading) {
+        return (
+            <div className="p-8 text-center text-muted-foreground">
+                Loading category...
+            </div>
+        );
+    }
+
+    if (!categoryDef) {
+        return (
+            <div className="p-8 text-center text-muted-foreground">
+                Category not found.
+            </div>
+        );
+    }
+
     return (
         <div className="relative h-full overflow-hidden lg:flex">
             {/* Left Column: Item List */}
@@ -382,12 +343,18 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 >
                     {/* Left Side Header */}
                     <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 m-4 mb-0 pb-4 border-b">
-                        {/* Category Title */}
-                        <h1 className="text-4xl font-bold text-foreground">
-                            {categoryTitles[category]}
-                        </h1>
+                        {/* Category Icon + Title */}
+                        <div className="flex items-center gap-3">
+                            <DynamicIcon
+                                name={categoryDef.icon}
+                                className="h-8 w-8 text-primary"
+                            />
+                            <h1 className="text-4xl font-bold text-foreground">
+                                {categoryDef.name}
+                            </h1>
+                        </div>
 
-                        {/* All controls */}
+                        {/* Controls */}
                         <div className="flex flex-grow flex-wrap items-center justify-between gap-4">
                             {/* Status Tabs */}
                             <TabsList>
@@ -401,20 +368,21 @@ export const CategoryView = ({ category }: { category: Category }) => {
                             <div className="flex items-center gap-2">
                                 {/* Sort Controls */}
                                 <SortControls
+                                    categoryDef={categoryDef}
                                     sortBy={sortBy}
                                     sortAsc={sortAsc}
                                     isEloDisabled={activeTab === 'backlog'}
                                     filters={filters}
-                                    category={category}
-                                    onApply={handleSortAndFilterApply}
+                                    onSortApply={handleSortAndFilterApply}
                                 />
 
                                 {/* Tag Management Modal */}
                                 <TagManager
-                                    category={category}
+                                    categoryDefId={categoryDef.id}
                                     onSuccess={handleTagUpdateSuccess}
                                 />
 
+                                {/* Comparison Button */}
                                 <Button
                                     variant="outline"
                                     size="icon"
@@ -447,9 +415,9 @@ export const CategoryView = ({ category }: { category: Category }) => {
 
                                 {/* Add Item Button */}
                                 <ItemForm
-                                    category={category}
+                                    mode="add"
+                                    categoryDef={categoryDef}
                                     onSuccess={handleAddSuccess}
-                                    activeListStatus={activeTab}
                                 />
 
                                 {/* Reopen detail view button */}
@@ -479,25 +447,21 @@ export const CategoryView = ({ category }: { category: Category }) => {
                         ) : (
                             <>
                                 <TabsContent value="ranked">
-                                    {(() => {
-                                        const showPodium =
-                                            sortBy === 'rating' &&
-                                            sortAsc === false;
-
-                                        return (
-                                            <ItemList
-                                                items={rankedItems}
-                                                loading={loading}
-                                                selectedItem={selectedItem}
-                                                onSelectItem={handleSelectItem}
-                                                emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
-                                                showPodium={showPodium}
-                                            />
-                                        );
-                                    })()}
+                                    <ItemList
+                                        categoryDef={categoryDef}
+                                        items={rankedItems}
+                                        loading={loading}
+                                        selectedItem={selectedItem}
+                                        onSelectItem={handleSelectItem}
+                                        emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
+                                        showPodium={
+                                            sortBy === 'rating' && !sortAsc
+                                        }
+                                    />
                                 </TabsContent>
                                 <TabsContent value="backlog">
                                     <ItemList
+                                        categoryDef={categoryDef}
                                         items={backlogItems}
                                         loading={loading}
                                         selectedItem={selectedItem}
@@ -527,6 +491,7 @@ export const CategoryView = ({ category }: { category: Category }) => {
                 )}
             >
                 <ItemDetailView
+                    categoryDef={categoryDef}
                     item={selectedItem}
                     activeListStatus={activeTab}
                     onClose={() => setIsDetailViewOpen(false)}
