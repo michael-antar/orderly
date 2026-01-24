@@ -73,8 +73,8 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                 .single();
 
             if (data) {
-                // TODO: IDK what is causing this mismatch
-                setCategoryDef(data as CategoryDefinition);
+                // TODO: IDK what is causing this mismatch error
+                setCategoryDef(data as unknown as CategoryDefinition);
             } else if (error) {
                 console.error('Error fetching category definition:', error);
                 setError(error);
