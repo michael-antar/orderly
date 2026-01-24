@@ -1,21 +1,20 @@
 import { type PostgrestError } from '@supabase/supabase-js';
 
-// Core status and sorting
+// Core status
 export type Status = 'ranked' | 'backlog';
-export type SortOption = 'rating' | 'name' | 'created_at';
 
 // --- Dynamic Schema Types ---
 export type FieldType = 'string' | 'number' | 'boolean' | 'select' | 'location';
 
 export type FieldDefinition = {
-    key: string; // Immutable unique id, JSON key for item.properties
+    key: string; // Immutable JSON key for item.properties. Unique ONLY to CategoryDef.properties
     type: FieldType;
     label: string; // Human readable, mutable
-    options?: string[]; // For 'select' type
+    options?: string[]; // For FieldType.select
     required?: boolean;
 };
 
-export type CategoryDefintion = {
+export type CategoryDefinition = {
     id: string;
     user_id: string | null; // null = global default category
 
@@ -49,7 +48,9 @@ export type Item = {
     properties: Record<string, any>; // Store key-value pairs like: { address: "...", distance: 5 }
 };
 
-// --- Filter types ---
+// --- Sorting and Filter types ---
+export type SortOption = 'rating' | 'name' | 'created_at';
+
 export type FilterOperator =
     | 'is'
     | 'is_not'
@@ -61,7 +62,7 @@ export type FilterOperator =
 
 export type FilterRule = {
     id: string;
-    field_id: string;
+    field_key: string;
 
     operator: FilterOperator | '';
     value: string | number;
