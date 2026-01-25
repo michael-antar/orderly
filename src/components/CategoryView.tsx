@@ -436,7 +436,6 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                             <>
                                 <TabsContent value="ranked">
                                     <ItemList
-                                        categoryDef={categoryDef}
                                         items={rankedItems}
                                         loading={loading}
                                         selectedItem={selectedItem}
@@ -449,7 +448,6 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                                 </TabsContent>
                                 <TabsContent value="backlog">
                                     <ItemList
-                                        categoryDef={categoryDef}
                                         items={backlogItems}
                                         loading={loading}
                                         selectedItem={selectedItem}
@@ -479,8 +477,8 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                 )}
             >
                 <ItemDetailView
-                    categoryDef={categoryDef}
                     item={selectedItem}
+                    categoryDef={categoryDef}
                     activeListStatus={activeTab}
                     onClose={() => setIsDetailViewOpen(false)}
                     onEdit={handleEditSuccess}

@@ -1,6 +1,6 @@
 import { memo } from 'react';
 
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +61,11 @@ export const ItemForm = memo(function ItemForm({
             <DialogTrigger asChild>
                 {trigger || (
                     <Button>
-                        <Plus className="h-4 w-4" />
+                        {mode == 'add' ? (
+                            <Plus className="h-4 w-4" />
+                        ) : (
+                            <Pencil className="h-4 w-4" />
+                        )}
                     </Button>
                 )}
             </DialogTrigger>
