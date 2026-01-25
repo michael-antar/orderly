@@ -32,6 +32,23 @@ export type Tag = {
     name: string;
 };
 
+// TODO: Implement feature later
+export type LocationValue = {
+    address: string;
+    coordinates: {
+        lat: number;
+        lng: number;
+    } | null;
+};
+
+// A union of ALL allowed values in the 'properties' column
+export type ItemPropertyValue =
+    | string
+    | number
+    | boolean
+    | LocationValue
+    | null;
+
 export type Item = {
     id: string;
     user_id: string;
@@ -45,7 +62,7 @@ export type Item = {
     created_at: string;
 
     tags: Tag[] | null;
-    properties: Record<string, any>; // Store key-value pairs like: { address: "...", distance: 5 }
+    properties: Record<string, ItemPropertyValue>; // Store key-value pairs like: { address: "...", distance: 5 }
 };
 
 // --- Sorting and Filter types ---
@@ -81,7 +98,7 @@ export type ItemFormData = {
     rating: number | null;
 
     tags: Tag[];
-    properties: Record<string, any>;
+    properties: Record<string, ItemPropertyValue>;
 };
 
 // Generic type for the response from Supabase mutation operations
