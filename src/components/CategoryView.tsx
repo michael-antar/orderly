@@ -11,7 +11,6 @@ import { SortControls } from './SortControls';
 import { ItemList } from './ItemList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TagManager } from '@/components/TagManager';
-import { DynamicIcon } from './DynamicIcon';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrevious } from '@/hooks/usePrevious';
@@ -343,17 +342,6 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                 >
                     {/* Left Side Header */}
                     <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 m-4 mb-0 pb-4 border-b">
-                        {/* Category Icon + Title */}
-                        <div className="flex items-center gap-3">
-                            <DynamicIcon
-                                name={categoryDef.icon}
-                                className="h-8 w-8 text-primary"
-                            />
-                            <h1 className="text-4xl font-bold text-foreground">
-                                {categoryDef.name}
-                            </h1>
-                        </div>
-
                         {/* Controls */}
                         <div className="flex flex-grow flex-wrap items-center justify-between gap-4">
                             {/* Status Tabs */}

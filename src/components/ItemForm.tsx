@@ -22,12 +22,12 @@ import { DynamicFieldRenderer } from '@/components/DynamicFieldRenderer';
 import { TagInput } from '@/components/TagInput';
 
 import { useItemForm } from '@/hooks/useItemForm';
-import type { Item, CategoryDefintion, Status } from '@/types/types';
+import type { Item, CategoryDefinition, Status } from '@/types/types';
 
 type ItemFormProps = {
     // Determine mode by checking if 'item' prop exists
     item?: Item;
-    categoryDef: CategoryDefintion;
+    categoryDef: CategoryDefinition;
     mode: 'add' | 'edit';
     trigger?: React.ReactNode;
     onSuccess: (newStatus: Status, newItem: Item) => void;
@@ -48,7 +48,7 @@ export const ItemForm = memo(function ItemForm({
         handleMainFieldChange,
         handlePropertyChange,
         handleSubmit,
-        availableTags,
+        existingTags,
     } = useItemForm({
         mode,
         categoryDef,
@@ -61,8 +61,7 @@ export const ItemForm = memo(function ItemForm({
             <DialogTrigger asChild>
                 {trigger || (
                     <Button>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add {categoryDef.name}
+                        <Plus className="h-4 w-4" />
                     </Button>
                 )}
             </DialogTrigger>
@@ -137,7 +136,8 @@ export const ItemForm = memo(function ItemForm({
                             <Label>Tags</Label>
                             <TagInput
                                 selectedTags={formData.tags || []}
-                                availableTags={availableTags}
+                                existingTags={existingTags}
+                                categoryDefId={categoryDef.id}
                                 onTagsChange={(tags) =>
                                     handleMainFieldChange('tags', tags)
                                 }
