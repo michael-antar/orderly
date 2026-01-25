@@ -1,12 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useState, useRef } from 'react';
+import { X, Plus } from 'lucide-react';
 
-import { X } from 'lucide-react';
-
+import { Badge } from './ui/badge';
 import {
     Command,
-    CommandEmpty,
     CommandGroup,
-    CommandInput,
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
@@ -15,163 +13,192 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { Button } from './ui/button';
-import { Label } from '@/components/ui/label';
-import { TagBadge } from './TagBadge';
+// TODO: Is this still needed?
+// import { TagBadge } from './TagBadge';
 
-import { type Category, type Tag } from '@/types/types';
+import type { Tag } from '@/types/types';
 
 type TagInputProps = {
     selectedTags: Tag[];
-    availableTags: Tag[];
+    existingTags: Tag[];
+    categoryDefId?: string; // If omitted, "Create New" is disabled
+    placeholder?: string;
+    popoverOpen?: boolean; // Optional control popover state from parent
     onTagsChange: (newTags: Tag[]) => void;
-    category: Category;
-    popoverOpen: boolean;
-    onPopoverOpenChange: (open: boolean) => void;
+    onPopoverOpenChange?: (open: boolean) => void;
 };
 
 export const TagInput = ({
     selectedTags,
-    availableTags,
-    onTagsChange,
-    category,
+    existingTags,
+    categoryDefId,
+    placeholder = 'Add tags...',
     popoverOpen,
+    onTagsChange,
     onPopoverOpenChange,
 }: TagInputProps) => {
     const [inputValue, setInputValue] = useState('');
+    const [internalOpen, setInternalOpen] = useState(false);
 
-    const handleSelect = useCallback(
-        (tag: Tag) => {
-            setInputValue('');
+    // Handle controlled vs uncontrolled open state
+    const isOpen = popoverOpen ?? internalOpen;
+    const setOpen = onPopoverOpenChange ?? setInternalOpen;
+
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleSelect = (tag: Tag) => {
+        // Prevent duplicates
+        if (!selectedTags.some((t) => t.id === tag.id)) {
             onTagsChange([...selectedTags, tag]);
-        },
-        [selectedTags, onTagsChange],
-    );
+        }
+        setInputValue('');
+        setOpen(false);
+    };
 
-    const handleCreate = useCallback(
-        (tagName: string) => {
-            setInputValue('');
-            // Create a temporary tag object. The final ID will be set when it's saved to the DB.
-            const newTag: Tag = {
-                id: Date.now(),
-                name: tagName,
-                category: category,
-                user_id: '',
-            }; // Placeholder values
-            onTagsChange([...selectedTags, newTag]);
-        },
-        [selectedTags, onTagsChange, category],
-    );
+    const handleUnselect = (tagToRemove: Tag) => {
+        onTagsChange(selectedTags.filter((t) => t.id !== tagToRemove.id));
+    };
 
-    const handleRemove = useCallback(
-        (tagToRemove: Tag) => {
-            onTagsChange(
-                selectedTags.filter((tag) => tag.id !== tagToRemove.id),
-            );
-        },
-        [selectedTags, onTagsChange],
-    );
+    const handleCreate = () => {
+        if (!inputValue.trim() || !categoryDefId) return;
 
-    const filteredTags = availableTags.filter(
+        const newTagName = inputValue.trim();
+
+        // Select instead if already exists
+        const existing = existingTags.find(
+            (t) => t.name.toLowerCase() === newTagName.toLowerCase(),
+        );
+
+        if (existing) {
+            handleSelect(existing);
+            return;
+        }
+
+        // Create a temp tag object
+        // `Date.now()` will create a temp ID > 1 mil, which is treated as new by the hooks
+        const newTag: Tag = {
+            id: Math.floor(Date.now() + Math.random()),
+            name: newTagName,
+            category_def_id: categoryDefId,
+            user_id: '',
+        };
+
+        onTagsChange([...selectedTags, newTag]);
+        setInputValue('');
+        setOpen(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        const input = inputRef.current;
+        if (input) {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (input.value === '' && selectedTags.length > 0) {
+                    handleUnselect(selectedTags[selectedTags.length - 1]);
+                }
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCreate();
+            }
+        }
+    };
+
+    // Filter existing tags based on search input
+    const filteredTags = existingTags.filter(
         (tag) =>
             !selectedTags.some((selected) => selected.id === tag.id) &&
             tag.name.toLowerCase().includes(inputValue.toLowerCase()),
     );
 
-    const showCreateOption =
-        inputValue &&
-        !availableTags.some(
-            (t) => t.name.toLowerCase() === inputValue.toLowerCase(),
-        ) &&
-        !selectedTags.some(
-            (t) => t.name.toLowerCase() === inputValue.toLowerCase(),
-        );
-
     return (
-        <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="tag-input" className="text-right pt-2">
-                Tags
-            </Label>
-            <div className="col-span-3">
-                <Popover open={popoverOpen} onOpenChange={onPopoverOpenChange}>
-                    <PopoverTrigger asChild>
-                        <Button
-                            id="tag-input"
-                            variant="outline"
-                            className="w-full justify-start text-left font-normal h-auto"
+        <Popover open={isOpen} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <div
+                    className="group border border-input px-3 py-2 text-sm ring-offset-background rounded-md flex items-center flex-wrap gap-2 cursor-text focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+                    onClick={() => inputRef.current?.focus()}
+                >
+                    {selectedTags.map((tag) => (
+                        <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="gap-1 pr-1"
                         >
-                            <div className="flex gap-2 flex-wrap">
-                                {selectedTags.length > 0 ? (
-                                    selectedTags.map((tag) => (
-                                        <div
-                                            key={tag.id}
-                                            className="flex items-center"
-                                        >
-                                            <TagBadge name={tag.name} />
-                                            <span
-                                                role="button"
-                                                aria-label={`Remove ${tag.name}`}
-                                                className="ml-1 text-muted-foreground hover:text-foreground"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleRemove(tag);
-                                                }}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </span>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <span className="text-muted-foreground">
-                                        Select tags...
-                                    </span>
-                                )}
-                            </div>
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                        className="w-[--radix-popover-trigger-width] p-0 pointer-events-auto"
-                        align="start"
-                    >
-                        <Command shouldFilter={false}>
-                            <CommandInput
-                                placeholder="Search or create tag..."
-                                value={inputValue}
-                                onValueChange={setInputValue}
-                            />
-                            <CommandList>
-                                {showCreateOption && (
-                                    <CommandGroup>
-                                        <CommandItem
-                                            key="create-new-tag"
-                                            onSelect={() =>
-                                                handleCreate(inputValue)
-                                            }
-                                        >
-                                            Create "{inputValue}"
-                                        </CommandItem>
-                                    </CommandGroup>
-                                )}
-                                {filteredTags.length > 0 && (
-                                    <CommandGroup heading="Suggestions">
-                                        {filteredTags.map((tag) => (
-                                            <CommandItem
-                                                key={tag.id}
-                                                onSelect={() =>
-                                                    handleSelect(tag)
-                                                }
-                                            >
-                                                {tag.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                )}
-                                <CommandEmpty>No results found.</CommandEmpty>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-            </div>
-        </div>
+                            {tag.name}
+                            <button
+                                className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        handleUnselect(tag);
+                                    }
+                                }}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleUnselect(tag);
+                                }}
+                                title="Remove tag"
+                            >
+                                <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            </button>
+                        </Badge>
+                    ))}
+
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={
+                            selectedTags.length === 0 ? placeholder : ''
+                        }
+                        className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground min-w-[80px]"
+                    />
+                </div>
+            </PopoverTrigger>
+
+            <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+            >
+                <Command>
+                    <CommandList>
+                        {/* Show "Create New" option if input exists and definition ID is present */}
+                        {inputValue.trim().length > 0 && categoryDefId && (
+                            <CommandGroup>
+                                <CommandItem
+                                    onSelect={handleCreate}
+                                    className="cursor-pointer"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Create "{inputValue}"
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
+
+                        <CommandGroup heading="Available Tags">
+                            {filteredTags.length === 0 && (
+                                <p className="text-xs text-muted-foreground px-2 py-3 text-center">
+                                    No matching tags found.
+                                </p>
+                            )}
+                            {filteredTags.map((tag) => (
+                                <CommandItem
+                                    key={tag.id}
+                                    onSelect={() => handleSelect(tag)}
+                                    className="cursor-pointer"
+                                >
+                                    {tag.name}
+                                </CommandItem>
+                            ))}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 };
