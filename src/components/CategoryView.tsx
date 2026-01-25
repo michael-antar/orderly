@@ -391,11 +391,12 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                                 </Button>
 
                                 <ComparisonModal
-                                    open={isComparisonModalOpen}
-                                    onOpenChange={setIsComparisonModalOpen}
                                     rankedItems={comparisonRankedItems}
-                                    onSuccess={getItems}
                                     calibrationItem={calibrationItem}
+                                    open={isComparisonModalOpen}
+                                    categoryDef={categoryDef}
+                                    onOpenChange={setIsComparisonModalOpen}
+                                    onSuccess={getItems}
                                     onCalibrationComplete={
                                         handleCalibrationComplete
                                     }

@@ -25,7 +25,8 @@ import {
 
 import { useComparisonQueue } from '@/hooks/useComparisonQueue';
 
-import { type CombinedItem } from '@/types/types';
+import type { Item, CategoryDefinition } from '@/types/types';
+
 type Result = {
     winnerName: string;
     loserName: string;
@@ -34,20 +35,22 @@ type Result = {
 };
 
 type ComparisonModalProps = {
+    rankedItems: Item[];
+    calibrationItem?: Item | null;
     open: boolean;
+    categoryDef: CategoryDefinition;
     onOpenChange: (isOpen: boolean) => void;
-    rankedItems: CombinedItem[];
     onSuccess: () => void;
-    calibrationItem?: CombinedItem | null;
     onCalibrationComplete?: () => void;
 };
 
 export const ComparisonModal = ({
-    open,
-    onOpenChange,
     rankedItems,
-    onSuccess,
     calibrationItem,
+    open,
+    categoryDef,
+    onOpenChange,
+    onSuccess,
     onCalibrationComplete,
 }: ComparisonModalProps) => {
     const {
@@ -59,10 +62,11 @@ export const ComparisonModal = ({
         isCalibrating,
         updateRatings,
     } = useComparisonQueue(rankedItems);
+
     const [result, setResult] = useState<Result | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [hasStarted, setHasStarted] = useState(false);
-    const [itemToView, setItemToView] = useState<CombinedItem | null>(null);
+    const [itemToView, setItemToView] = useState<Item | null>(null);
 
     const handleOpenChange = useCallback(
         (openState: boolean) => {
@@ -78,7 +82,7 @@ export const ComparisonModal = ({
         [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
     );
 
-    const handleChoose = async (winner: CombinedItem, loser: CombinedItem) => {
+    const handleChoose = async (winner: Item, loser: Item) => {
         setIsLoading(true);
 
         const currentWinner = items.find((i) => i.id === winner.id);
@@ -318,7 +322,10 @@ export const ComparisonModal = ({
                         </SheetHeader>
                         <div className="py-4">
                             {itemToView && (
-                                <ItemDetailsContent item={itemToView} />
+                                <ItemDetailsContent
+                                    item={itemToView}
+                                    categoryDef={categoryDef}
+                                />
                             )}
                         </div>
                     </SheetContent>
