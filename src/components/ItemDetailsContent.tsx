@@ -72,47 +72,48 @@ export const ItemDetailsContent = ({
     // TODO: Improve this formatting
     return (
         <>
-            {/* General Item Information */}
-            <div>
-                {/* Item Title */}
-                <h2 className="text-3xl font-bold break-words overflow-hidden">
-                    {item.name}
-                </h2>
+            {/* Item Title */}
+            <h2 className="text-3xl font-bold break-words overflow-hidden">
+                {item.name}
+            </h2>
 
-                {/* Ranked/Backlog Badge */}
-                <Badge
-                    variant={item.status === 'ranked' ? 'default' : 'secondary'}
-                >
-                    {item.status === 'ranked' ? 'Ranked List' : 'Backlog'}
-                </Badge>
+            {/* Metadata (Ranked/Backlog, Elo, 'created_at' timestamp) */}
+            <div className="flex justify-between flex-wrap mt-3">
+                {/* Left side */}
+                <div className="flex gap-2">
+                    {/* Ranked/Backlog Badge */}
+                    <Badge
+                        variant={
+                            item.status === 'ranked' ? 'default' : 'secondary'
+                        }
+                    >
+                        {item.status === 'ranked' ? 'Ranked List' : 'Backlog'}
+                    </Badge>
 
-                {/* Elo */}
-                {item.status === 'ranked' && item.rating !== null && (
-                    <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span>{Math.round(item.rating)}</span>
-                        <span className="text-muted-foreground text-sm font-normal ml-1">
-                            ELO
-                        </span>
-                    </div>
-                )}
+                    {/* Elo */}
+                    {item.status === 'ranked' && item.rating !== null && (
+                        <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
+                            <Star className="h-4 w-4 fill-current" />
+                            <span>{Math.round(item.rating)}</span>
+                            <span className="text-muted-foreground text-sm font-normal ml-1">
+                                ELO
+                            </span>
+                        </div>
+                    )}
+                </div>
 
-                {/* Timestamp */}
-                <p className="text-sm text-muted-foreground">
-                    {`Created: ${formattedDate}`}
-                </p>
-
-                {/* Item Description */}
-                {item.description && (
-                    <p className="mt-4 text-sm whitespace-pre-wrap break-words">
-                        {item.description}
+                {/* Right side */}
+                <div>
+                    {/* Timestamp */}
+                    <p className="text-sm text-muted-foreground">
+                        {`Created: ${formattedDate}`}
                     </p>
-                )}
+                </div>
             </div>
 
-            {/* Tags Section */}
+            {/* Tags */}
             {item.tags && item.tags.length > 0 && (
-                <div className="mt-6 space-y-2 border-t pt-4">
+                <div className="mt-4 flex gap-3">
                     <h4 className="font-semibold text-muted-foreground text-sm">
                         Tags
                     </h4>
@@ -124,8 +125,8 @@ export const ItemDetailsContent = ({
                 </div>
             )}
 
-            {/* Category Specific Details */}
-            <div className="grid gap-6 sm:grid-cols-2">
+            {/* Field Details */}
+            <div className="grid gap-6 sm:grid-cols-2 mt-6">
                 {categoryDef.field_definitions.map((field) => (
                     <div key={field.key} className="space-y-1.5">
                         <h4 className="text-xs font-medium text-muted-foreground uppercase">
@@ -140,6 +141,13 @@ export const ItemDetailsContent = ({
                     </div>
                 ))}
             </div>
+
+            {/* Description */}
+            {item.description && (
+                <p className="mt-6 text-sm whitespace-pre-wrap break-words">
+                    {item.description}
+                </p>
+            )}
         </>
     );
 };
