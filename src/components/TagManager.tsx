@@ -29,42 +29,55 @@ import { EditableTag } from './EditableTag';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 
-import {
-    categoryTitles,
-    type Category,
-    type Tag,
-    type TagWithUsage,
-} from '@/types/types';
+import type { Tag } from '@/types/types';
+
+type TagWithUsage = Tag & {
+    is_used: boolean;
+};
 
 type TagManagerProps = {
-    category: Category;
+    categoryDefId: string;
     onSuccess: () => void;
 };
 
-export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
+export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
     const { user } = useAuth();
+
     const [isOpen, setIsOpen] = useState(false);
-    const [tags, setTags] = useState<Tag[]>([]);
     const [loading, setLoading] = useState(false);
+    const [tags, setTags] = useState<TagWithUsage[]>([]);
 
     // For creating a new tag
     const [isCreatingTag, setIsCreatingTag] = useState(false);
     const [newTagName, setNewTagName] = useState('');
 
     // For tracking unlinked tags
-    const [unusedTags, setUnusedTags] = useState<Tag[]>([]);
+    const [unusedTags, setUnusedTags] = useState<TagWithUsage[]>([]);
 
     const fetchTags = useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
+        if (!user || !categoryDefId) return;
+
         try {
-            const { data, error } = await supabase.rpc('get_tags_with_usage', {
-                p_category: category,
-            });
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('tags')
+                .select('*, item_tags(count)')
+                .eq('user_id', user.id)
+                .eq('category_def_id', categoryDefId)
+                .order('name');
 
             if (error) throw error;
 
-            const tagsWithUsage = data as TagWithUsage[];
+            const tagsWithUsage: TagWithUsage[] = (data || []).map(
+                (t: any) => ({
+                    id: t.id,
+                    name: t.name,
+                    category_def_id: t.category_def_id,
+                    user_id: t.user_id,
+                    // Check if the count > 0 to determine usage
+                    is_used: (t.item_tags?.[0]?.count || 0) > 0,
+                }),
+            );
 
             setTags(tagsWithUsage);
             setUnusedTags(tagsWithUsage.filter((tag) => !tag.is_used));
@@ -74,7 +87,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
         } finally {
             setLoading(false);
         }
-    }, [user, category]);
+    }, [user, categoryDefId]);
 
     useEffect(() => {
         if (isOpen) {
@@ -106,8 +119,9 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                 description: `'${tagToRename.name}' is now '${newName}'.`,
             });
             // Refresh local UI
-            const updateTag = (tag: Tag) =>
+            const updateTag = (tag: TagWithUsage) =>
                 tag.id === tagToRename.id ? { ...tag, name: newName } : tag;
+
             setTags((prev) => prev.map(updateTag));
             setUnusedTags((prev) => prev.map(updateTag));
             onSuccess();
@@ -134,7 +148,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
             .from('tags')
             .insert({
                 name: newTagName.trim(),
-                category,
+                category_def_id: categoryDefId,
                 user_id: user.id,
             })
             .select()
@@ -146,18 +160,18 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
             });
         } else {
             const newTag = data as Tag;
+            // New tags are unused by default
+            const newTagWithUsage: TagWithUsage = { ...newTag, is_used: false };
+
             toast.success('Tag created', {
                 description: `'${newTag.name}' has been added to your tags.`,
             });
 
+            const sorter = (a: Tag, b: Tag) => a.name.localeCompare(b.name);
             // Add to main tags and reorder
-            setTags((prev) =>
-                [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)),
-            );
+            setTags((prev) => [...prev, newTagWithUsage].sort(sorter));
             // Add tag to unused tag list
-            setUnusedTags((prev) =>
-                [...prev, newTag].sort((a, b) => a.name.localeCompare(b.name)),
-            );
+            setUnusedTags((prev) => [...prev, newTagWithUsage].sort(sorter));
 
             setNewTagName('');
             setIsCreatingTag(false);
@@ -193,6 +207,7 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
             toast.success('Tag deleted', {
                 description: `'${tagToDelete.name}' has been permanently deleted.`,
             });
+
             // Refresh the list in the UI
             const filterOutDeleted = (tag: Tag) => tag.id !== tagToDelete.id;
             setTags((prev) => prev.filter(filterOutDeleted));
@@ -236,14 +251,12 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                     <span className="sr-only">Manage Tags</span>
                 </Button>
             </DialogTrigger>
+
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>
-                        Manage {categoryTitles[category]} Tags
-                    </DialogTitle>
+                    <DialogTitle>Manage Tags</DialogTitle>
                     <DialogDescription>
-                        Here you can rename or delete your custom tags for this
-                        category.
+                        Create, rename, or delete tags for this category.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -328,6 +341,10 @@ export const TagManager = ({ category, onSuccess }: TagManagerProps) => {
                                     }
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleCreate();
+                                        if (e.key === 'Escape') {
+                                            setIsCreatingTag(false);
+                                            setNewTagName('');
+                                        }
                                     }}
                                     autoFocus
                                 />
