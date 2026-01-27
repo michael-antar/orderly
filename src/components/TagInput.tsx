@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { X, Plus } from 'lucide-react';
 
-import { Badge } from './ui/badge';
 import {
     Command,
     CommandGroup,
@@ -13,8 +12,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-// TODO: Is this still needed?
-// import { TagBadge } from './TagBadge';
+import { TagBadge } from './TagBadge';
 
 import type { Tag } from '@/types/types';
 
@@ -118,12 +116,11 @@ export const TagInput = ({
                     onClick={() => inputRef.current?.focus()}
                 >
                     {selectedTags.map((tag) => (
-                        <Badge
+                        <TagBadge
                             key={tag.id}
-                            variant="secondary"
+                            name={tag.name}
                             className="gap-1 pr-1"
                         >
-                            {tag.name}
                             <button
                                 className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                                 onKeyDown={(e) => {
@@ -144,7 +141,7 @@ export const TagInput = ({
                             >
                                 <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                             </button>
-                        </Badge>
+                        </TagBadge>
                     ))}
 
                     <input
