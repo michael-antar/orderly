@@ -28,8 +28,9 @@ import {
     type FilterRule,
     type Tag,
     type FilterOperator,
-    type CategoryDefintion,
+    type CategoryDefinition,
     type FieldDefinition,
+    type ItemPropertyValue,
 } from '@/types/types';
 
 const TYPE_OPERATORS: Record<
@@ -58,16 +59,16 @@ const TYPE_OPERATORS: Record<
 };
 
 type SortControlsProps = {
-    categoryDef: CategoryDefintion;
+    categoryDef: CategoryDefinition;
     isEloDisabled: boolean;
 
     sortBy: string;
-    sortDirection: 'asc' | 'desc';
+    sortAsc: boolean;
     filters: AppliedFilters;
 
     onSortApply: (
         newSortBy: string,
-        newSortDirection: 'asc' | 'desc',
+        newSortAsc: boolean,
         newFilters: AppliedFilters,
     ) => void;
 };
@@ -76,12 +77,12 @@ export const SortControls = ({
     categoryDef,
     isEloDisabled,
     sortBy,
-    sortDirection,
+    sortAsc,
     filters,
     onSortApply,
 }: SortControlsProps) => {
     const { user } = useAuth();
-    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+    const [existingTags, setExistingTags] = useState<Tag[]>([]);
 
     // Manages popover and its "draft" values
     // Changes are only applied when popover is closed
@@ -89,16 +90,14 @@ export const SortControls = ({
 
     // Receive current state to prevent resetting controls after updating due to disabling sortBy rating
     const [localSortBy, setLocalSortBy] = useState<string>(sortBy);
-    const [localSortDirection, setLocalSortDirection] = useState<
-        'asc' | 'desc'
-    >(sortDirection);
+    const [localSortAsc, setLocalSortAsc] = useState<boolean>(sortAsc);
     const [localFilters, setLocalFilters] = useState<AppliedFilters>(filters);
 
     // Count of how many descendent components (selects, popovers) are open in order to prevent propagation closing of parent modal
     const [openDescendants, setOpenDescendants] = useState(0);
     const [isTagPopoverOpen, setTagPopoverOpen] = useState(false);
 
-    // Fetch availableTags upon mount
+    // Fetch existingTags upon mount
     useEffect(() => {
         const fetchTags = async () => {
             if (!user) return;
@@ -107,7 +106,7 @@ export const SortControls = ({
                 .select('*')
                 .eq('user_id', user.id)
                 .eq('category_def_id', categoryDef.id);
-            setAvailableTags(data || []);
+            setExistingTags(data || []);
         };
         fetchTags();
     }, [user, categoryDef.id]);
@@ -116,12 +115,12 @@ export const SortControls = ({
     useEffect(() => {
         if (isOpen) {
             setLocalSortBy(sortBy);
-            setLocalSortDirection(sortDirection);
+            setLocalSortAsc(sortAsc);
             setLocalFilters(filters);
 
             setOpenDescendants(0);
         }
-    }, [isOpen, sortBy, sortDirection, filters]);
+    }, [isOpen, sortBy, sortAsc, filters]);
 
     // Combine base and dynamic sort options. Memoize to only calculate once on every render
     const sortOptions = useMemo(() => {
@@ -147,16 +146,23 @@ export const SortControls = ({
 
     // Get list of filterable fields (type must be included in supported TYPE_OPERATORS)
     const filterRuleOptions = useMemo(() => {
-        return categoryDef.field_definitions.filter((f) =>
+        const standardFields: FieldDefinition[] = [
+            { key: 'name', type: 'string', label: 'Name' },
+            { key: 'rating', type: 'number', label: 'Rating' },
+        ];
+
+        const dynamicFields = categoryDef.field_definitions.filter((f) =>
             Object.keys(TYPE_OPERATORS).includes(f.type),
         );
+
+        return [...standardFields, ...dynamicFields];
     }, [categoryDef]);
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
         // When the popover closes, apply the changes
         if (!open) {
-            onSortApply(localSortBy, localSortDirection, localFilters);
+            onSortApply(localSortBy, localSortAsc, localFilters);
         }
     };
 
@@ -165,13 +171,13 @@ export const SortControls = ({
     };
 
     const toggleSortDirection = () => {
-        setLocalSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+        setLocalSortAsc((prev) => !prev);
     };
 
     const handleAddBlankRule = () => {
         const newRule: FilterRule = {
             id: Date.now().toString(),
-            field: '',
+            field_key: '',
             operator: '',
             value: '',
         };
@@ -190,8 +196,8 @@ export const SortControls = ({
 
     const handleChangeRule = (
         id: string,
-        key: keyof FilterRule,
-        value: any,
+        key: keyof FilterRule | 'field',
+        value: ItemPropertyValue,
     ) => {
         setLocalFilters((prev) => ({
             ...prev,
@@ -202,7 +208,7 @@ export const SortControls = ({
                 if (key === 'field') {
                     return {
                         ...r,
-                        field: value,
+                        field_key: value as string,
                         operator: '' as FilterOperator,
                         value: '',
                     };
@@ -216,8 +222,10 @@ export const SortControls = ({
         setLocalFilters({ tags: [], rules: [] });
     };
 
-    const getFieldDef = (fieldKey: string): FieldDefinition | undefined => {
-        return categoryDef.field_definitions.find((f) => f.key === fieldKey);
+    const getFieldDef = (
+        fieldKey: ItemPropertyValue,
+    ): FieldDefinition | undefined => {
+        return filterRuleOptions.find((f) => f.key === fieldKey);
     };
 
     return (
@@ -292,7 +300,7 @@ export const SortControls = ({
                                     size="icon"
                                     onClick={toggleSortDirection}
                                 >
-                                    {localSortDirection === 'asc' ? (
+                                    {localSortAsc ? (
                                         <ArrowUp className="h-4 w-4" />
                                     ) : (
                                         <ArrowDown className="h-4 w-4" />
@@ -315,9 +323,8 @@ export const SortControls = ({
 
                             {/* Tag Filter */}
                             <TagInput
-                                categoryDef={categoryDef}
                                 selectedTags={localFilters.tags}
-                                availableTags={availableTags}
+                                existingTags={existingTags}
                                 onTagsChange={(newTags) =>
                                     setLocalFilters({
                                         ...localFilters,
@@ -331,7 +338,9 @@ export const SortControls = ({
                             {/* Category Field Filter Rules */}
                             <div className="space-y-3">
                                 {localFilters.rules.map((rule, idx) => {
-                                    const fieldDef = getFieldDef(rule.field);
+                                    const fieldDef = getFieldDef(
+                                        rule.field_key,
+                                    );
                                     const availableOps = fieldDef
                                         ? TYPE_OPERATORS[fieldDef.type]
                                         : [];
@@ -362,7 +371,7 @@ export const SortControls = ({
                                             {/* Field & Operator Row */}
                                             <div className="flex gap-2">
                                                 <Select
-                                                    value={rule.field}
+                                                    value={rule.field_key}
                                                     onValueChange={(val) =>
                                                         handleChangeRule(
                                                             rule.id,
@@ -405,7 +414,7 @@ export const SortControls = ({
                                                     onOpenChange={
                                                         handleDescendantOpenChange
                                                     }
-                                                    disabled={!rule.field}
+                                                    disabled={!rule.field_key}
                                                 >
                                                     <SelectTrigger className="w-[80px] h-8 text-xs">
                                                         <SelectValue placeholder="Op" />
@@ -507,7 +516,9 @@ export const SortControls = ({
                                                                 ? 'number'
                                                                 : 'text'
                                                         }
-                                                        value={rule.value}
+                                                        value={String(
+                                                            rule.value,
+                                                        )}
                                                         onChange={(e) =>
                                                             handleChangeRule(
                                                                 rule.id,

@@ -117,10 +117,22 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                     return;
 
                 let column = rule.field_key;
+
+                const standardColumns = [
+                    'id',
+                    'name',
+                    'status',
+                    'rating',
+                    'created_at',
+                    'description',
+                ];
+
                 if (column.startsWith('properties.')) {
                     const key = column.split('.')[1];
                     // Use arrow syntax for JSON path: properties->>key (text)
                     column = `properties->>${key}`;
+                } else if (!standardColumns.includes(column)) {
+                    column = `properties->>${column}`;
                 }
 
                 const val = String(rule.value);

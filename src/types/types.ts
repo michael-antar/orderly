@@ -82,7 +82,7 @@ export type FilterRule = {
     field_key: string;
 
     operator: FilterOperator | '';
-    value: string | number;
+    value: ItemPropertyValue;
 };
 
 export type AppliedFilters = {
