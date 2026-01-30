@@ -8,12 +8,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { FieldDefinition } from '@/types/types';
+import type {
+    FieldDefinition,
+    ItemPropertyValue,
+    LocationValue,
+} from '@/types/types';
 
 type Props = {
     field: FieldDefinition;
-    value: any;
-    onChange: (value: any) => void;
+    value: ItemPropertyValue;
+    onChange: (value: ItemPropertyValue) => void;
 };
 
 export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
@@ -55,12 +59,14 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
     // --- Number ---
     if (field.type === 'number') {
+        const numValue = value === null ? '' : (value as number);
+
         return (
             <div className="space-y-2">
                 <Label>{label}</Label>
                 <Input
                     type="number"
-                    value={value ?? ''}
+                    value={numValue}
                     onChange={(e) => {
                         const val = e.target.value;
                         onChange(val === '' ? null : Number(val));
@@ -74,18 +80,21 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
     // --- Location ---
     // Only display address, with plans to use coordinate values later in filtering
     if (field.type === 'location') {
-        const address = value?.address || '';
+        const locValue = (value as LocationValue) || {
+            address: '',
+            coordinates: null,
+        };
 
         return (
             <div className="space-y-2">
                 <Label>{label}</Label>
                 <Input
-                    value={address}
+                    value={locValue.address}
                     onChange={(e) =>
                         onChange({
-                            ...value,
+                            ...locValue,
                             address: e.target.value,
-                            coordinates: value?.coordinates || null,
+                            coordinates: locValue.coordinates || null,
                         })
                     }
                     placeholder="Enter address..."
@@ -98,11 +107,13 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
     }
 
     // --- String (Default) ---
+    const strValue = (value as string) || '';
+
     return (
         <div className="space-y-2">
             <Label>{label}</Label>
             <Input
-                value={value || ''}
+                value={strValue}
                 onChange={(e) => onChange(e.target.value)}
             />
         </div>
