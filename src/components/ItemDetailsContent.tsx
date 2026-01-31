@@ -43,12 +43,22 @@ export const ItemDetailsContent = ({
             case 'boolean':
                 return value ? 'Yes' : 'No';
 
+            case 'date': {
+                const dateStr = value as string;
+                const localDate = new Date(`${dateStr}T00:00:00`); // Parses as local time
+
+                // Fallback if date is invalid
+                if (isNaN(localDate.getTime())) return dateStr;
+
+                return dateFormatter.format(localDate);
+            }
+
             case 'location': {
                 const loc = value as LocationValue;
                 return (
                     <div className="flex flex-col gap-1">
                         <span>{loc.address}</span>
-                        {/* TODO: Add Map Link or Mini-Map here */}
+                        {/* TODO: Add Map Link or Mini-Map here later */}
                         {loc.coordinates && (
                             <span className="text-xs text-muted-foreground">
                                 {loc.coordinates.lat.toFixed(4)},{' '}

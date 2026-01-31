@@ -77,6 +77,22 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
         );
     }
 
+    // --- Date ---
+    if (field.type === 'date') {
+        const dateValue = (value as string) || '';
+
+        return (
+            <div className="space-y-2">
+                <Label>{label}</Label>
+                <Input
+                    type="date" // Native browser date picker
+                    value={dateValue}
+                    onChange={(e) => onChange(e.target.value)}
+                />
+            </div>
+        );
+    }
+
     // --- Location ---
     // Only display address, with plans to use coordinate values later in filtering
     if (field.type === 'location') {

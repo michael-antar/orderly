@@ -4,7 +4,13 @@ import { type PostgrestError } from '@supabase/supabase-js';
 export type Status = 'ranked' | 'backlog';
 
 // --- Dynamic Schema Types ---
-export type FieldType = 'string' | 'number' | 'boolean' | 'select' | 'location';
+export type FieldType =
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'select'
+    | 'date'
+    | 'location';
 
 export type FieldDefinition = {
     key: string; // Immutable JSON key for item.properties. Unique ONLY to CategoryDef.properties

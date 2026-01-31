@@ -55,6 +55,12 @@ const TYPE_OPERATORS: Record<
         { value: 'is', label: 'is' },
         { value: 'is_not', label: 'is not' },
     ],
+    date: [
+        { value: 'is', label: 'is' },
+        { value: 'is_not', label: 'is not' },
+        { value: 'gt', label: 'after' },
+        { value: 'lt', label: 'before' },
+    ],
     location: [{ value: 'contains', label: 'contains' }],
 };
 
@@ -213,7 +219,7 @@ export const SortControls = ({
                         value: '',
                     };
                 }
-                return { ...r, [key]: value };
+                return { ...r, [key]: value } as FilterRule;
             }),
         }));
     };
@@ -514,7 +520,10 @@ export const SortControls = ({
                                                             fieldDef?.type ===
                                                             'number'
                                                                 ? 'number'
-                                                                : 'text'
+                                                                : fieldDef?.type ===
+                                                                    'date'
+                                                                  ? 'date'
+                                                                  : 'text'
                                                         }
                                                         value={String(
                                                             rule.value,
