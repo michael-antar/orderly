@@ -9,6 +9,26 @@ import {
     Gamepad2,
     Footprints,
     Mountain,
+    Coffee,
+    Pizza,
+    Beer,
+    Wine,
+    Laptop,
+    Smartphone,
+    Code,
+    Palette,
+    Dumbbell,
+    Trophy,
+    Home,
+    Car,
+    ShoppingBag,
+    Gift,
+    Briefcase,
+    GraduationCap,
+    Plane,
+    Smile,
+    Heart,
+    Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -23,14 +43,43 @@ const iconMap: Record<string, LucideIcon> = {
     hiking: Mountain,
     activity: Footprints,
     game: Gamepad2,
+    food: Utensils,
+    coffee: Coffee,
+    pizza: Pizza,
+    drink: Beer,
+    wine: Wine,
+    tech: Laptop,
+    mobile: Smartphone,
+    code: Code,
+    art: Palette,
+    gym: Dumbbell,
+    sports: Trophy,
+    home: Home,
+    car: Car,
+    shopping: ShoppingBag,
+    gift: Gift,
+    work: Briefcase,
+    school: GraduationCap,
+    travel: Plane,
+    fun: Smile,
+    love: Heart,
+    energy: Zap,
     default: Star,
 };
+
+// Source of truth for selectable icons. Filter default so it doesn't show up as a choice
+export const ICON_OPTIONS = Object.keys(iconMap)
+    .filter((key) => key !== 'default')
+    .sort();
 
 type Props = {
     name: string;
     className?: string;
 };
 
+/**
+ * Renders the icon for the category based on the text stored in the DB
+ */
 export const DynamicIcon = ({ name, className }: Props) => {
     // Fallback to 'default' if the icon name isn't found
     const IconComponent = iconMap[name.toLowerCase()] || iconMap.default;
