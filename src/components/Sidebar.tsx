@@ -3,7 +3,9 @@ import { X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+
 import { DynamicIcon } from '@/components/DynamicIcon';
+import { CategoryManager } from './CategoryManager';
 
 import type { CategoryDefinition } from '@/types/types';
 
@@ -78,6 +80,9 @@ export const Sidebar = ({
                           </Button>
                       ))}
             </nav>
+            <div className="mt-auto pt-4 border-t">
+                <CategoryManager />
+            </div>
         </aside>
     );
 };
