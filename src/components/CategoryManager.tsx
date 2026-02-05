@@ -3,6 +3,7 @@ import { Plus, Settings, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { DynamicIcon } from './DynamicIcon';
+import { CategoryBuilder } from './CategoryBuilder';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -25,30 +26,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import type { CategoryDefinition } from '@/types/types';
-
-// placeholder
-const BuilderPlaceholder = ({
-    onBack,
-    mode,
-}: {
-    onBack: () => void;
-    mode: string;
-}) => (
-    <div className="flex flex-col items-center justify-center h-64 text-center space-y-4 animate-in fade-in zoom-in-95">
-        <div className="p-4 bg-muted rounded-full">
-            <Settings className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <div>
-            <h3 className="font-semibold text-lg">Test</h3>
-            <p className="text-muted-foreground max-w-sm text-sm">
-                Testing {mode}
-            </p>
-        </div>
-        <Button variant="outline" onClick={onBack}>
-            Back to List
-        </Button>
-    </div>
-);
 
 export const CategoryManager = () => {
     const { user } = useAuth();
@@ -268,9 +245,10 @@ export const CategoryManager = () => {
                         </div>
                     ) : (
                         // Placeholder for the builder
-                        <BuilderPlaceholder
-                            onBack={handleBackToList}
-                            mode={view}
+                        <CategoryBuilder
+                            categoryId={selectedCategoryId}
+                            onSave={handleBackToList}
+                            onCancel={handleBackToList}
                         />
                     )}
                 </div>
