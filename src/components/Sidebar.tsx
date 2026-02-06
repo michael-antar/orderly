@@ -15,7 +15,8 @@ type SidebarProps = {
     isSidebarOpen: boolean;
     isLoading: boolean;
     onCategorySelect: (id: string) => void;
-    onClose: () => void;
+    onCategoriesChange: () => void;
+    onClose: () => void; // Mobile-only
 };
 
 export const Sidebar = ({
@@ -24,6 +25,7 @@ export const Sidebar = ({
     isSidebarOpen,
     isLoading,
     onCategorySelect,
+    onCategoriesChange,
     onClose,
 }: SidebarProps) => {
     return (
@@ -32,6 +34,7 @@ export const Sidebar = ({
                 'fixed top-0 left-0 h-full w-64 bg-background px-4 pb-4 pt-[65px] border-r border-border transition-transform duration-300 ease-in-out z-20',
                 isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                 'md:static md:w-14 md:p-2 md:translate-x-0',
+                'flex flex-col',
             )}
         >
             {/* Mobile Close Button */}
@@ -80,8 +83,9 @@ export const Sidebar = ({
                           </Button>
                       ))}
             </nav>
+
             <div className="mt-auto pt-4 border-t">
-                <CategoryManager />
+                <CategoryManager onDataChange={onCategoriesChange} />
             </div>
         </aside>
     );

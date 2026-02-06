@@ -27,7 +27,11 @@ import {
 import { toast } from 'sonner';
 import type { CategoryDefinition } from '@/types/types';
 
-export const CategoryManager = () => {
+type CategoryManagerProps = {
+    onDataChange?: () => void; // Bubble sidebar refresh
+};
+
+export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
     const { user } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -74,7 +78,8 @@ export const CategoryManager = () => {
             toast.error('Delete failed', { description: error.message });
         } else {
             toast.success('Category deleted');
-            fetchCategories(); // Refresh list
+            fetchCategories(); // Refresh local list
+            onDataChange?.();
         }
     };
 
@@ -92,6 +97,7 @@ export const CategoryManager = () => {
         setView('list');
         setSelectedCategoryId(null);
         fetchCategories();
+        onDataChange?.();
     };
 
     return (
@@ -244,7 +250,6 @@ export const CategoryManager = () => {
                             )}
                         </div>
                     ) : (
-                        // Placeholder for the builder
                         <CategoryBuilder
                             categoryId={selectedCategoryId}
                             onSave={handleBackToList}

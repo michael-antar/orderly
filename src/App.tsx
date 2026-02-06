@@ -17,33 +17,36 @@ function App() {
         null,
     );
     const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Manage sidebar visibility on small screens
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Manage sidebar visibility on mobile
 
-    // Fetch/Seed categories when user loads
-    useEffect(() => {
-        const initCategories = async () => {
-            if (!user) return;
+    const refreshCategories = async () => {
+        if (!user) return;
 
-            try {
-                setIsCategoriesLoading(true);
+        try {
+            const userCats = await ensureUserCategories();
+            setCategories(userCats);
 
-                const userCats = await ensureUserCategories();
-                setCategories(userCats);
-
-                // TODO: Do I need to see if user has one already selected?
-                if (userCats.length > 0) {
-                    setActiveCategoryId(userCats[0].id);
-                }
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            } finally {
-                setIsCategoriesLoading(false);
+            // If active category was deleted, fallback to the first one
+            if (
+                activeCategoryId &&
+                !userCats.find((c) => c.id === activeCategoryId)
+            ) {
+                if (userCats.length > 0) setActiveCategoryId(userCats[0].id);
+                else setActiveCategoryId(null);
             }
-        };
-
-        if (!authLoading) {
-            initCategories();
+        } catch (error) {
+            console.error('Failed to reload categories:', error);
         }
+    };
+
+    // Initial load
+    useEffect(() => {
+        const init = async () => {
+            setIsCategoriesLoading(true);
+            await refreshCategories();
+            setIsCategoriesLoading(false);
+        };
+        if (!authLoading) init();
     }, [user, authLoading]);
 
     // Full screen loader (Only for initial auth check)
@@ -82,6 +85,7 @@ function App() {
                     isSidebarOpen={isSidebarOpen}
                     isLoading={isCategoriesLoading}
                     onCategorySelect={handleCategorySelect}
+                    onCategoriesChange={refreshCategories}
                     onClose={() => setIsSidebarOpen(false)}
                 />
 
