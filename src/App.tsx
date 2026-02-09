@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './contexts/AuthContext';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -19,25 +19,30 @@ function App() {
     const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Manage sidebar visibility on mobile
 
-    const refreshCategories = async () => {
+    const refreshCategories = useCallback(async () => {
         if (!user) return;
 
         try {
             const userCats = await ensureUserCategories();
             setCategories(userCats);
 
-            // If active category was deleted, fallback to the first one
-            if (
-                activeCategoryId &&
-                !userCats.find((c) => c.id === activeCategoryId)
-            ) {
-                if (userCats.length > 0) setActiveCategoryId(userCats[0].id);
-                else setActiveCategoryId(null);
-            }
+            setActiveCategoryId((currentId) => {
+                // No ID selected yet, pick first one
+                if (!currentId && userCats.length > 0) {
+                    return userCats[0].id;
+                }
+
+                // Currently selected ID deleted, pick new first one
+                if (currentId && !userCats.find((c) => c.id === currentId)) {
+                    return userCats.length > 0 ? userCats[0].id : null;
+                }
+
+                return currentId;
+            });
         } catch (error) {
             console.error('Failed to reload categories:', error);
         }
-    };
+    }, [user]);
 
     // Initial load
     useEffect(() => {
@@ -47,7 +52,7 @@ function App() {
             setIsCategoriesLoading(false);
         };
         if (!authLoading) init();
-    }, [user, authLoading]);
+    }, [user, authLoading, refreshCategories]);
 
     // Full screen loader (Only for initial auth check)
     // TODO: Later switch with full UI skeleton for better transition
