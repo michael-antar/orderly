@@ -59,15 +59,16 @@ export const ItemForm = memo(function ItemForm({
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                {trigger || (
-                    <Button>
-                        {mode == 'add' ? (
+                {trigger ||
+                    (mode == 'add' ? (
+                        <Button>
                             <Plus className="h-4 w-4" />
-                        ) : (
+                        </Button>
+                    ) : (
+                        <Button variant="ghost">
                             <Pencil className="h-4 w-4" />
-                        )}
-                    </Button>
-                )}
+                        </Button>
+                    ))}
             </DialogTrigger>
 
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
@@ -91,7 +92,7 @@ export const ItemForm = memo(function ItemForm({
                 </DialogHeader>
 
                 <form
-                    // id="item-form"
+                    id="item-form"
                     onSubmit={handleSubmit}
                     className="space-y-6 py-4"
                 >

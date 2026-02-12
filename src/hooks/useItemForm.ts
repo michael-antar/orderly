@@ -2,19 +2,20 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-    type CategoryDefintion,
-    type Item,
-    type ItemFormData,
-    type Status,
-    type Tag,
+import type {
+    CategoryDefinition,
+    Item,
+    ItemFormData,
+    ItemPropertyValue,
+    Status,
+    Tag,
 } from '@/types/types';
 
 type FormMode = 'add' | 'edit';
 
 type UseItemFormProps = {
     mode: FormMode;
-    categoryDef: CategoryDefintion;
+    categoryDef: CategoryDefinition;
     item?: Item; // Required for 'edit' mode
     onSuccess: (newStatus: Status, newItem: Item) => void;
 };
@@ -30,7 +31,7 @@ export const useItemForm = ({
     // - State management -
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+    const [existingTags, setExistingTags] = useState<Tag[]>([]);
 
     // Initial state is derived once from props
     const getInitialState = useCallback((): ItemFormData => {
@@ -54,7 +55,7 @@ export const useItemForm = ({
 
         // If adding, initialize properties as empty
         // TODO: Initialize with defaults based on schema
-        const initialProps: Record<string, any> = {};
+        const initialProps: Record<string, ItemPropertyValue> = {};
         categoryDef.field_definitions.forEach((field) => {
             initialProps[field.key] = null;
         });
@@ -80,7 +81,7 @@ export const useItemForm = ({
                 .eq('user_id', user.id)
                 .eq('category_def_id', categoryDef.id);
 
-            setAvailableTags(tags || []);
+            setExistingTags(tags || []);
         };
         if (isOpen) {
             setFormData(getInitialState);
@@ -89,15 +90,17 @@ export const useItemForm = ({
     }, [isOpen, getInitialState, categoryDef.id, user]);
 
     // Generic handler for main fields (name, description, etc.)
-    const handleMainFieldChange = (
-        field: keyof Omit<ItemFormData, 'properties'>,
-        value: any,
+    const handleMainFieldChange = <
+        K extends keyof Omit<ItemFormData, 'properties'>,
+    >(
+        field: K,
+        value: ItemFormData[K],
     ) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
     // Generic handler for dynamic properties
-    const handlePropertyChange = (key: string, value: any) => {
+    const handlePropertyChange = (key: string, value: ItemPropertyValue) => {
         setFormData((prev) => ({
             ...prev,
             properties: {
@@ -182,9 +185,14 @@ export const useItemForm = ({
 
             onSuccess(savedItem.status, refreshedItem as Item);
             setIsOpen(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            toast.error('Error', { description: error.message });
+
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'An unknown error occurred';
+            toast.error('Error', { description: errorMessage });
         } finally {
             setIsLoading(false);
         }
@@ -288,6 +296,6 @@ export const useItemForm = ({
         handleMainFieldChange,
         handlePropertyChange,
         handleSubmit,
-        availableTags,
+        existingTags,
     };
 };
