@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Settings, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +44,7 @@ export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
     const [loading, setLoading] = useState(false);
 
     // Fetch categories when modal opens or view returns to list
-    const fetchCategories = async () => {
+    const fetchCategories = useCallback(async () => {
         if (!user) return;
         setLoading(true);
 
@@ -60,13 +60,13 @@ export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
             setCategories(data as unknown as CategoryDefinition[]);
         }
         setLoading(false);
-    };
+    }, [user]);
 
     useEffect(() => {
         if (isOpen && view === 'list') {
             fetchCategories();
         }
-    }, [isOpen, view, user]);
+    }, [isOpen, view, fetchCategories]);
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase
