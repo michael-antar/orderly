@@ -103,7 +103,10 @@ function App() {
 
                 <main className="flex-1 overflow-y-auto">
                     {activeCategoryId ? (
-                        <CategoryView categoryId={activeCategoryId} />
+                        <CategoryView
+                            key={activeCategoryId}
+                            categoryId={activeCategoryId}
+                        />
                     ) : (
                         /* Empty State if something goes wrong or no cats */
                         <div className="h-full flex items-center justify-center text-muted-foreground">
