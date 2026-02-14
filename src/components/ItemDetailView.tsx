@@ -70,7 +70,7 @@ export const ItemDetailView = ({
         <div className="flex flex-col m-4 pt-4 lg:pt-0">
             {/* Button Row */}
             <div className="flex gap-2 justify-between lg:justify-end">
-                {/* Close Button */}
+                {/* Close Button (Mobile Only) */}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -82,7 +82,7 @@ export const ItemDetailView = ({
                 </Button>
 
                 {/* Button Row Right Side */}
-                <div className="flex gap-2">
+                <div className="flex">
                     {/* Edit Item Form */}
                     <ItemForm
                         item={item}
