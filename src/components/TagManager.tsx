@@ -31,6 +31,10 @@ import { Separator } from '@/components/ui/separator';
 
 import type { Tag } from '@/types/types';
 
+type TagResponse = Tag & {
+    item_tags: { count: number }[];
+};
+
 type TagWithUsage = Tag & {
     is_used: boolean;
 };
@@ -68,16 +72,15 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
 
             if (error) throw error;
 
-            const tagsWithUsage: TagWithUsage[] = (data || []).map(
-                (t: any) => ({
-                    id: t.id,
-                    name: t.name,
-                    category_def_id: t.category_def_id,
-                    user_id: t.user_id,
-                    // Check if the count > 0 to determine usage
-                    is_used: (t.item_tags?.[0]?.count || 0) > 0,
-                }),
-            );
+            const rawData = data as unknown as TagResponse[];
+
+            const tagsWithUsage: TagWithUsage[] = rawData.map((t) => ({
+                id: t.id,
+                name: t.name,
+                category_def_id: t.category_def_id,
+                user_id: t.user_id,
+                is_used: (t.item_tags?.[0]?.count || 0) > 0,
+            }));
 
             setTags(tagsWithUsage);
             setUnusedTags(tagsWithUsage.filter((tag) => !tag.is_used));
