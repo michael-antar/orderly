@@ -48,10 +48,15 @@ export const ItemDetailView = ({
 
             toast.success('Item deleted.');
             onDelete(); // Trigger a refresh in the parent component
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error deleting item:', error);
+
+            const description =
+                error instanceof Error
+                    ? error.message
+                    : 'An unknown error occurred';
             toast.error('Failed to delete item', {
-                description: error.message,
+                description,
             });
         }
     };
