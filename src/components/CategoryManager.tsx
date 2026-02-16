@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Plus, Settings, Trash2, Pencil } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuth } from '@/contexts/AuthContext';
 import { DynamicIcon } from './DynamicIcon';
 import { CategoryBuilder } from './CategoryBuilder';
 import { Button } from '@/components/ui/button';
@@ -28,45 +27,20 @@ import { toast } from 'sonner';
 import type { CategoryDefinition } from '@/types/types';
 
 type CategoryManagerProps = {
+    categories: CategoryDefinition[];
     onDataChange?: () => void; // Bubble sidebar refresh
 };
 
-export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
-    const { user } = useAuth();
+export const CategoryManager = ({
+    categories,
+    onDataChange,
+}: CategoryManagerProps) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
         null,
     );
-
-    const [categories, setCategories] = useState<CategoryDefinition[]>([]);
-    const [loading, setLoading] = useState(false);
-
-    // Fetch categories when modal opens or view returns to list
-    const fetchCategories = useCallback(async () => {
-        if (!user) return;
-        setLoading(true);
-
-        const { data, error } = await supabase
-            .from('category_definitions')
-            .select('*')
-            .order('name', { ascending: true });
-
-        if (error) {
-            console.error(error);
-            toast.error('Failed to load categories');
-        } else if (data) {
-            setCategories(data as unknown as CategoryDefinition[]);
-        }
-        setLoading(false);
-    }, [user]);
-
-    useEffect(() => {
-        if (isOpen && view === 'list') {
-            fetchCategories();
-        }
-    }, [isOpen, view, fetchCategories]);
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase
@@ -78,7 +52,6 @@ export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
             toast.error('Delete failed', { description: error.message });
         } else {
             toast.success('Category deleted');
-            fetchCategories(); // Refresh local list
             onDataChange?.();
         }
     };
@@ -96,7 +69,6 @@ export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
     const handleBackToList = () => {
         setView('list');
         setSelectedCategoryId(null);
-        fetchCategories();
         onDataChange?.();
     };
 
@@ -139,11 +111,7 @@ export const CategoryManager = ({ onDataChange }: CategoryManagerProps) => {
                 <div className="flex-1 overflow-y-auto p-6">
                     {view === 'list' ? (
                         <div className="space-y-4">
-                            {loading ? (
-                                <p className="text-center text-muted-foreground text-sm py-8">
-                                    Loading...
-                                </p>
-                            ) : categories.length === 0 ? (
+                            {categories.length === 0 ? (
                                 <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/10">
                                     <p className="text-muted-foreground mb-4">
                                         You haven't created any custom

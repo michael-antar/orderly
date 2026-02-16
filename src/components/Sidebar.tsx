@@ -85,7 +85,10 @@ export const Sidebar = ({
             </nav>
 
             <div className="mt-auto pt-4 border-t">
-                <CategoryManager onDataChange={onCategoriesChange} />
+                <CategoryManager
+                    categories={categories}
+                    onDataChange={onCategoriesChange}
+                />
             </div>
         </aside>
     );
