@@ -16,7 +16,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { DynamicIcon, ICON_OPTIONS } from './DynamicIcon';
+import { ICON_OPTIONS } from '@/lib/icons';
+import { DynamicIcon } from './DynamicIcon';
 
 type IconPickerProps = {
     selectedIcon: string;
