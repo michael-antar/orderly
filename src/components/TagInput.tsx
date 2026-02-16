@@ -111,7 +111,7 @@ export const TagInput = ({
         );
 
     return (
-        <Popover open={isOpen} onOpenChange={setOpen}>
+        <Popover open={isOpen} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
@@ -163,10 +163,6 @@ export const TagInput = ({
                 className="w-[--radix-popover-trigger-width] p-0"
                 align="start"
             >
-                {/* shouldFilter={false} is critical here.
-                  We filter manually above so we can seamlessly show the "Create" option 
-                  without the Command component hiding it. 
-                */}
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder="Search or create tag..."
