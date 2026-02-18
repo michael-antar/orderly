@@ -29,6 +29,7 @@ import {
     Smile,
     Heart,
     Zap,
+    Circle,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -63,7 +64,8 @@ export const iconMap: Record<string, LucideIcon> = {
     fun: Smile,
     love: Heart,
     energy: Zap,
-    default: Star,
+    star: Star,
+    default: Circle,
 };
 
 // Source of truth for selectable icons. Filter default so it doesn't show up as a choice
