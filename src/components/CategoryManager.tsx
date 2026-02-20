@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Settings, Trash2, Pencil } from 'lucide-react';
+import { Plus, Settings, Trash2, Pencil, LayoutList } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { DynamicIcon } from './DynamicIcon';
 import { CategoryBuilder } from './CategoryBuilder';
@@ -90,7 +90,10 @@ export const CategoryManager = ({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
+            <DialogContent
+                className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <div className="p-6 pb-4 border-b">
                     <DialogHeader>
                         <DialogTitle>
@@ -112,25 +115,30 @@ export const CategoryManager = ({
                     {view === 'list' ? (
                         <div className="space-y-4">
                             {categories.length === 0 ? (
-                                <div className="text-center py-12 border-2 border-dashed rounded-lg bg-muted/10">
-                                    <p className="text-muted-foreground mb-4">
+                                <div className="text-center flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-xl bg-background shadow-sm">
+                                    <div className="p-4 bg-muted rounded-full mb-4">
+                                        <LayoutList className="h-8 w-8 text-muted-foreground" />
+                                    </div>
+                                    <p className="text-muted-foreground mb-6 max-w-sm">
                                         You haven't created any custom
-                                        categories yet.
+                                        categories yet. Start building your
+                                        first collection!
                                     </p>
                                     <Button onClick={handleCreate}>
-                                        Create Your First Category
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Create Category
                                     </Button>
                                 </div>
                             ) : (
                                 <div className="grid gap-3">
                                     {categories.map((cat) => (
-                                        // TODO: Make clickable. For editing? Viewing maybe?
                                         <div
                                             key={cat.id}
-                                            className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-all group"
+                                            onClick={() => handleEdit(cat.id)}
+                                            className="flex items-center justify-between p-3 border rounded-lg bg-background hover:border-primary/50 hover:shadow-sm transition-all group cursor-pointer"
                                         >
                                             <div className="flex items-center gap-4">
-                                                <div className="p-2.5 bg-muted rounded-md group-hover:bg-background transition-colors">
+                                                <div className="p-2.5 bg-muted rounded-md group-hover:bg-primary/10 transition-colors">
                                                     <DynamicIcon
                                                         name={cat.icon}
                                                         className="h-5 w-5 text-primary"
