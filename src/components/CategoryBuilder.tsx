@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,7 +16,6 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 import type {
     CategoryDefinition,
@@ -68,6 +67,8 @@ export const CategoryBuilder = ({
         new Set(),
     );
 
+    const newFieldInputRef = useRef<HTMLInputElement>(null);
+
     // --- Load Data (Edit Mode) ---
     useEffect(() => {
         const loadCategory = async () => {
@@ -110,7 +111,14 @@ export const CategoryBuilder = ({
             type: 'string',
             required: false,
         };
-        setFields([...fields, newField]);
+        setFields([newField, ...fields]);
+
+        // Autofocus
+        setTimeout(() => {
+            if (newFieldInputRef.current) {
+                newFieldInputRef.current.focus();
+            }
+        }, 50);
     };
 
     const updateField = (index: number, updates: Partial<FieldDefinition>) => {
@@ -168,8 +176,6 @@ export const CategoryBuilder = ({
         });
     };
 
-    // --- Save ---
-
     const handleSave = async () => {
         if (!user) return;
         if (!name.trim()) return toast.error('Category name is required');
@@ -223,22 +229,23 @@ export const CategoryBuilder = ({
     };
 
     return (
-        <div className="flex flex-col h-full bg-background">
-            {/* Header / Meta Data */}
-            <div className="p-6 space-y-4 border-b bg-muted/20">
-                <div className="flex gap-4 items-end">
-                    <div className="space-y-2 flex-1">
-                        <Label>Category Name</Label>
-                        <Input
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g. Board Games"
-                            className="bg-background"
-                        />
-                    </div>
-                    <div className="space-y-2 w-[200px]">
-                        <Label>Icon</Label>
-                        <div className="bg-background rounded-md">
+        <div className="flex flex-col h-full bg-background overflow-hidden">
+            {/* Scrollable Area */}
+            <div className="flex-1 overflow-y-auto px-4">
+                {/* Header / Meta Data */}
+                <div className="space-y-6 mb-4">
+                    <div className="flex flex-col sm:flex-row gap-6 items-start">
+                        <div className="space-y-2 flex-1 w-full">
+                            <Label>Category Name</Label>
+                            <Input
+                                id="category-name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="e.g. Board Games"
+                            />
+                        </div>
+                        <div className="space-y-2 w-full sm:w-[200px]">
+                            <Label>Icon</Label>
                             <IconPicker
                                 selectedIcon={icon}
                                 onChange={setIcon}
@@ -246,10 +253,10 @@ export const CategoryBuilder = ({
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Fields Editor */}
-            <ScrollArea className="flex-1 p-6">
+                <div className="border-t my-4" />
+
+                {/* Fields Editor */}
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <div>
@@ -270,10 +277,11 @@ export const CategoryBuilder = ({
 
                     {fields.length === 0 ? (
                         <div className="text-center py-10 border-2 border-dashed rounded-lg">
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground mb-4">
                                 No fields defined yet.
                             </p>
-                            <Button variant="link" onClick={addField}>
+                            <Button variant="outline" onClick={addField}>
+                                <Plus className="h-4 w-4 mr-2" />
                                 Add your first field
                             </Button>
                         </div>
@@ -286,16 +294,21 @@ export const CategoryBuilder = ({
 
                                 return (
                                     <div
-                                        key={index}
-                                        className="p-4 border rounded-lg bg-card space-y-4 shadow-sm"
+                                        key={field.key}
+                                        className="relative p-4 border rounded-lg bg-card space-y-4 shadow-sm group"
                                     >
-                                        <div className="flex gap-4 items-start">
+                                        <div className="flex flex-col sm:flex-row gap-4 items-start">
                                             {/* Label Input */}
-                                            <div className="flex-1 space-y-1.5">
-                                                <Label className="text-xs text-muted-foreground">
+                                            <div className="flex-1 space-y-1.5 w-full">
+                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                                     Label
                                                 </Label>
                                                 <Input
+                                                    ref={
+                                                        index === 0
+                                                            ? newFieldInputRef
+                                                            : null
+                                                    }
                                                     value={field.label}
                                                     onChange={(e) =>
                                                         updateField(index, {
@@ -304,14 +317,14 @@ export const CategoryBuilder = ({
                                                         })
                                                     }
                                                     placeholder="Field Label"
+                                                    className="bg-background"
                                                 />
                                             </div>
 
                                             {/* Type Select */}
-                                            <div className="w-[180px] space-y-1.5">
-                                                <Label className="text-xs text-muted-foreground">
-                                                    Type{' '}
-                                                    {isLocked && '(Locked)'}
+                                            <div className="w-full sm:w-[200px] space-y-1.5 shrink-0">
+                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                                                    <span>Type</span>
                                                 </Label>
                                                 <Select
                                                     value={field.type}
@@ -322,7 +335,7 @@ export const CategoryBuilder = ({
                                                     }
                                                     disabled={isLocked}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="bg-background">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent>
@@ -345,14 +358,14 @@ export const CategoryBuilder = ({
                                             </div>
 
                                             {/* Delete Button */}
-                                            <div className="pt-6">
+                                            <div className="pt-6 shrink-0 hidden sm:block">
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
                                                     onClick={() =>
                                                         removeField(index)
                                                     }
-                                                    className="text-muted-foreground hover:text-destructive"
+                                                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -361,17 +374,17 @@ export const CategoryBuilder = ({
 
                                         {/* Dynamic Options for Select Type */}
                                         {field.type === 'select' && (
-                                            <div className="pl-4 border-l-2 border-muted ml-2 space-y-2">
-                                                <Label className="text-xs">
+                                            <div className="pt-2 pl-2 border-l-2 border-primary/20 space-y-3">
+                                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                                     Options
                                                 </Label>
-                                                <div className="flex flex-wrap gap-2 mb-2">
+                                                <div className="flex flex-wrap gap-2">
                                                     {field.options?.map(
                                                         (opt) => (
                                                             <Badge
                                                                 key={opt}
                                                                 variant="secondary"
-                                                                className="pr-1"
+                                                                className="pr-1 py-1"
                                                             >
                                                                 {opt}
                                                                 <button
@@ -381,7 +394,7 @@ export const CategoryBuilder = ({
                                                                             opt,
                                                                         )
                                                                     }
-                                                                    className="ml-1 hover:text-destructive"
+                                                                    className="ml-1 hover:text-destructive rounded-full p-0.5 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
                                                                 >
                                                                     <X className="h-3 w-3" />
                                                                 </button>
@@ -391,7 +404,7 @@ export const CategoryBuilder = ({
                                                 </div>
                                                 <Input
                                                     placeholder="Type option and press Enter..."
-                                                    className="h-8 text-sm max-w-sm"
+                                                    className="h-9 text-sm max-w-sm bg-background"
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter') {
                                                             e.preventDefault();
@@ -408,10 +421,19 @@ export const CategoryBuilder = ({
                                             </div>
                                         )}
 
-                                        {/* Key Preview (for debugging/transparency) */}
-                                        <div className="text-[10px] text-muted-foreground font-mono px-1">
-                                            DB Key: {field.key}{' '}
-                                            {isLocked && '🔒'}
+                                        {/* Mobile Delete Button */}
+                                        <div className="flex justify-end sm:hidden pt-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    removeField(index)
+                                                }
+                                                className="text-destructive hover:bg-destructive/10"
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                Remove Field
+                                            </Button>
                                         </div>
                                     </div>
                                 );
@@ -419,14 +441,18 @@ export const CategoryBuilder = ({
                         </div>
                     )}
                 </div>
-            </ScrollArea>
+            </div>
 
             {/* Footer */}
-            <div className="p-4 border-t bg-background flex justify-end gap-2">
+            <div className="p-4 border-t bg-background flex justify-end gap-3 mt-auto shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <Button variant="outline" onClick={onCancel} disabled={loading}>
                     Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={loading}>
+                <Button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="min-w-[120px]"
+                >
                     {loading ? 'Saving...' : 'Save Category'}
                 </Button>
             </div>

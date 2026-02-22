@@ -101,7 +101,7 @@ export const CategoryManager = ({
                                 ? 'My Categories'
                                 : view === 'create'
                                   ? 'Create Category'
-                                  : 'Edit Category'}
+                                  : 'Edit Category Details'}
                         </DialogTitle>
                         <DialogDescription>
                             {view === 'list'
