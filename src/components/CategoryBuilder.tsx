@@ -231,7 +231,7 @@ export const CategoryBuilder = ({
     return (
         <div className="flex flex-col h-full bg-background overflow-hidden">
             {/* Scrollable Area */}
-            <div className="flex-1 overflow-y-auto px-4">
+            <div className="flex-1 overflow-y-auto p-6">
                 {/* Header / Meta Data */}
                 <div className="space-y-6 mb-4">
                     <div className="flex flex-col sm:flex-row gap-6 items-start">

@@ -111,7 +111,9 @@ export const CategoryManager = ({
                     </DialogHeader>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div
+                    className={`flex-1 ${view === 'list' ? 'overflow-y-auto p-6' : 'overflow-hidden flex flex-col'}`}
+                >
                     {view === 'list' ? (
                         <div className="space-y-4">
                             {categories.length === 0 ? (
