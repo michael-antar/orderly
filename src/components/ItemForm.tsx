@@ -71,7 +71,10 @@ export const ItemForm = memo(function ItemForm({
                     ))}
             </DialogTrigger>
 
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
+            <DialogContent
+                className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]"
+                onOpenAutoFocus={(e) => e.preventDefault()}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         {mode === 'add'
@@ -86,18 +89,39 @@ export const ItemForm = memo(function ItemForm({
                                 are required.
                             </span>
                         ) : (
-                            `Make changes to your item below.`
+                            `Update the details for this item below.`
                         )}
                     </DialogDescription>
                 </DialogHeader>
 
+                {/* Form */}
                 <form
                     id="item-form"
                     onSubmit={handleSubmit}
-                    className="space-y-6 py-4"
+                    className="space-y-6 flex-1 overflow-y-auto p-6"
                 >
-                    <div className="grid gap-4 py-4">
-                        {/* Status Toggle */}
+                    {/* Name */}
+                    <div className="space-y-2">
+                        <Label htmlFor="name" className="text-right">
+                            Name <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) =>
+                                handleMainFieldChange('name', e.target.value)
+                            }
+                            className="col-span-3 break-words"
+                            autoComplete="off"
+                            required
+                        />
+                    </div>
+
+                    {/* Status Toggle */}
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold">
+                            List Status
+                        </Label>
                         <ToggleGroup
                             type="single"
                             variant="outline"
@@ -115,71 +139,47 @@ export const ItemForm = memo(function ItemForm({
                                 Backlog
                             </ToggleGroupItem>
                         </ToggleGroup>
+                    </div>
 
-                        {/* Name */}
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                Name <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) =>
-                                    handleMainFieldChange(
-                                        'name',
-                                        e.target.value,
-                                    )
-                                }
-                                className="col-span-3 break-words"
-                                autoComplete="off"
-                                required
-                            />
-                        </div>
+                    {/* Tags */}
+                    <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Tags</Label>
+                        <TagInput
+                            selectedTags={formData.tags || []}
+                            existingTags={existingTags}
+                            categoryDefId={categoryDef.id}
+                            onTagsChange={(tags) =>
+                                handleMainFieldChange('tags', tags)
+                            }
+                        />
+                    </div>
 
-                        {/* Tags */}
-                        <div className="space-y-2">
-                            <Label>Tags</Label>
-                            <TagInput
-                                selectedTags={formData.tags || []}
-                                existingTags={existingTags}
-                                categoryDefId={categoryDef.id}
-                                onTagsChange={(tags) =>
-                                    handleMainFieldChange('tags', tags)
-                                }
-                            />
-                        </div>
+                    {/* Description */}
+                    <div className="space-y-2">
+                        <Label
+                            htmlFor="description"
+                            className="text-sm font-semibold"
+                        >
+                            Description
+                        </Label>
+                        <Textarea
+                            id="description"
+                            className="max-h-80 min-h-[100px] resize-y"
+                            placeholder="Optional notes..."
+                            value={formData.description}
+                            onChange={(e) =>
+                                handleMainFieldChange(
+                                    'description',
+                                    e.target.value,
+                                )
+                            }
+                        />
+                    </div>
 
-                        <Separator />
-
-                        {/* Description */}
-                        <div className="grid grid-cols-4 items-start gap-4">
-                            <Label
-                                htmlFor="description"
-                                className="text-right pt-2"
-                            >
-                                Description
-                            </Label>
-                            <Textarea
-                                id="description"
-                                className="col-span-3 max-h-40"
-                                placeholder="Optional notes..."
-                                value={formData.description}
-                                onChange={(e) =>
-                                    handleMainFieldChange(
-                                        'description',
-                                        e.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-
-                        <Separator />
-
-                        {/* Dynamic Fields */}
-                        <div className="space-y-4 rounded-md bg-muted/30 p-4">
-                            <h4 className="mb-2 text-sm font-semibold text-muted-foreground">
-                                {categoryDef.name} Details
-                            </h4>
+                    {/* Dynamic Fields (if any) */}
+                    {categoryDef.field_definitions.length > 0 && (
+                        <>
+                            <Separator className="my-6" />
 
                             {categoryDef.field_definitions.map((field) => (
                                 <DynamicFieldRenderer
@@ -191,8 +191,8 @@ export const ItemForm = memo(function ItemForm({
                                     }
                                 />
                             ))}
-                        </div>
-                    </div>
+                        </>
+                    )}
                 </form>
 
                 <DialogFooter className="flex-shrink-0">

@@ -89,28 +89,18 @@ export const ItemDetailsContent = ({
 
             {/* Metadata (Ranked/Backlog, Elo, 'created_at' timestamp) */}
             <div className="flex justify-between flex-wrap mt-3">
-                {/* Left side */}
-                <div className="flex gap-2">
-                    {/* Ranked/Backlog Badge */}
-                    <Badge
-                        variant={
-                            item.status === 'ranked' ? 'default' : 'secondary'
-                        }
-                    >
-                        {item.status === 'ranked' ? 'Ranked List' : 'Backlog'}
-                    </Badge>
-
-                    {/* Elo */}
-                    {item.status === 'ranked' && item.rating !== null && (
-                        <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
-                            <Star className="h-4 w-4 fill-current" />
-                            <span>{Math.round(item.rating)}</span>
-                            <span className="text-muted-foreground text-sm font-normal ml-1">
-                                ELO
-                            </span>
-                        </div>
-                    )}
-                </div>
+                {/* Status (Elo if ranked, backlog badge if backlog) */}
+                {item.status === 'ranked' ? (
+                    <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
+                        <Star className="h-4 w-4 fill-current" />
+                        <span>{item.rating}</span>
+                        <span className="text-muted-foreground text-sm font-normal ml-1">
+                            ELO
+                        </span>
+                    </div>
+                ) : (
+                    <Badge variant="secondary">Backlog</Badge>
+                )}
 
                 {/* Right side */}
                 <div>
