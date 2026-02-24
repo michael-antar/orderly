@@ -165,62 +165,73 @@ export const CategoryManager = ({
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
-                                                    onClick={() =>
-                                                        handleEdit(cat.id)
-                                                    }
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleEdit(cat.id);
+                                                    }}
                                                     title="Edit Schema"
                                                 >
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
 
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className="text-muted-foreground hover:text-destructive"
-                                                            title="Delete Category"
+                                                <div
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
+                                                    }
+                                                >
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger
+                                                            asChild
                                                         >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>
-                                                                Delete "
-                                                                {cat.name}"?
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                This will
-                                                                permanently
-                                                                delete this
-                                                                category and{' '}
-                                                                <span className="font-bold text-destructive">
-                                                                    ALL items
-                                                                </span>{' '}
-                                                                associated with
-                                                                it. This action
-                                                                cannot be
-                                                                undone.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>
-                                                                Cancel
-                                                            </AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                className="bg-destructive hover:bg-destructive/90"
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        cat.id,
-                                                                    )
-                                                                }
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="text-muted-foreground hover:text-destructive"
+                                                                title="Delete Category"
                                                             >
-                                                                Delete
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>
+                                                                    Delete "
+                                                                    {cat.name}"?
+                                                                </AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This will
+                                                                    permanently
+                                                                    delete this
+                                                                    category and{' '}
+                                                                    <span className="font-bold text-destructive">
+                                                                        ALL
+                                                                        items
+                                                                    </span>{' '}
+                                                                    associated
+                                                                    with it.
+                                                                    This action
+                                                                    cannot be
+                                                                    undone.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>
+                                                                    Cancel
+                                                                </AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-destructive hover:bg-destructive/90"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            cat.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}

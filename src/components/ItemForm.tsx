@@ -98,7 +98,7 @@ export const ItemForm = memo(function ItemForm({
                 <form
                     id="item-form"
                     onSubmit={handleSubmit}
-                    className="space-y-6 flex-1 overflow-y-auto p-6"
+                    className="space-y-6 flex-1 overflow-y-auto p-2"
                 >
                     {/* Name */}
                     <div className="space-y-2">
