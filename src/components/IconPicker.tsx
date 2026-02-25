@@ -13,11 +13,12 @@ import { ICON_OPTIONS } from '@/lib/icons';
 import { DynamicIcon } from './DynamicIcon';
 
 type IconPickerProps = {
+    id?: string;
     selectedIcon: string;
     onChange: (newIcon: string) => void;
 };
 
-export const IconPicker = ({ selectedIcon, onChange }: IconPickerProps) => {
+export const IconPicker = ({ id, selectedIcon, onChange }: IconPickerProps) => {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState('');
 
@@ -33,6 +34,7 @@ export const IconPicker = ({ selectedIcon, onChange }: IconPickerProps) => {
         <Popover open={open} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button
+                    id={id}
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}

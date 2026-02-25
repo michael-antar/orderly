@@ -90,10 +90,7 @@ export const CategoryManager = ({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent
-                className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0"
-                onOpenAutoFocus={(e) => e.preventDefault()}
-            >
+            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
                 <div className="p-6 pb-4 border-b">
                     <DialogHeader>
                         <DialogTitle>
