@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Plus, Settings, Trash2, Pencil, LayoutList } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { DynamicIcon } from './DynamicIcon';
@@ -41,6 +41,8 @@ export const CategoryManager = ({
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
         null,
     );
+
+    const headerRef = useRef<HTMLDivElement>(null);
 
     const handleDelete = async (id: string) => {
         const { error } = await supabase
@@ -90,8 +92,18 @@ export const CategoryManager = ({
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0">
-                <div className="p-6 pb-4 border-b">
+            <DialogContent
+                onOpenAutoFocus={(e) => {
+                    e.preventDefault();
+                    headerRef.current?.focus();
+                }}
+                className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0"
+            >
+                <div
+                    ref={headerRef}
+                    tabIndex={-1}
+                    className="p-6 pb-4 border-b"
+                >
                     <DialogHeader>
                         <DialogTitle>
                             {view === 'list'
