@@ -72,6 +72,8 @@ function App() {
         setIsSidebarOpen(false);
     };
 
+    const activeCategory = categories.find((c) => c.id === activeCategoryId);
+
     return (
         <div className="flex flex-col h-screen bg-background">
             <Toaster />
@@ -102,10 +104,10 @@ function App() {
                 )}
 
                 <main className="flex-1 overflow-y-auto">
-                    {activeCategoryId ? (
+                    {activeCategory ? (
                         <CategoryView
-                            key={activeCategoryId}
-                            categoryId={activeCategoryId}
+                            key={activeCategory.id}
+                            categoryDef={activeCategory}
                         />
                     ) : (
                         /* Empty State if something goes wrong or no cats */

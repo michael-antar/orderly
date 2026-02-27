@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 
 import { Button } from './ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
+// import { Skeleton } from '@/components/ui/skeleton';
 import { ComparisonModal } from './ComparisonModal';
 import { ItemDetailView } from './ItemDetailView';
 import { ItemForm } from './ItemForm';
@@ -25,14 +25,12 @@ import type {
     Status,
 } from '@/types/types';
 
-export const CategoryView = ({ categoryId }: { categoryId: string }) => {
+export const CategoryView = ({
+    categoryDef,
+}: {
+    categoryDef: CategoryDefinition;
+}) => {
     const { user } = useAuth();
-
-    // Category Schema
-    const [categoryDef, setCategoryDef] = useState<CategoryDefinition | null>(
-        null,
-    );
-    const defLoading = !categoryDef;
 
     const [items, setItems] = useState<Item[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,35 +53,12 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
     const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
     const [calibrationItem, setCalibrationItem] = useState<Item | null>(null); // Hold new item that needs calibration
 
-    const prevCategoryId = usePrevious(categoryId);
-
-    // Fetch the CategoryDefinition (schema)
-    useEffect(() => {
-        const fetchDefinition = async () => {
-            if (!categoryId || !user) return;
-
-            const { data, error } = await supabase
-                .from('category_definitions')
-                .select('*')
-                .eq('id', categoryId)
-                .single();
-
-            if (data) {
-                setCategoryDef(data as unknown as CategoryDefinition);
-            } else if (error) {
-                console.error('Error fetching category definition:', error);
-                setError(error);
-            }
-        };
-
-        fetchDefinition();
-    }, [categoryId, user]);
+    const prevCategoryId = usePrevious(categoryDef.id);
 
     // Fetch items
     const getItems = useCallback(async () => {
         if (!user || !categoryDef) return { data: [], error: null };
 
-        console.groupCollapsed(`[getItems] Fetching ${categoryDef.name} items`);
         setLoading(true);
         setError(null);
 
@@ -173,7 +148,6 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
 
             if (error) throw error;
 
-            console.log('Fetched Items:', data);
             setItems((data as Item[]) || []);
             return { data: (data as Item[]) || null, error: null };
         } catch (error) {
@@ -181,12 +155,11 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
             setError(error as PostgrestError);
             return { data: [], error: error as PostgrestError };
         } finally {
-            console.groupEnd();
             setLoading(false);
         }
     }, [user, categoryDef, filters, sortBy, sortAsc]);
 
-    // Initial fetch
+    // Initial fetch and reload
     useEffect(() => {
         if (categoryDef) {
             getItems();
@@ -195,6 +168,10 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
 
     // Reset UI when switching categories
     useEffect(() => {
+        // Prevent reset if we just edited the same category schema
+        if (prevCategoryId !== undefined && prevCategoryId === categoryDef.id)
+            return;
+
         // Clear selected item
         setSelectedItem(null);
 
@@ -205,7 +182,7 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
             tags: [],
             rules: [],
         });
-    }, [categoryId, prevCategoryId]);
+    }, [categoryDef.id, prevCategoryId]);
 
     const rankedItems = useMemo(
         () => items.filter((item) => item.status === 'ranked'),
@@ -345,92 +322,61 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
 
                             {/* Action Buttons */}
                             <div className="flex items-center gap-2">
-                                {defLoading ? (
-                                    <>
-                                        <Skeleton className="h-9 w-9" />
-                                        <Skeleton className="h-9 w-9" />
-                                        <Skeleton className="h-9 w-9" />
-                                        <Skeleton className="h-9 w-9" />
-                                    </>
-                                ) : (
-                                    <>
-                                        {/* Sort Controls */}
-                                        {categoryDef && (
-                                            <SortControls
-                                                categoryDef={categoryDef}
-                                                items={items}
-                                                sortBy={sortBy}
-                                                sortAsc={sortAsc}
-                                                isEloDisabled={
-                                                    activeTab === 'backlog'
-                                                }
-                                                filters={filters}
-                                                onSortApply={
-                                                    handleSortAndFilterApply
-                                                }
-                                            />
-                                        )}
+                                {/* Sort Controls */}
+                                <SortControls
+                                    categoryDef={categoryDef}
+                                    items={items}
+                                    sortBy={sortBy}
+                                    sortAsc={sortAsc}
+                                    isEloDisabled={activeTab === 'backlog'}
+                                    filters={filters}
+                                    onSortApply={handleSortAndFilterApply}
+                                />
 
-                                        {/* Tag Management Modal */}
-                                        {categoryDef && (
-                                            <TagManager
-                                                categoryDefId={categoryDef.id}
-                                                onSuccess={
-                                                    handleTagUpdateSuccess
-                                                }
-                                            />
-                                        )}
+                                {/* Tag Management Modal */}
+                                <TagManager
+                                    categoryDefId={categoryDef.id}
+                                    onSuccess={handleTagUpdateSuccess}
+                                />
 
-                                        {/* Comparison Button */}
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            onClick={() => {
-                                                // Clear any leftover calibration item from a previous session
-                                                setCalibrationItem(null);
-                                                setIsComparisonModalOpen(true);
-                                            }}
-                                            disabled={
-                                                activeTab === 'backlog' ||
-                                                rankedItems.length < 2
-                                            }
-                                        >
-                                            <Swords className="h-4 w-4" />
-                                            <span className="sr-only">
-                                                Compare Items
-                                            </span>
-                                        </Button>
+                                {/* Comparison Button */}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => {
+                                        // Clear any leftover calibration item from a previous session
+                                        setCalibrationItem(null);
+                                        setIsComparisonModalOpen(true);
+                                    }}
+                                    disabled={
+                                        activeTab === 'backlog' ||
+                                        rankedItems.length < 2
+                                    }
+                                >
+                                    <Swords className="h-4 w-4" />
+                                    <span className="sr-only">
+                                        Compare Items
+                                    </span>
+                                </Button>
 
-                                        {categoryDef && (
-                                            <ComparisonModal
-                                                rankedItems={
-                                                    comparisonRankedItems
-                                                }
-                                                calibrationItem={
-                                                    calibrationItem
-                                                }
-                                                open={isComparisonModalOpen}
-                                                categoryDef={categoryDef}
-                                                onOpenChange={
-                                                    setIsComparisonModalOpen
-                                                }
-                                                onSuccess={getItems}
-                                                onCalibrationComplete={
-                                                    handleCalibrationComplete
-                                                }
-                                            />
-                                        )}
+                                <ComparisonModal
+                                    rankedItems={comparisonRankedItems}
+                                    calibrationItem={calibrationItem}
+                                    open={isComparisonModalOpen}
+                                    categoryDef={categoryDef}
+                                    onOpenChange={setIsComparisonModalOpen}
+                                    onSuccess={getItems}
+                                    onCalibrationComplete={
+                                        handleCalibrationComplete
+                                    }
+                                />
 
-                                        {/* Add Item Button */}
-                                        {categoryDef && (
-                                            <ItemForm
-                                                mode="add"
-                                                categoryDef={categoryDef}
-                                                onSuccess={handleAddSuccess}
-                                            />
-                                        )}
-                                    </>
-                                )}
+                                {/* Add Item Button */}
+                                <ItemForm
+                                    mode="add"
+                                    categoryDef={categoryDef}
+                                    onSuccess={handleAddSuccess}
+                                />
 
                                 {/* Mobile Open Panel Toggle */}
                                 <Button
@@ -461,7 +407,7 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                                 <TabsContent value="ranked">
                                     <ItemList
                                         items={rankedItems}
-                                        loading={loading || defLoading}
+                                        loading={loading}
                                         selectedItem={selectedItem}
                                         onSelectItem={handleSelectItem}
                                         emptyMessage="No ranked items found. Add your first item by pressing the plus button!"
@@ -473,7 +419,7 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                                 <TabsContent value="backlog">
                                     <ItemList
                                         items={backlogItems}
-                                        loading={loading || defLoading}
+                                        loading={loading}
                                         selectedItem={selectedItem}
                                         onSelectItem={handleSelectItem}
                                         emptyMessage="No backlog items found. Add your first item by pressing the plus button!"
@@ -500,22 +446,14 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                     isDetailViewOpen ? 'translate-x-0' : 'translate-x-full',
                 )}
             >
-                {defLoading ? (
-                    <div className="flex h-full items-center justify-center">
-                        <p className="text-muted-foreground">
-                            Select an item to see details
-                        </p>
-                    </div>
-                ) : (
-                    <ItemDetailView
-                        item={selectedItem}
-                        categoryDef={categoryDef}
-                        activeListStatus={activeTab}
-                        onClose={() => setIsDetailViewOpen(false)}
-                        onEdit={handleEditSuccess}
-                        onDelete={handleDeleteSuccess}
-                    />
-                )}
+                <ItemDetailView
+                    item={selectedItem}
+                    categoryDef={categoryDef}
+                    activeListStatus={activeTab}
+                    onClose={() => setIsDetailViewOpen(false)}
+                    onEdit={handleEditSuccess}
+                    onDelete={handleDeleteSuccess}
+                />
             </div>
         </div>
     );
