@@ -358,6 +358,7 @@ export const CategoryView = ({ categoryId }: { categoryId: string }) => {
                                         {categoryDef && (
                                             <SortControls
                                                 categoryDef={categoryDef}
+                                                items={items}
                                                 sortBy={sortBy}
                                                 sortAsc={sortAsc}
                                                 isEloDisabled={

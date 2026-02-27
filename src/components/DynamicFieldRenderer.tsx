@@ -25,17 +25,27 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
     // --- Select (Enum) ---
     if (field.type === 'select' && field.options) {
+        const stringValue = value?.toString() || '';
+        const isLegacyValue =
+            stringValue !== '' && !field.options.includes(stringValue);
+
         return (
             <div className="space-y-2">
-                <Label>{label}</Label>
-                <Select
-                    value={value?.toString() || ''}
-                    onValueChange={onChange}
-                >
+                <Label className="text-sm font-semibold">{label}</Label>
+                <Select value={stringValue} onValueChange={onChange}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select..." />
                     </SelectTrigger>
                     <SelectContent>
+                        {/* Render legacy option if it exists */}
+                        {isLegacyValue && (
+                            <SelectItem value={stringValue}>
+                                {stringValue}{' '}
+                                <span className="text-muted-foreground text-xs ml-1">
+                                    (Legacy)
+                                </span>
+                            </SelectItem>
+                        )}
                         {field.options.map((opt) => (
                             <SelectItem key={opt} value={opt}>
                                 {opt}
@@ -51,7 +61,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
     if (field.type === 'boolean') {
         return (
             <div className="flex items-center justify-between rounded-lg border p-4">
-                <Label>{label}</Label>
+                <Label className="text-sm font-semibold">{label}</Label>
                 <Switch checked={!!value} onCheckedChange={onChange} />
             </div>
         );
@@ -63,7 +73,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
         return (
             <div className="space-y-2">
-                <Label>{label}</Label>
+                <Label className="text-sm font-semibold">{label}</Label>
                 <Input
                     type="number"
                     value={numValue}
@@ -83,7 +93,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
         return (
             <div className="space-y-2">
-                <Label>{label}</Label>
+                <Label className="text-sm font-semibold">{label}</Label>
                 <Input
                     type="date" // Native browser date picker
                     value={dateValue}
@@ -103,7 +113,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
         return (
             <div className="space-y-2">
-                <Label>{label}</Label>
+                <Label className="text-sm font-semibold">{label}</Label>
                 <Input
                     value={locValue.address}
                     onChange={(e) =>
@@ -127,7 +137,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
 
     return (
         <div className="space-y-2">
-            <Label>{label}</Label>
+            <Label className="text-sm font-semibold">{label}</Label>
             <Input
                 value={strValue}
                 onChange={(e) => onChange(e.target.value)}

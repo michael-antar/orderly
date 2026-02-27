@@ -206,6 +206,7 @@ export const CategoryBuilder = ({
             return toast.error('All fields must have a label');
         }
 
+        // Must have at least 1 select option
         const invalidSelect = fields.find(
             (f) =>
                 f.type === 'select' && (!f.options || f.options.length === 0),

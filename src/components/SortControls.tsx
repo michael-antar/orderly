@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 import { supabase } from '@/lib/supabaseClient';
 import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, X } from 'lucide-react';
@@ -31,6 +31,7 @@ import {
     type CategoryDefinition,
     type FieldDefinition,
     type ItemPropertyValue,
+    type Item,
 } from '@/types/types';
 
 const TYPE_OPERATORS: Record<
@@ -66,6 +67,7 @@ const TYPE_OPERATORS: Record<
 
 type SortControlsProps = {
     categoryDef: CategoryDefinition;
+    items: Item[];
     isEloDisabled: boolean;
 
     sortBy: string;
@@ -81,6 +83,7 @@ type SortControlsProps = {
 
 export const SortControls = ({
     categoryDef,
+    items,
     isEloDisabled,
     sortBy,
     sortAsc,
@@ -163,6 +166,27 @@ export const SortControls = ({
 
         return [...standardFields, ...dynamicFields];
     }, [categoryDef]);
+
+    // Get all available select options (union of schema + legacy)
+    const getSelectOptions = useCallback(
+        (fieldKey: string, schemaOptions: string[] = []) => {
+            const itemValues = new Set<string>();
+
+            // Scan all current items for values attached to this field
+            items.forEach((item) => {
+                const val = item.properties?.[fieldKey];
+                if (typeof val === 'string' && val.trim() !== '') {
+                    itemValues.add(val);
+                }
+            });
+
+            // Combine the official schema options with any legacy values found on items
+            return Array.from(
+                new Set([...schemaOptions, ...Array.from(itemValues)]),
+            );
+        },
+        [items],
+    );
 
     const handleOpenChange = (open: boolean) => {
         setIsOpen(open);
@@ -350,6 +374,13 @@ export const SortControls = ({
                                     const availableOps = fieldDef
                                         ? TYPE_OPERATORS[fieldDef.type]
                                         : [];
+                                    const selectOptions =
+                                        fieldDef?.type === 'select'
+                                            ? getSelectOptions(
+                                                  fieldDef.key,
+                                                  fieldDef.options,
+                                              )
+                                            : [];
 
                                     return (
                                         <div
@@ -446,8 +477,7 @@ export const SortControls = ({
 
                                             {/* Value Input Row */}
                                             <div>
-                                                {fieldDef?.type === 'select' &&
-                                                fieldDef.options ? (
+                                                {fieldDef?.type === 'select' ? (
                                                     <Select
                                                         value={String(
                                                             rule.value,
@@ -467,19 +497,32 @@ export const SortControls = ({
                                                             <SelectValue placeholder="Select value..." />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            {fieldDef.options.map(
-                                                                (opt) => (
-                                                                    <SelectItem
-                                                                        key={
-                                                                            opt
-                                                                        }
-                                                                        value={
-                                                                            opt
-                                                                        }
-                                                                    >
-                                                                        {opt}
-                                                                    </SelectItem>
-                                                                ),
+                                                            {selectOptions.map(
+                                                                (opt) => {
+                                                                    const isLegacy =
+                                                                        !fieldDef.options?.includes(
+                                                                            opt,
+                                                                        );
+                                                                    return (
+                                                                        <SelectItem
+                                                                            key={
+                                                                                opt
+                                                                            }
+                                                                            value={
+                                                                                opt
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                opt
+                                                                            }{' '}
+                                                                            {isLegacy && (
+                                                                                <span className="text-muted-foreground text-[10px] ml-1">
+                                                                                    (Legacy)
+                                                                                </span>
+                                                                            )}
+                                                                        </SelectItem>
+                                                                    );
+                                                                },
                                                             )}
                                                         </SelectContent>
                                                     </Select>
