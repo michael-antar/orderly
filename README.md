@@ -4,9 +4,9 @@ Log and rank your experiences.
 
 ## About
 
-Orderly was born out of a frustration with the limitations of traditional 5-star ratings. Star ratings are often inflated, subjective, and lack the context to create a truly meaningful, ordered list. This application solves that problem by providing a personalized ranking system that helps you discover what you truly think is best.
+I am not a fan of the traditional 5-star rating system. Star ratings are often inflated, subjective, and lack the context to create a truly meaningful, ordered list. This application solves that problem by providing a personalized ranking system that helps you discover what you truly think is best.
 
-The ideal user is anyone who loves to track and rank their experiences. Whether you want to organize a single category or track everything you see, eat, and read, Orderly provides the tools to create a definitive, personal list of your favorites. With features like custom tagging, the system is designed to be completely personal and adaptable to the way you see the world.
+The ideal user is anyone who loves to track and rank their experiences. Whether you want to organize a single category or track everything you see, eat, and read, Orderly provides the tools to create a definitive, personal list of your favorites. With features like custom tagging and dynamic data schemas, the system is designed to be completely personal and adaptable to the way you see the world.
 
 ![Main Page](docs/main_page.png)
 
@@ -14,8 +14,8 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 
 - **Head-to-Head Ranking**: Utilizes an Elo-based system to create a true, ordered list.
 - **Smart Calibration**: New items are quickly placed in their approximate rank with just a few initial comparisons.
-- **Multiple Categories**: Log and rank everything from movies and books and music albums.
-- **Custom Tagging**: Organize and filter items with custom, color-coded tags for easy identification.
+- **Custom Categories**: Categories are fully dynamic. Start with defaults (movies, shows, books, albums, and restaurants), edit them, or build completely custom categories from scratch.
+- **Advanced Sorting & Filtering**: Organize, sort, and filter your ranked items based on custom tags and your specific dynamic fields.
 - **Responsive Design**: Fully usable on both desktop and mobile.
 - **Secure & Private**: All data is tied to a user's private account.
 
@@ -59,7 +59,11 @@ To keep the ranking system healthy and accurate, item matchups are generated usi
 
 ### Database Schema
 
-The database is designed around a central `items` table, which stores the core information for every entity a user can rank. This table is extended by category-specific tables (e.g., `movie_details`, `restaurant_details`) using a one-to-one relationship to hold unique metadata. A `tags` table and a many-to-many `item_tags` junction table provide the flexible tagging system. Finally, a `comparisons` table logs the history of every matchup to track Elo rating changes over time.
+The database is designed around a central `items` table, which stores the core information for every entity a user can rank.
+
+Instead of rigid, category-specific tables, Orderly utilizes a dynamic schema approach. A `category_definitions` table stores the custom field configurations (the schema) for each category. The `items` table then uses a flexible JSON data column to store the specific properties of an item based on its category's schema.
+
+A `tags` table and a many-to-many `item_tags` junction table provide the flexible tagging system. Finally, a `comparisons` table logs the history of every matchup to track Elo rating changes over time.
 
 ![Database Schema](docs/database_schema.png)
 
@@ -67,17 +71,15 @@ The database is designed around a central `items` table, which stores the core i
 
 ### Glicko Rating System
 
-A more modern approach to the Elo-based system that takes into account the _staleness_ of an item. The rating of an item that has not been matched in a long time might be unreliable, so we take into account a **ratings deviation**. An implementation of the **Glicko-2 System**, which takes into account volatility when on a win or lose streak, can also be considered in the future.
+(Used by popular games like Counter-Strike and chess sites). A more modern approach to the Elo-based system that takes into account the _staleness_ of an item. The rating of an item that has not been matched in a long time might be unreliable, so we take into account a **ratings deviation**. An implementation of the **Glicko-2 System**, which takes into account volatility when on a win or lose streak, can also be considered in the future.
 
-### Restaurant Recommendation Algorithm
+### Advanced Location & Recommendation Algorithm
 
-Combines a restaurant's _quality_ (Elo rating) and _convenience_ (distance from the user) to provide an ordered list of recommendations. Configure the recommendation algorithm to prioritize distance or rating, and filter by fields and tags.
+Currently, the `location` field type stores and displays an address string. In a future update, this will be expanded to combine a location's _quality_ (Elo rating) and _convenience_ (distance from the user) to provide an ordered list of recommendations.
 
-Restaurant locations will be stored as latitude and longitude coordinates, converting user inputted addresses using **geocoding**. _OpenCage_ provides a free tier for this service.
+Locations will be converted to latitude and longitude coordinates using **geocoding** (e.g., via the OpenCage free tier). The **Geolocation API** will be used for retrieving the user's current coordinates.
 
-The user has the option to search using an address using geocoding, or to use their current location. The **Geolocation API** will be used for retrieving the users current coordinates.
-
-The distance between the user and restaurant coordinates are calculated using the **Haversine Formula**:
+The distance between the user and item coordinates will be calculated using the **Haversine Formula**:
 
 $$
 a = sin^2(\dfrac{\Delta\phi}{2}) + cos(\phi_2) \cdot sin^2(\dfrac{\Delta\lambda}{2})
