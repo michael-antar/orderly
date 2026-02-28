@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { ArrowLeft, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import {
     AlertDialog,
@@ -16,21 +17,20 @@ import { Button } from './ui/button';
 import { ItemDetailsContent } from './ItemDetailsContent';
 import { ItemForm } from './ItemForm';
 
-import { toast } from 'sonner';
-
-import { type CombinedItem, type Status } from '@/types/types';
+import type { CategoryDefinition, Item, Status } from '@/types/types';
 
 type ItemDetailViewProps = {
-    item: CombinedItem | null;
-    activeListStatus: Status;
+    item: Item | null;
+    categoryDef: CategoryDefinition | null;
+    activeListStatus?: Status;
     onClose: () => void;
-    onEdit: (newStatus: Status, updatedItem: CombinedItem) => void;
+    onEdit: (newStatus: Status, updatedItem: Item) => void;
     onDelete: () => void;
 };
 
 export const ItemDetailView = ({
     item,
-    activeListStatus,
+    categoryDef,
     onClose,
     onEdit,
     onDelete,
@@ -38,25 +38,30 @@ export const ItemDetailView = ({
     const handleDelete = async () => {
         if (!item) return;
 
-        const { error } = await supabase
-            .from('items')
-            .delete()
-            .eq('id', item.id);
+        try {
+            const { error } = await supabase
+                .from('items')
+                .delete()
+                .eq('id', item.id);
 
-        if (error) {
-            toast.error('Delete failed', {
-                description: 'There was a problem deleting your item.',
-            });
-            console.error('Error deleting item:', error);
-        } else {
-            toast.success('Item deleted', {
-                description: `'${item.name}' has been removed.`,
-            });
+            if (error) throw error;
+
+            toast.success('Item deleted.');
             onDelete(); // Trigger a refresh in the parent component
+        } catch (error: unknown) {
+            console.error('Error deleting item:', error);
+
+            const description =
+                error instanceof Error
+                    ? error.message
+                    : 'An unknown error occurred';
+            toast.error('Failed to delete item', {
+                description,
+            });
         }
     };
 
-    if (!item) {
+    if (!item || !categoryDef) {
         return (
             <div className="flex h-full items-center justify-center">
                 <p className="text-muted-foreground">
@@ -70,7 +75,7 @@ export const ItemDetailView = ({
         <div className="flex flex-col m-4 pt-4 lg:pt-0">
             {/* Button Row */}
             <div className="flex gap-2 justify-between lg:justify-end">
-                {/* Close Button */}
+                {/* Close Button (Mobile Only) */}
                 <Button
                     variant="ghost"
                     size="icon"
@@ -82,14 +87,15 @@ export const ItemDetailView = ({
                 </Button>
 
                 {/* Button Row Right Side */}
-                <div className="flex gap-2">
+                <div className="flex">
                     {/* Edit Item Form */}
                     <ItemForm
                         item={item}
+                        categoryDef={categoryDef}
+                        mode="edit"
                         onSuccess={(newStatus, newItem) =>
                             onEdit(newStatus, newItem)
                         }
-                        activeListStatus={activeListStatus}
                     />
 
                     {/* Delete Button and Confirmation Dialog */}
@@ -130,7 +136,7 @@ export const ItemDetailView = ({
                 </div>
             </div>
 
-            <ItemDetailsContent item={item} />
+            <ItemDetailsContent item={item} categoryDef={categoryDef} />
         </div>
     );
 };

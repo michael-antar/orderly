@@ -14,63 +14,32 @@ export type Database = {
   }
   public: {
     Tables: {
-      album_details: {
+      category_definitions: {
         Row: {
-          artist: string | null
-          item_id: string
-          release_year: number | null
+          created_at: string | null
+          field_definitions: Json
+          icon: string | null
+          id: string
+          name: string
+          user_id: string | null
         }
         Insert: {
-          artist?: string | null
-          item_id: string
-          release_year?: number | null
+          created_at?: string | null
+          field_definitions?: Json
+          icon?: string | null
+          id?: string
+          name: string
+          user_id?: string | null
         }
         Update: {
-          artist?: string | null
-          item_id?: string
-          release_year?: number | null
+          created_at?: string | null
+          field_definitions?: Json
+          icon?: string | null
+          id?: string
+          name?: string
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "album_details_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: true
-            referencedRelation: "items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      book_details: {
-        Row: {
-          author: string | null
-          item_id: string
-          release_year: number | null
-          series_name: string | null
-          series_order: number | null
-        }
-        Insert: {
-          author?: string | null
-          item_id: string
-          release_year?: number | null
-          series_name?: string | null
-          series_order?: number | null
-        }
-        Update: {
-          author?: string | null
-          item_id?: string
-          release_year?: number | null
-          series_name?: string | null
-          series_order?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "book_details_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: true
-            referencedRelation: "items"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       comparisons: {
         Row: {
@@ -155,144 +124,79 @@ export type Database = {
       }
       items: {
         Row: {
-          category: Database["public"]["Enums"]["item_category"]
+          category_def_id: string | null
           comparison_count: number
           created_at: string
           description: string | null
           id: string
           name: string
+          properties: Json | null
           rating: number | null
           status: Database["public"]["Enums"]["item_status"]
           user_id: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["item_category"]
+          category_def_id?: string | null
           comparison_count?: number
           created_at?: string
           description?: string | null
           id?: string
           name: string
+          properties?: Json | null
           rating?: number | null
           status?: Database["public"]["Enums"]["item_status"]
           user_id: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["item_category"]
+          category_def_id?: string | null
           comparison_count?: number
           created_at?: string
           description?: string | null
           id?: string
           name?: string
+          properties?: Json | null
           rating?: number | null
           status?: Database["public"]["Enums"]["item_status"]
           user_id?: string
         }
-        Relationships: []
-      }
-      movie_details: {
-        Row: {
-          director: string | null
-          item_id: string
-          release_year: number | null
-        }
-        Insert: {
-          director?: string | null
-          item_id: string
-          release_year?: number | null
-        }
-        Update: {
-          director?: string | null
-          item_id?: string
-          release_year?: number | null
-        }
         Relationships: [
           {
-            foreignKeyName: "movie_details_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: true
-            referencedRelation: "items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      restaurant_details: {
-        Row: {
-          address: string | null
-          item_id: string
-          latitude: number | null
-          longitude: number | null
-          price_range: Database["public"]["Enums"]["price_range"] | null
-        }
-        Insert: {
-          address?: string | null
-          item_id: string
-          latitude?: number | null
-          longitude?: number | null
-          price_range?: Database["public"]["Enums"]["price_range"] | null
-        }
-        Update: {
-          address?: string | null
-          item_id?: string
-          latitude?: number | null
-          longitude?: number | null
-          price_range?: Database["public"]["Enums"]["price_range"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "restaurant_details_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: true
-            referencedRelation: "items"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      show_details: {
-        Row: {
-          end_year: number | null
-          item_id: string
-          start_year: number | null
-        }
-        Insert: {
-          end_year?: number | null
-          item_id: string
-          start_year?: number | null
-        }
-        Update: {
-          end_year?: number | null
-          item_id?: string
-          start_year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "show_details_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: true
-            referencedRelation: "items"
+            foreignKeyName: "items_category_def_id_fkey"
+            columns: ["category_def_id"]
+            isOneToOne: false
+            referencedRelation: "category_definitions"
             referencedColumns: ["id"]
           },
         ]
       }
       tags: {
         Row: {
-          category: Database["public"]["Enums"]["item_category"]
+          category_def_id: string
           id: number
           name: string
           user_id: string
         }
         Insert: {
-          category: Database["public"]["Enums"]["item_category"]
+          category_def_id: string
           id?: never
           name: string
           user_id: string
         }
         Update: {
-          category?: Database["public"]["Enums"]["item_category"]
+          category_def_id?: string
           id?: never
           name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tags_category_def_id_fkey"
+            columns: ["category_def_id"]
+            isOneToOne: false
+            referencedRelation: "category_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -309,14 +213,12 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_user_id_from_item: {
-        Args: { item_id: string }
-        Returns: string
-      }
+      get_user_id_from_item: { Args: { item_id: string }; Returns: string }
       handle_comparison: {
         Args: { p_loser_id: string; p_winner_id: string }
         Returns: undefined
       }
+      seed_user_categories: { Args: never; Returns: undefined }
     }
     Enums: {
       item_category: "restaurant" | "movie" | "book" | "show" | "album"

@@ -1,12 +1,13 @@
-import { type CombinedItem } from '@/types/types';
 import { ItemCard } from './ItemCard';
 import { ItemCardSkeleton } from './ItemCardSkeleton';
 
+import type { Item } from '@/types/types';
+
 type ItemListProps = {
-    items: CombinedItem[];
+    items: Item[];
     loading: boolean;
-    selectedItem: CombinedItem | null;
-    onSelectItem: (item: CombinedItem) => void;
+    selectedItem: Item | null;
+    onSelectItem: (item: Item) => void;
     emptyMessage: string;
     showPodium?: boolean;
 };

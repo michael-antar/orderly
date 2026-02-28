@@ -1,23 +1,79 @@
-import type { LucideIcon } from 'lucide-react';
-import { Utensils, Film, Tv, Book, Music } from 'lucide-react';
 import { type PostgrestError } from '@supabase/supabase-js';
 
-// --- Core Category and Status Types ---
-export type Category = 'album' | 'book' | 'movie' | 'restaurant' | 'show';
+// Core status
 export type Status = 'ranked' | 'backlog';
-export type PriceRange = '$' | '$$' | '$$$' | '$$$$';
-export type SortOption = 'rating' | 'name' | 'created_at';
-export type Tag = {
-    id: number;
-    name: string;
-    category: Category;
-    user_id: string;
-};
-export type TagWithUsage = Tag & {
-    is_used: boolean;
+
+// --- Dynamic Schema Types ---
+export type FieldType =
+    | 'string'
+    | 'number'
+    | 'boolean'
+    | 'select'
+    | 'date'
+    | 'location';
+
+export type FieldDefinition = {
+    key: string; // Immutable JSON key for item.properties. Unique ONLY to CategoryDef.properties
+    type: FieldType;
+    label: string; // Human readable, mutable
+    options?: string[]; // For FieldType.select
+    required?: boolean;
 };
 
-// - Filter Types -
+export type CategoryDefinition = {
+    id: string;
+    user_id: string | null; // null = global default category
+
+    name: string;
+    icon: string; // Lucide icon name
+    field_definitions: FieldDefinition[];
+};
+
+// --- Database Item Types ---
+export type Tag = {
+    id: number;
+    user_id: string;
+    category_def_id: string; // FK to 'category_definitions.id'
+
+    name: string;
+};
+
+// TODO: Implement feature later
+export type LocationValue = {
+    address: string;
+    coordinates: {
+        lat: number;
+        lng: number;
+    } | null;
+};
+
+// A union of ALL allowed values in the 'properties' column
+export type ItemPropertyValue =
+    | string
+    | number
+    | boolean
+    | LocationValue
+    | null;
+
+export type Item = {
+    id: string;
+    user_id: string;
+    category_def_id: string; // FK to 'category_definitions.id'
+
+    name: string;
+    status: Status;
+    rating: number | null; // null = Status.backlog
+    description: string | null;
+    comparison_count: number;
+    created_at: string;
+
+    tags: Tag[] | null;
+    properties: Record<string, ItemPropertyValue>; // Store key-value pairs like: { address: "...", distance: 5 }
+};
+
+// --- Sorting and Filter types ---
+export type SortOption = 'rating' | 'name' | 'created_at';
+
 export type FilterOperator =
     | 'is'
     | 'is_not'
@@ -26,23 +82,13 @@ export type FilterOperator =
     | 'gte'
     | 'lt'
     | 'lte';
-export type FilterField =
-    | 'artist'
-    | 'release_year'
-    | 'author'
-    | 'director'
-    | 'price_range'
-    | 'series_name'
-    | 'series_order'
-    | 'address'
-    | 'start_year'
-    | 'end_year';
 
 export type FilterRule = {
     id: string;
-    field: FilterField | '';
+    field_key: string;
+
     operator: FilterOperator | '';
-    value: string | number;
+    value: ItemPropertyValue;
 };
 
 export type AppliedFilters = {
@@ -50,138 +96,18 @@ export type AppliedFilters = {
     rules: FilterRule[];
 };
 
-// --- Database and API Types ---
-
-// Base item stored in 'items' table
-export type Item = {
-    id: string;
-    created_at: string;
-    user_id: string;
+// For when updating an item
+export type ItemFormData = {
     name: string;
-    category: Category;
+    description: string;
     status: Status;
     rating: number | null;
-    description: string | null;
-    comparison_count: number;
-    tags: Tag[] | null;
+
+    tags: Tag[];
+    properties: Record<string, ItemPropertyValue>;
 };
 
 // Generic type for the response from Supabase mutation operations
 export type SupabaseMutationResponse = Promise<{
     error: PostgrestError | null;
 }>;
-
-// - Category Specific Details -
-
-export type DetailTableNames =
-    | 'album_details'
-    | 'book_details'
-    | 'movie_details'
-    | 'restaurant_details'
-    | 'show_details';
-
-export type AlbumDetails = {
-    artist: string | null;
-    release_year: number | null;
-};
-export type BookDetails = {
-    author: string | null;
-    release_year: number | null;
-    series_name: string | null;
-    series_order: number | null;
-};
-export type MovieDetails = {
-    director: string | null;
-    release_year: number | null;
-};
-export type RestaurantDetails = {
-    address: string | null;
-    price_range: PriceRange | null;
-    latitude: number | null;
-    longitude: number | null;
-};
-export type ShowDetails = {
-    start_year: number | null;
-    end_year: number | null;
-};
-
-// A union of all possible category-specific detail types
-export type AnyDetails =
-    | AlbumDetails
-    | BookDetails
-    | MovieDetails
-    | RestaurantDetails
-    | ShowDetails;
-
-// Maps category name to its specific details type
-export type DetailsMap = {
-    album: AlbumDetails;
-    book: BookDetails;
-    movie: MovieDetails;
-    restaurant: RestaurantDetails;
-    show: ShowDetails;
-};
-
-// Maps over the Category type to create the `...details` properties
-export type CombinedItem = Item & {
-    [K in Category as `${K}_details`]: K extends 'album'
-        ? AlbumDetails | null
-        : K extends 'book'
-          ? BookDetails | null
-          : K extends 'movie'
-            ? MovieDetails | null
-            : K extends 'restaurant'
-              ? RestaurantDetails | null
-              : K extends 'show'
-                ? ShowDetails | null
-                : never;
-};
-
-// --- Form and Components Prop Types ---
-
-export type ItemFormData = Partial<
-    {
-        name: string;
-        description: string;
-        status: Status;
-        rating: number | null;
-        tags: Tag[];
-    } & AlbumDetails &
-        BookDetails &
-        MovieDetails &
-        RestaurantDetails &
-        ShowDetails
->;
-
-export type CategoryFieldsProps = {
-    formData: ItemFormData;
-    onFieldChange: <K extends keyof ItemFormData>(
-        field: K,
-        value: ItemFormData[K],
-    ) => void;
-    onSelectOpenChange?: (isOpen: boolean) => void;
-};
-
-// --- UI and Navigation Constants ---
-
-type NavItem = {
-    name: Category;
-    icon: LucideIcon;
-    label: string;
-};
-
-export const navItems: readonly NavItem[] = [
-    { name: 'restaurant', icon: Utensils, label: 'Restaurants' },
-    { name: 'movie', icon: Film, label: 'Movies' },
-    { name: 'show', icon: Tv, label: 'TV Shows' },
-    { name: 'book', icon: Book, label: 'Books' },
-    { name: 'album', icon: Music, label: 'Albums' },
-] as const;
-
-export const categoryTitles = navItems.reduce(
-    (acc, item) => {
-        acc[item.name] = item.label;
-        return acc;
-    },
-    {} as Record<Category, string>,
-);
