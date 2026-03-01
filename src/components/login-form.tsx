@@ -1,44 +1,46 @@
-import { cn } from '@/lib/utils'
-import { supabase } from '@/lib/supabaseClient'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useState } from 'react'
+import { useState } from 'react';
 
-export function LoginForm(
-  { className, onSuccess, onViewChange, onForgotPasswordClick, ...props }
-  : React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; onForgotPasswordClick: () => void; }
-) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabaseClient';
+import { cn } from '@/lib/utils';
+
+export function LoginForm({
+  className,
+  onSuccess,
+  onViewChange,
+  onForgotPasswordClick,
+  ...props
+}: React.ComponentPropsWithoutRef<'div'> & {
+  onSuccess: () => void;
+  onViewChange: () => void;
+  onForgotPasswordClick: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
-      if (error) throw error
-      onSuccess()
+      });
+      if (error) throw error;
+      onSuccess();
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
@@ -65,7 +67,12 @@ export function LoginForm(
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
-                  <Button type="button" variant="link" className="ml-auto inline-block h-auto p-0 text-sm font-normal underline-offset-4 hover:underline" onClick={onForgotPasswordClick}>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="ml-auto inline-block h-auto p-0 text-sm font-normal underline-offset-4 hover:underline"
+                    onClick={onForgotPasswordClick}
+                  >
                     Forgot your password?
                   </Button>
                 </div>
@@ -92,5 +99,5 @@ export function LoginForm(
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

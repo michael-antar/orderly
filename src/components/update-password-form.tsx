@@ -1,39 +1,38 @@
-import { cn } from '@/lib/utils'
-import { supabase } from '@/lib/supabaseClient'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useState } from 'react'
+import { useState } from 'react';
 
-export function UpdatePasswordForm({ className, onSuccess, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void }) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [isSuccess, setIsSuccess] = useState(false)
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabaseClient';
+import { cn } from '@/lib/utils';
+
+export function UpdatePasswordForm({
+  className,
+  onSuccess,
+  ...props
+}: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void }) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError(null)
-    setIsSuccess(false)
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setIsSuccess(false);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password })
-      if (error) throw error
-      setIsSuccess(true)
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      setIsSuccess(true);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isSuccess) {
     return (
@@ -43,10 +42,12 @@ export function UpdatePasswordForm({ className, onSuccess, ...props }: React.Com
           <CardDescription>Your password has been updated successfully.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button className="w-full" onClick={onSuccess}>Close</Button>
+          <Button className="w-full" onClick={onSuccess}>
+            Close
+          </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -79,5 +80,5 @@ export function UpdatePasswordForm({ className, onSuccess, ...props }: React.Com
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

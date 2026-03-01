@@ -1,49 +1,49 @@
-import { cn } from '@/lib/utils'
-import { supabase } from '@/lib/supabaseClient'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useState } from 'react'
+import { useState } from 'react';
 
-export function SignUpForm({ className, onSuccess, onViewChange, ...props }: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void; }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [repeatPassword, setRepeatPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabaseClient';
+import { cn } from '@/lib/utils';
+
+export function SignUpForm({
+  className,
+  onSuccess,
+  onViewChange,
+  ...props
+}: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [repeatPassword, setRepeatPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
+    e.preventDefault();
+    setError(null);
 
     if (password !== repeatPassword) {
-      setError('Passwords do not match')
-      return
+      setError('Passwords do not match');
+      return;
     }
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       // Use updateUser to link credentials to default anon account
       const { error } = await supabase.auth.updateUser({
         email,
         password,
-      })
-      if (error) throw error
-      setSuccess(true)
+      });
+      if (error) throw error;
+      setSuccess(true);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
+      setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
@@ -55,8 +55,7 @@ export function SignUpForm({ className, onSuccess, onViewChange, ...props }: Rea
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              You've successfully signed up. Please check your email to confirm your account before
-              signing in.
+              You've successfully signed up. Please check your email to confirm your account before signing in.
             </p>
           </CardContent>
         </Card>
@@ -124,5 +123,5 @@ export function SignUpForm({ className, onSuccess, onViewChange, ...props }: Rea
         </Card>
       )}
     </div>
-  )
+  );
 }
