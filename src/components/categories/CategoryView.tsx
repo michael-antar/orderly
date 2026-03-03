@@ -2,7 +2,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { TagManager } from '@/components/TagManager';
+import { TagManager } from '@/components/categories/TagManager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePrevious } from '@/hooks/usePrevious';
@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import type { AppliedFilters, CategoryDefinition, Item, Status } from '@/types/types';
 
-// import { Skeleton } from '@/components/ui/skeleton';
 import { ComparisonModal } from './ComparisonModal';
 import { ItemDetailView } from './ItemDetailView';
 import { ItemForm } from './ItemForm';

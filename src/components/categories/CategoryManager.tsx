@@ -2,8 +2,8 @@ import { LayoutList, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { CategoryBuilder } from '@/components/CategoryBuilder';
-import { DynamicIcon } from '@/components/DynamicIcon';
+import { CategoryBuilder } from '@/components/categories/CategoryBuilder';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import {
   AlertDialog,
   AlertDialogAction,

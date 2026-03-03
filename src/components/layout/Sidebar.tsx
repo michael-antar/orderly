@@ -1,12 +1,12 @@
 import { X } from 'lucide-react';
 
-import { DynamicIcon } from '@/components/DynamicIcon';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { CategoryDefinition } from '@/types/types';
 
-import { CategoryManager } from './CategoryManager';
+import { CategoryManager } from './categories/CategoryManager';
 
 type SidebarProps = {
   categories: CategoryDefinition[];

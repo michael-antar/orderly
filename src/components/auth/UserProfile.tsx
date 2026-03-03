@@ -9,9 +9,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../ui/button';
 import { AuthModal } from './AuthModal';
-import { Button } from './ui/button';
 
 export const UserProfile = () => {
   const { user, isPermanent, signOut } = useAuth();

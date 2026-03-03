@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { Tag } from '@/types/types';
 
-import { TagBadge } from './TagBadge';
+import { TagBadge } from './categories/TagBadge';
 
 type TagInputProps = {
   selectedTags: Tag[];

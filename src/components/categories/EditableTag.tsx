@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 
-import { TagBadge } from '@/components/TagBadge';
+import { TagBadge } from '@/components/categories/TagBadge';
 import { Input } from '@/components/ui/input';
 import { type Tag } from '@/types/types';
 
