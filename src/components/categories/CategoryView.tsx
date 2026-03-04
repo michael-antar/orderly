@@ -2,12 +2,6 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { TagManager } from '@/components/categories/TagManager';
-import { ComparisonModal } from '@/components/items/ComparisonModal';
-import { ItemDetailView } from '@/components/items/ItemDetailView';
-import { ItemForm } from '@/components/items/ItemForm';
-import { ItemList } from '@/components/items/ItemList';
-import { SortControls } from '@/components/items/SortControls';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +9,13 @@ import { usePrevious } from '@/hooks/usePrevious';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import type { AppliedFilters, CategoryDefinition, Item, Status } from '@/types/types';
+
+import { ComparisonModal } from '../items/ComparisonModal';
+import { ItemDetailView } from '../items/ItemDetailView';
+import { ItemForm } from '../items/ItemForm';
+import { ItemList } from '../items/ItemList';
+import { SortControls } from '../items/SortControls';
+import { TagManager } from './TagManager';
 
 export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition }) => {
   const { user } = useAuth();

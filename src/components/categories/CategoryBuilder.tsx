@@ -2,7 +2,6 @@ import { Plus, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { IconPicker } from '@/components/shared/IconPicker';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
 import type { CategoryDefinition, FieldDefinition, FieldType } from '@/types/types';
+
+import { IconPicker } from '../shared/IconPicker';
 
 // --- Helpers ---
 const slugify = (text: string) => {

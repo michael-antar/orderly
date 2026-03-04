@@ -2,8 +2,6 @@ import { LayoutList, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-import { CategoryBuilder } from '@/components/categories/CategoryBuilder';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +24,9 @@ import {
 } from '@/components/ui/dialog';
 import { supabase } from '@/lib/supabaseClient';
 import type { CategoryDefinition } from '@/types/types';
+
+import { DynamicIcon } from '../shared/DynamicIcon';
+import { CategoryBuilder } from './CategoryBuilder';
 
 type CategoryManagerProps = {
   categories: CategoryDefinition[];
