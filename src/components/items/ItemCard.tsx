@@ -1,11 +1,11 @@
 import { Card } from '@/components/ui/card';
 import { cn, getCategoryDetails } from '@/lib/utils';
-import { type CombinedItem } from '@/types/types';
+import type { Item } from '@/types/types';
 
-import { TagBadge } from './TagBadge';
+import { TagBadge } from '../categories/TagBadge';
 
 type ItemCardProps = {
-  item: CombinedItem;
+  item: Item;
   onSelect: () => void;
   isSelected: boolean;
   podiumClass?: string;

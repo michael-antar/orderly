@@ -1,9 +1,9 @@
 import { Star } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import type { CategoryDefinition, FieldDefinition, Item, ItemPropertyValue, LocationValue } from '@/types/types';
 
-import { TagBadge } from './TagBadge';
-import { Badge } from './ui/badge';
+import { TagBadge } from '../categories/TagBadge';
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',

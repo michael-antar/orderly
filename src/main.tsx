@@ -3,9 +3,10 @@ import './index.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { AuthProvider } from '@/contexts/AuthContext.tsx';
+
 import App from './App.tsx';
-import { ThemeProvider } from './components/ThemeProvider.tsx';
-import { AuthProvider } from './contexts/AuthContext.tsx';
+import { ThemeProvider } from './components/layout/ThemeProvider.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

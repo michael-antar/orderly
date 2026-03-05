@@ -1,8 +1,6 @@
 import { Pencil, Plus } from 'lucide-react';
 import { memo } from 'react';
 
-import { DynamicFieldRenderer } from '@/components/DynamicFieldRenderer';
-import { TagInput } from '@/components/TagInput';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,6 +18,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useItemForm } from '@/hooks/useItemForm';
 import type { CategoryDefinition, Item, Status } from '@/types/types';
+
+import { TagInput } from '../categories/TagInput';
+import { DynamicFieldRenderer } from '../shared/DynamicFieldRenderer';
 
 type ItemFormProps = {
   // Determine mode by checking if 'item' prop exists

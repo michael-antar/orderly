@@ -12,12 +12,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabaseClient';
 import type { CategoryDefinition, Item, Status } from '@/types/types';
 
 import { ItemDetailsContent } from './ItemDetailsContent';
 import { ItemForm } from './ItemForm';
-import { Button } from './ui/button';
 
 type ItemDetailViewProps = {
   item: Item | null;

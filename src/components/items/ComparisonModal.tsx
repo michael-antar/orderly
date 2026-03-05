@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useComparisonQueue } from '@/hooks/useComparisonQueue';
 import { supabase } from '@/lib/supabaseClient';
@@ -17,7 +18,6 @@ import { cn } from '@/lib/utils';
 import type { CategoryDefinition, Item } from '@/types/types';
 
 import { ItemDetailsContent } from './ItemDetailsContent';
-import { Separator } from './ui/separator';
 
 type Result = {
   winnerName: string;
