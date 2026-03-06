@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { CategoryDefinition } from '@/types/types';
 
-import { CategoryManager } from './categories/CategoryManager';
+import { CategoryManager } from '../categories/CategoryManager';
 
 type SidebarProps = {
   categories: CategoryDefinition[];

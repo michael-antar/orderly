@@ -1,12 +1,13 @@
 import { ChevronsUpDown, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ICON_OPTIONS } from '@/lib/icons';
 import { cn } from '@/lib/utils';
+
+import { DynamicIcon } from './DynamicIcon';
 
 type IconPickerProps = {
   id?: string;

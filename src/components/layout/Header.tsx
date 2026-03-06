@@ -1,8 +1,9 @@
 import { Menu } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+
+import { UserProfile } from '../auth/UserProfile';
 import { ThemeToggle } from './ThemeToggle';
-import { Button } from './ui/button';
-import { UserProfile } from './UserProfile';
 
 type HeaderProps = {
   activeCategoryName?: string;
