@@ -43,12 +43,21 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'location', label: 'Location' },
 ];
 
-type CategoryBuilderProps = {
-  categoryId: string | null; // null = Create Mode
+export interface CategoryBuilderProps {
+  /** If null, the builder initializes in Create Mode */
+  categoryId: string | null;
   onSave: () => void;
   onCancel: () => void;
-};
+}
 
+/**
+ * Form for creating or editing a category's schema.
+ * Handles dynamic field generation, type selection, and form validation.
+ *
+ * Side Effects:
+ * - Fetches initial category data from Supabase on mount if `categoryId` is provided.
+ * - Mutates the Supabase `category_definitions` table upon successful form submission.
+ */
 export const CategoryBuilder = ({ categoryId, onSave, onCancel }: CategoryBuilderProps) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -17,6 +17,13 @@ import { ItemList } from '../items/ItemList';
 import { SortControls } from '../items/SortControls';
 import { TagManager } from './TagManager';
 
+/**
+ * Primary dashboard for a specific category, managing the split-pane view
+ * between the item list (ranked/backlog) and the item detail panel.
+ *
+ * Side Effects:
+ * - Fetches items from Supabase on mount and when filters/sorting change.
+ */
 export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition }) => {
   const { user } = useAuth();
 
@@ -25,11 +32,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   const [error, setError] = useState<PostgrestError | null>(null);
   const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
 
-  // Handle DetailView
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null); // For highlighting item in list and displaying item details
+  // - Handle DetailView -
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  // For highlighting item in list and displaying item details
+  const selectedItem = useMemo(() => items.find((i) => i.id === selectedItemId) || null, [items, selectedItemId]);
   const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
 
-  // Handle list sorting/filtering
+  // - Handle list sorting/filtering -
   const [sortBy, setSortBy] = useState<string>('rating');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [filters, setFilters] = useState<AppliedFilters>({
@@ -152,7 +161,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
     if (prevCategoryId !== undefined && prevCategoryId === categoryDef.id) return;
 
     // Clear selected item
-    setSelectedItem(null);
+    setSelectedItemId(null);
 
     // Clear sort/filter options
     setSortBy('rating');
@@ -164,9 +173,6 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   }, [categoryDef.id, prevCategoryId]);
 
   const rankedItems = useMemo(() => items.filter((item) => item.status === 'ranked'), [items]);
-  const rankedItemsRef = useRef(rankedItems);
-  rankedItemsRef.current = rankedItems;
-
   const backlogItems = useMemo(() => items.filter((item) => item.status === 'backlog'), [items]);
 
   // Always sorted list of ranked items by elo (desc), for use in comparison modal
@@ -180,7 +186,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
   // Unselect item and set new active tab for form
   const handleTabChange = (value: Status) => {
-    setSelectedItem(null);
+    setSelectedItemId(null);
     setActiveTab(value);
 
     // Set default sorting based on selected tab
@@ -196,7 +202,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
   // Toggle selection of item
   const handleSelectItem = (item: Item) => {
-    setSelectedItem((prev) => (prev?.id === item.id ? null : item));
+    setSelectedItemId((prev) => (prev === item.id ? null : item.id));
     setIsDetailViewOpen(true);
   };
 
@@ -209,7 +215,10 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
       // Perform calibration if new item is ranked
       if (newStatus === 'ranked' && updatedItems) {
         const freshItem = updatedItems.find((i) => i.id === newItem.id);
-        if (freshItem && rankedItemsRef.current.length >= 1) {
+        const rankedCount = updatedItems.filter((i) => i.status === 'ranked').length;
+
+        // Only calibrate if there is at least 1 other item to compare against
+        if (freshItem && rankedCount > 1) {
           setCalibrationItem(freshItem);
           setIsComparisonModalOpen(true);
         }
@@ -224,7 +233,6 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
       const previousStatus = selectedItem?.status;
       setActiveTab(newStatus);
       await getItems();
-      setSelectedItem(updatedItem); // Keep detail view in sync
 
       if (previousStatus === 'backlog' && newStatus === 'ranked') {
         setCalibrationItem(updatedItem);
@@ -242,18 +250,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
   // Unselect item and refresh list
   const handleDeleteSuccess = () => {
-    setSelectedItem(null);
+    setSelectedItemId(null);
     getItems();
   };
 
   // Refresh both the list and the item detail view
-  // TODO: Is this still needed, or can it just be replaced by getItems()?
   const handleTagUpdateSuccess = async () => {
-    const result = await getItems();
-    if (result?.data && selectedItem) {
-      const updatedItem = result.data.find((item) => item.id === selectedItem.id);
-      setSelectedItem(updatedItem || null);
-    }
+    getItems();
   };
 
   const handleSortAndFilterApply = (newSortBy: string, newSortAsc: boolean, newFilters: AppliedFilters) => {
@@ -345,7 +348,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
           </header>
 
           {/* Item List Container */}
-          <div className="flex-1 p-4 pt-6 overflow-y-auto" onClick={() => setSelectedItem(null)}>
+          <div className="flex-1 p-4 pt-6 overflow-y-auto" onClick={() => setSelectedItemId(null)}>
             {error ? (
               <ErrorState onRetry={handleRetry} />
             ) : (

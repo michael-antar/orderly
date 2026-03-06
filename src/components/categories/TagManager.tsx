@@ -1,5 +1,5 @@
 import { Plus, Tags, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -30,19 +30,26 @@ import type { Tag } from '@/types/types';
 
 import { EditableTag } from './EditableTag';
 
-type TagResponse = Tag & {
+export interface TagResponse extends Tag {
   item_tags: { count: number }[];
-};
+}
 
-type TagWithUsage = Tag & {
+export interface TagWithUsage extends Tag {
   is_used: boolean;
-};
+}
 
-type TagManagerProps = {
+export interface TagManagerProps {
   categoryDefId: string;
   onSuccess: () => void;
-};
+}
 
+/**
+ * Dialog for tag management - create, rename, delete, and bulk-purge
+ *
+ * Side Effects:
+ * - Fetches tag data from Supabase when the dialog opens.
+ * - Mutates the `tags` and `item_tags` tables on create/rename/delete actions.
+ */
 export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
   const { user } = useAuth();
 
@@ -53,9 +60,8 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
   // For creating a new tag
   const [isCreatingTag, setIsCreatingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
-
   // For tracking unlinked tags
-  const [unusedTags, setUnusedTags] = useState<TagWithUsage[]>([]);
+  const unusedTags = useMemo(() => tags.filter((tag) => !tag.is_used), [tags]);
 
   const fetchTags = useCallback(async () => {
     if (!user || !categoryDefId) return;
@@ -82,7 +88,6 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
       }));
 
       setTags(tagsWithUsage);
-      setUnusedTags(tagsWithUsage.filter((tag) => !tag.is_used));
     } catch (error) {
       console.error('Error fetching tags:', error);
       toast.error('Failed to load tags');
@@ -117,11 +122,12 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
       toast.success('Tag renamed', {
         description: `'${tagToRename.name}' is now '${newName}'.`,
       });
-      // Refresh local UI
-      const updateTag = (tag: TagWithUsage) => (tag.id === tagToRename.id ? { ...tag, name: newName } : tag);
-
-      setTags((prev) => prev.map(updateTag));
-      setUnusedTags((prev) => prev.map(updateTag));
+      // Refresh local UI and resort alphabetically
+      setTags((prev) =>
+        prev
+          .map((tag) => (tag.id === tagToRename.id ? { ...tag, name: newName } : tag))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
       onSuccess();
     }
   };
@@ -131,9 +137,7 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
 
     // Check for duplicates
     if (tags.some((tag) => tag.name.toLowerCase() === newTagName.trim().toLowerCase())) {
-      toast.error('Duplicate Tag', {
-        description: 'A tag with this name already exists.',
-      });
+      toast.error('Duplicate Tag', { description: 'A tag with this name already exists.' });
       return;
     }
 
@@ -148,23 +152,15 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
       .single();
 
     if (error || !data) {
-      toast.error('Create failed', {
-        description: 'There was a problem creating the new tag.',
-      });
+      toast.error('Create failed', { description: 'There was a problem creating the new tag.' });
     } else {
       const newTag = data as Tag;
-      // New tags are unused by default
-      const newTagWithUsage: TagWithUsage = { ...newTag, is_used: false };
+      const newTagWithUsage: TagWithUsage = { ...newTag, is_used: false }; // New tags are unused by default
 
-      toast.success('Tag created', {
-        description: `'${newTag.name}' has been added to your tags.`,
-      });
+      toast.success('Tag created', { description: `'${newTag.name}' has been added to your tags.` });
 
-      const sorter = (a: Tag, b: Tag) => a.name.localeCompare(b.name);
       // Add to main tags and reorder
-      setTags((prev) => [...prev, newTagWithUsage].sort(sorter));
-      // Add tag to unused tag list
-      setUnusedTags((prev) => [...prev, newTagWithUsage].sort(sorter));
+      setTags((prev) => [...prev, newTagWithUsage].sort((a, b) => a.name.localeCompare(b.name)));
 
       setNewTagName('');
       setIsCreatingTag(false);
@@ -174,12 +170,11 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
 
   const handleDelete = async (tagToDelete: Tag) => {
     // Delete all associations from the junction table
+    // TODO: This would not be necessary if I am using ON DELETE CASCADE, but am unsure how to confirm that on supabase
     const { error: junctionError } = await supabase.from('item_tags').delete().eq('tag_id', tagToDelete.id);
 
     if (junctionError) {
-      toast.error('Delete failed', {
-        description: 'Could not remove tag from items.',
-      });
+      toast.error('Delete failed', { description: 'Could not remove tag from items.' });
       return;
     }
 
@@ -187,18 +182,12 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
     const { error: tagError } = await supabase.from('tags').delete().eq('id', tagToDelete.id);
 
     if (tagError) {
-      toast.error('Delete failed', {
-        description: 'There was a problem deleting the tag.',
-      });
+      toast.error('Delete failed', { description: 'There was a problem deleting the tag.' });
     } else {
-      toast.success('Tag deleted', {
-        description: `'${tagToDelete.name}' has been permanently deleted.`,
-      });
+      toast.success('Tag deleted', { description: `'${tagToDelete.name}' has been permanently deleted.` });
 
       // Refresh the list in the UI
-      const filterOutDeleted = (tag: Tag) => tag.id !== tagToDelete.id;
-      setTags((prev) => prev.filter(filterOutDeleted));
-      setUnusedTags((prev) => prev.filter(filterOutDeleted));
+      setTags((prev) => prev.filter((tag) => tag.id !== tagToDelete.id));
       onSuccess();
     }
   };
@@ -210,17 +199,12 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
     const { error } = await supabase.from('tags').delete().in('id', unusedTagIds);
 
     if (error) {
-      toast.error('Delete failed', {
-        description: 'There was a problem deleting unused tags.',
-      });
+      toast.error('Delete failed', { description: 'There was a problem deleting unused tags.' });
     } else {
-      toast.success('Unused tags deleted', {
-        description: `${unusedTags.length} tag(s) have been removed.`,
-      });
+      toast.success('Unused tags deleted', { description: `${unusedTags.length} tag(s) have been removed.` });
 
       // Refresh the UI
       setTags((prevTags) => prevTags.filter((tag) => !unusedTagIds.includes(tag.id)));
-      setUnusedTags([]);
       onSuccess();
     }
   };

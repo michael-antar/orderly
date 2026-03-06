@@ -28,11 +28,18 @@ import type { CategoryDefinition } from '@/types/types';
 import { DynamicIcon } from '../shared/DynamicIcon';
 import { CategoryBuilder } from './CategoryBuilder';
 
-type CategoryManagerProps = {
+export interface CategoryManagerProps {
   categories: CategoryDefinition[];
-  onDataChange?: () => void; // Bubble sidebar refresh
-};
+  /** Callback triggered after a category is created, updated, or deleted to refresh parent state. */
+  onDataChange?: () => void;
+}
 
+/**
+ * Renders a dialog for managing a user's categories.
+ * Handles listing categories, initiating creation/editing views, and handling deletions.
+ *
+ * Side Effects: Directly mutates the Supabase `category_definitions` table upon deletion.
+ */
 export const CategoryManager = ({ categories, onDataChange }: CategoryManagerProps) => {
   const [isOpen, setIsOpen] = useState(false);
 

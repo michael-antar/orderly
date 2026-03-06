@@ -1,13 +1,13 @@
-import { type ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-type TagBadgeProps = {
+export interface TagBadgeProps {
   name: string;
   children?: ReactNode;
   className?: string;
-};
+}
 
 // Simple hashing function to generate a color from a string
 const stringToHslColor = (str: string, s: number, l: number): string => {
@@ -15,11 +15,14 @@ const stringToHslColor = (str: string, s: number, l: number): string => {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const h = hash % 360;
+  const h = Math.abs(hash) % 360;
   return `hsl(${h}, ${s}%, ${l}%)`;
 };
 
-export const TagBadge = ({ name, children, className }: TagBadgeProps) => {
+/**
+ * Read-only tag with a hash-generated background and text color based on the name.
+ */
+export const TagBadge = memo(({ name, children, className }: TagBadgeProps) => {
   const backgroundColor = stringToHslColor(name, 30, 80); // Lighter background
   const textColor = stringToHslColor(name, 80, 25); // Darker text
 
@@ -29,4 +32,6 @@ export const TagBadge = ({ name, children, className }: TagBadgeProps) => {
       {children}
     </Badge>
   );
-};
+});
+
+TagBadge.displayName = 'TagBadge';

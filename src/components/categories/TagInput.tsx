@@ -1,5 +1,5 @@
 import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -10,16 +10,23 @@ import type { Tag } from '@/types/types';
 
 import { TagBadge } from './TagBadge';
 
-type TagInputProps = {
+export interface TagInputProps {
   selectedTags: Tag[];
   existingTags: Tag[];
-  categoryDefId?: string; // If omitted, "Create New" is disabled
+  /** If omitted, "Create New" is disabled */
+  categoryDefId?: string;
+  /** If blank, "Select tags..." */
   placeholder?: string;
-  popoverOpen?: boolean; // Optional control popover state from parent
+  /** Optional control popover state from parent */
+  popoverOpen?: boolean;
   onTagsChange: (newTags: Tag[]) => void;
   onPopoverOpenChange?: (open: boolean) => void;
-};
+}
 
+/**
+ * A searchable, multi-select combobox for managing tags.
+ * Supports on-the-fly creation of new tags if a `categoryDefId` is provided.
+ */
 export const TagInput = ({
   selectedTags,
   existingTags,
@@ -37,8 +44,6 @@ export const TagInput = ({
   // Handle controlled vs uncontrolled open state
   const isOpen = popoverOpen ?? internalOpen;
   const setOpen = onPopoverOpenChange ?? setInternalOpen;
-
-  // const inputRef = useRef<HTMLInputElement>(null);
 
   const handleSelect = useCallback(
     (tag: Tag) => {
@@ -68,7 +73,7 @@ export const TagInput = ({
       // Create a temp tag object
       // `Date.now()` will create a temp ID > 1 mil, which is treated as new by the hooks
       const newTag: Tag = {
-        id: Math.floor(Date.now() + Math.random()),
+        id: -(Date.now() + Math.floor(Math.random() * 1000)),
         name: tagName.trim(),
         category_def_id: categoryDefId,
         user_id: user.id,
@@ -80,18 +85,22 @@ export const TagInput = ({
     [selectedTags, onTagsChange, user, categoryDefId, setOpen],
   );
 
-  // Filter existing tags based on search input
-  const filteredTags = existingTags.filter(
-    (tag) =>
-      !selectedTags.some((selected) => selected.id === tag.id) &&
-      tag.name.toLowerCase().includes(inputValue.toLowerCase()),
-  );
+  const searchLower = inputValue.trim().toLowerCase();
 
-  const showCreateOption =
-    inputValue.trim() !== '' &&
-    categoryDefId &&
-    !existingTags.some((t) => t.name.toLowerCase() === inputValue.toLowerCase()) &&
-    !selectedTags.some((t) => t.name.toLowerCase() === inputValue.toLowerCase());
+  // Filter existing tags based on search input
+  const filteredTags = useMemo(() => {
+    if (!existingTags.length) return [];
+    return existingTags.filter(
+      (tag) => !selectedTags.some((selected) => selected.id === tag.id) && tag.name.toLowerCase().includes(searchLower),
+    );
+  }, [existingTags, selectedTags, searchLower]);
+
+  const showCreateOption = useMemo(() => {
+    if (!searchLower || !categoryDefId) return false;
+    const isExisting = existingTags.some((t) => t.name.toLowerCase() === searchLower);
+    const isSelected = selectedTags.some((t) => t.name.toLowerCase() === searchLower);
+    return !isExisting && !isSelected;
+  }, [searchLower, categoryDefId, existingTags, selectedTags]);
 
   return (
     <Popover open={isOpen} onOpenChange={setOpen} modal={true}>
