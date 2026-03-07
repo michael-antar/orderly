@@ -9,12 +9,17 @@ import { cn } from '@/lib/utils';
 
 import { DynamicIcon } from './DynamicIcon';
 
-type IconPickerProps = {
+export interface IconPickerProps {
+  /** For accessibility binding */
   id?: string;
   selectedIcon: string;
   onChange: (newIcon: string) => void;
-};
+}
 
+/**
+ * Searchable popover grid for selecting an icon.
+ * Integrates directly with the `DynamicIcon` component to map string keys to actual Lucide components.
+ */
 export const IconPicker = ({ id, selectedIcon, onChange }: IconPickerProps) => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -22,7 +27,9 @@ export const IconPicker = ({ id, selectedIcon, onChange }: IconPickerProps) => {
   // Based on search input
   const filteredIcons = useMemo(() => {
     if (!search) return ICON_OPTIONS;
-    return ICON_OPTIONS.filter((icon) => icon.toLowerCase().includes(search.toLowerCase()));
+
+    const searchLower = search.toLowerCase();
+    return ICON_OPTIONS.filter((icon) => icon.toLowerCase().includes(searchLower));
   }, [search]);
 
   return (

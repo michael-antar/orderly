@@ -4,13 +4,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import type { FieldDefinition, ItemPropertyValue, LocationValue } from '@/types/types';
 
-type Props = {
+export interface DynamicFieldRendererProps {
   field: FieldDefinition;
   value: ItemPropertyValue;
   onChange: (value: ItemPropertyValue) => void;
-};
+}
 
-export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
+/**
+ * Renders the appropriate form input component based on a field's data type.
+ * Supports strings, numbers, booleans (switches), dates, locations, and selects.
+ */
+export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRendererProps) => {
   const label = field.label || field.key;
 
   // --- Select (Enum) ---
@@ -21,7 +25,7 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: Props) => {
     return (
       <div className="space-y-2">
         <Label className="text-sm font-semibold">{label}</Label>
-        <Select value={stringValue} onValueChange={onChange}>
+        <Select value={stringValue || undefined} onValueChange={onChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select..." />
           </SelectTrigger>
