@@ -10,6 +10,10 @@ type HeaderProps = {
   onMenuClick: () => void;
 };
 
+/**
+ * Global top navigation bar.
+ * Contains the mobile menu toggle, active category breadcrumb, and user profile controls.
+ */
 export const Header = ({ activeCategoryName, onMenuClick }: HeaderProps) => {
   return (
     <header className="relative flex items-center justify-between p-4 bg-background border-b border-border">

@@ -15,9 +15,14 @@ type SidebarProps = {
   isLoading: boolean;
   onCategorySelect: (id: string) => void;
   onCategoriesChange: () => void;
-  onClose: () => void; // Mobile-only
+  /** Mobile Only: Triggered to close the mobile drawer. */
+  onClose: () => void;
 };
 
+/**
+ * Main side navigation for category selection.
+ * Collapsible drawer on mobile - fixed icon-rail on desktop
+ */
 export const Sidebar = ({
   categories,
   activeCategoryId,

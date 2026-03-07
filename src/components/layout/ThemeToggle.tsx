@@ -10,6 +10,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+/**
+ * Dropdown menu control for switching the theme.
+ * Integrates directly with the `useTheme` hook provided by `next-themes`.
+ */
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
