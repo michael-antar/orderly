@@ -9,10 +9,12 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 
-import { ForgotPasswordForm } from './forgot-password-form';
-import { LoginForm } from './login-form';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { LoginForm } from './LoginForm';
 import { SignUpForm } from './sign-up-form';
 import { UpdatePasswordForm } from './update-password-form';
+
+export type AuthView = 'login' | 'signup' | 'update-password' | 'forgot-password';
 
 const titles = {
   login: 'Login',
@@ -28,11 +30,15 @@ const descriptions = {
   'forgot-password': 'Enter your email to receive a password reset link.',
 };
 
-type AuthModalProps = {
+export interface AuthModalProps {
+  /** Trigger element to open the modal */
   children: React.ReactNode;
-  defaultView: 'login' | 'signup' | 'update-password' | 'forgot-password';
-};
+  defaultView: AuthView;
+}
 
+/**
+ * Authentication modal that can switch between: Login, Sign Up, Password Reset, and Password Update flows.
+ */
 export const AuthModal = ({ children, defaultView }: AuthModalProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState(defaultView);
@@ -48,11 +54,13 @@ export const AuthModal = ({ children, defaultView }: AuthModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{titles[view]}</DialogTitle>
-        <DialogDescription>{descriptions[view]}</DialogDescription>
-      </DialogHeader>
+
       <DialogContent className="sm:max-w-[425px] p-0 bg-transparent border-none shadow-none">
+        <DialogHeader className="sr-only">
+          <DialogTitle>{titles[view]}</DialogTitle>
+          <DialogDescription>{descriptions[view]}</DialogDescription>
+        </DialogHeader>
+
         {view === 'login' && (
           <LoginForm
             onSuccess={() => setIsOpen(false)}

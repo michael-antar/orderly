@@ -7,23 +7,26 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 
-export function LoginForm({
-  className,
-  onSuccess,
-  onViewChange,
-  onForgotPasswordClick,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'> & {
+export interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
   onSuccess: () => void;
   onViewChange: () => void;
   onForgotPasswordClick: () => void;
-}) {
+}
+
+/**
+ * Login form to authenticate users via Supabase.
+ * Handles loading states, error reporting, and navigation to other auth views.
+ *
+ * Side Effects:
+ * - Mutates the global Supabase session state upon successful login.
+ */
+export function LoginForm({ className, onSuccess, onViewChange, onForgotPasswordClick, ...props }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);

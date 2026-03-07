@@ -7,6 +7,18 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 
+export interface SignUpFormProps extends React.ComponentPropsWithoutRef<'div'> {
+  onSuccess: () => void;
+  onViewChange: () => void;
+}
+
+/**
+ * Sign-up form to register new users or update anonymous sessions via Supabase.
+ * Handles password validation, loading states, and a success confirmation view.
+ *
+ * Side Effects:
+ * - Mutates the global Supabase session state by updating the current user.
+ */
 export function SignUpForm({
   className,
   onSuccess,
@@ -20,7 +32,7 @@ export function SignUpForm({
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
@@ -57,6 +69,9 @@ export function SignUpForm({
             <p className="text-sm text-muted-foreground">
               You've successfully signed up. Please check your email to confirm your account before signing in.
             </p>
+            <Button className="w-full" onClick={onSuccess}>
+              Close
+            </Button>
           </CardContent>
         </Card>
       ) : (

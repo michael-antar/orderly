@@ -13,6 +13,15 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { AuthModal } from './AuthModal';
 
+/**
+ * Dropdown menu for user profile management.
+ * Displays current session details (email/ID) and adapts its actions based on
+ * whether the user is an anonymous guest or a fully registered (permanent) user.
+ *
+ * Side Effects:
+ * - Reads global session state from `useAuth`.
+ * - Can trigger the `signOut` method which mutates global auth state.
+ */
 export const UserProfile = () => {
   const { user, isPermanent, signOut } = useAuth();
 
