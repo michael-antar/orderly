@@ -11,58 +11,60 @@ const dateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
 });
 
+// Format dynamic value based on their type
+const renderPropertyValue = (field: FieldDefinition, value: ItemPropertyValue) => {
+  if (value === null || value === undefined || value === '') {
+    return <span className="text-muted-foreground italic text-sm">Empty</span>;
+  }
+
+  switch (field.type) {
+    case 'boolean':
+      return value ? 'Yes' : 'No';
+
+    case 'date': {
+      const dateStr = value as string;
+      const localDate = new Date(`${dateStr}T00:00:00`); // Parses as local time
+
+      // Fallback if date is invalid
+      if (isNaN(localDate.getTime())) return dateStr;
+
+      return dateFormatter.format(localDate);
+    }
+
+    case 'location': {
+      const loc = value as LocationValue;
+      return (
+        <div className="flex flex-col gap-1">
+          <span>{loc.address}</span>
+          {/* TODO: Add Map Link or Mini-Map here later */}
+          {loc.coordinates && (
+            <span className="text-xs text-muted-foreground">
+              {loc.coordinates.lat.toFixed(4)}, {loc.coordinates.lng.toFixed(4)}
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    case 'select':
+    case 'number':
+    case 'string':
+    default:
+      return String(value);
+  }
+};
+
 type ItemDetailsContentProps = {
   item: Item;
   categoryDef: CategoryDefinition;
 };
 
+/**
+ * Read-only data presentation layer for an item.
+ */
 export const ItemDetailsContent = ({ item, categoryDef }: ItemDetailsContentProps) => {
-  // Format dynamic value based on their type
-  const renderPropertyValue = (field: FieldDefinition, value: ItemPropertyValue) => {
-    if (value === null || value === undefined || value === '') {
-      return <span className="text-muted-foreground italic text-sm">Empty</span>;
-    }
-
-    switch (field.type) {
-      case 'boolean':
-        return value ? 'Yes' : 'No';
-
-      case 'date': {
-        const dateStr = value as string;
-        const localDate = new Date(`${dateStr}T00:00:00`); // Parses as local time
-
-        // Fallback if date is invalid
-        if (isNaN(localDate.getTime())) return dateStr;
-
-        return dateFormatter.format(localDate);
-      }
-
-      case 'location': {
-        const loc = value as LocationValue;
-        return (
-          <div className="flex flex-col gap-1">
-            <span>{loc.address}</span>
-            {/* TODO: Add Map Link or Mini-Map here later */}
-            {loc.coordinates && (
-              <span className="text-xs text-muted-foreground">
-                {loc.coordinates.lat.toFixed(4)}, {loc.coordinates.lng.toFixed(4)}
-              </span>
-            )}
-          </div>
-        );
-      }
-
-      case 'select':
-      case 'number':
-      case 'string':
-      default:
-        return String(value);
-    }
-  };
-
   const formattedDate = dateFormatter.format(new Date(item.created_at));
 
-  // TODO: Improve this formatting
   return (
     <>
       {/* Item Title */}

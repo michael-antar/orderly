@@ -1,6 +1,8 @@
 import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -18,9 +20,7 @@ import {
   type Tag,
 } from '@/types/types';
 
-import { TagInput } from './TagInput';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
+import { TagInput } from '../categories/TagInput';
 
 const TYPE_OPERATORS: Record<string, { value: FilterOperator; label: string }[]> = {
   string: [
@@ -50,7 +50,7 @@ const TYPE_OPERATORS: Record<string, { value: FilterOperator; label: string }[]>
   location: [{ value: 'contains', label: 'contains' }],
 };
 
-type SortControlsProps = {
+export interface SortControlsProps {
   categoryDef: CategoryDefinition;
   items: Item[];
   isEloDisabled: boolean;
@@ -60,8 +60,14 @@ type SortControlsProps = {
   filters: AppliedFilters;
 
   onSortApply: (newSortBy: string, newSortAsc: boolean, newFilters: AppliedFilters) => void;
-};
+}
 
+/**
+ * Popover containing controls for sorting and filtering an item list.
+ *
+ * Side Effects:
+ * - Fetches existing tags from Supabase on mount to populate the TagInput filter.
+ */
 export const SortControls = ({
   categoryDef,
   items,
@@ -171,35 +177,37 @@ export const SortControls = ({
     }
   };
 
-  const handleDescendantOpenChange = (open: boolean) => {
+  const handleDescendantOpenChange = useCallback((open: boolean) => {
     setOpenDescendants((prev) => (open ? prev + 1 : Math.max(0, prev - 1)));
-  };
+  }, []);
 
   const toggleSortDirection = () => {
     setLocalSortAsc((prev) => !prev);
   };
 
   const handleAddBlankRule = () => {
-    const newRule: FilterRule = {
-      id: Date.now().toString(),
-      field_key: '',
-      operator: '',
-      value: '',
-    };
-    setLocalFilters({
-      ...localFilters,
-      rules: [...localFilters.rules, newRule],
-    });
+    setLocalFilters((prev) => ({
+      ...prev,
+      rules: [
+        ...prev.rules,
+        {
+          id: Date.now().toString(),
+          field_key: '',
+          operator: '' as FilterOperator,
+          value: '',
+        },
+      ],
+    }));
   };
 
-  const handleRemoveRule = (id: string) => {
-    setLocalFilters({
-      ...localFilters,
-      rules: localFilters.rules.filter((rule) => rule.id !== id),
-    });
-  };
+  const handleRemoveRule = useCallback((id: string) => {
+    setLocalFilters((prev) => ({
+      ...prev,
+      rules: prev.rules.filter((rule) => rule.id !== id),
+    }));
+  }, []);
 
-  const handleChangeRule = (id: string, key: keyof FilterRule | 'field', value: ItemPropertyValue) => {
+  const handleChangeRule = useCallback((id: string, key: keyof FilterRule | 'field', value: ItemPropertyValue) => {
     setLocalFilters((prev) => ({
       ...prev,
       rules: prev.rules.map((r) => {
@@ -217,14 +225,10 @@ export const SortControls = ({
         return { ...r, [key]: value } as FilterRule;
       }),
     }));
-  };
+  }, []);
 
   const handleClearFilters = () => {
     setLocalFilters({ tags: [], rules: [] });
-  };
-
-  const getFieldDef = (fieldKey: ItemPropertyValue): FieldDefinition | undefined => {
-    return filterRuleOptions.find((f) => f.key === fieldKey);
   };
 
   return (
@@ -296,129 +300,25 @@ export const SortControls = ({
               <TagInput
                 selectedTags={localFilters.tags}
                 existingTags={existingTags}
-                onTagsChange={(newTags) =>
-                  setLocalFilters({
-                    ...localFilters,
-                    tags: newTags,
-                  })
-                }
+                onTagsChange={(newTags) => setLocalFilters((prev) => ({ ...prev, tags: newTags }))}
                 popoverOpen={isTagPopoverOpen}
                 onPopoverOpenChange={setTagPopoverOpen}
               />
 
-              {/* Category Field Filter Rules */}
+              {/* Dynamic Filter Rules */}
               <div className="space-y-3">
-                {localFilters.rules.map((rule, idx) => {
-                  const fieldDef = getFieldDef(rule.field_key);
-                  const availableOps = fieldDef ? TYPE_OPERATORS[fieldDef.type] : [];
-                  const selectOptions =
-                    fieldDef?.type === 'select' ? getSelectOptions(fieldDef.key, fieldDef.options) : [];
-
-                  return (
-                    <div key={rule.id} className="p-3 border rounded-md bg-muted/20 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-muted-foreground">Condition {idx + 1}</Label>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 -mr-2"
-                          onClick={() => handleRemoveRule(rule.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-
-                      {/* Field & Operator Row */}
-                      <div className="flex gap-2">
-                        <Select
-                          value={rule.field_key}
-                          onValueChange={(val) => handleChangeRule(rule.id, 'field', val)}
-                          onOpenChange={handleDescendantOpenChange}
-                        >
-                          <SelectTrigger className="flex-1 h-8 text-xs">
-                            <SelectValue placeholder="Field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filterRuleOptions.map((f) => (
-                              <SelectItem key={f.key} value={f.key}>
-                                {f.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        <Select
-                          value={rule.operator}
-                          onValueChange={(val) => handleChangeRule(rule.id, 'operator', val)}
-                          onOpenChange={handleDescendantOpenChange}
-                          disabled={!rule.field_key}
-                        >
-                          <SelectTrigger className="w-[80px] h-8 text-xs">
-                            <SelectValue placeholder="Op" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableOps?.map((op) => (
-                              <SelectItem key={op.value} value={op.value}>
-                                {op.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Value Input Row */}
-                      <div>
-                        {fieldDef?.type === 'select' ? (
-                          <Select
-                            value={String(rule.value)}
-                            onValueChange={(val) => handleChangeRule(rule.id, 'value', val)}
-                            onOpenChange={handleDescendantOpenChange}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select value..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {selectOptions.map((opt) => {
-                                const isLegacy = !fieldDef.options?.includes(opt);
-                                return (
-                                  <SelectItem key={opt} value={opt}>
-                                    {opt}{' '}
-                                    {isLegacy && (
-                                      <span className="text-muted-foreground text-[10px] ml-1">(Legacy)</span>
-                                    )}
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        ) : fieldDef?.type === 'boolean' ? (
-                          <Select
-                            value={String(rule.value)}
-                            onValueChange={(val) => handleChangeRule(rule.id, 'value', val === 'true')}
-                            onOpenChange={handleDescendantOpenChange}
-                          >
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="true">True</SelectItem>
-                              <SelectItem value="false">False</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            className="h-8 text-xs"
-                            placeholder="Value..."
-                            type={fieldDef?.type === 'number' ? 'number' : fieldDef?.type === 'date' ? 'date' : 'text'}
-                            value={String(rule.value)}
-                            onChange={(e) => handleChangeRule(rule.id, 'value', e.target.value)}
-                            disabled={!rule.operator}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                {localFilters.rules.map((rule, idx) => (
+                  <FilterRuleRow
+                    key={rule.id}
+                    rule={rule}
+                    index={idx}
+                    filterRuleOptions={filterRuleOptions}
+                    getSelectOptions={getSelectOptions}
+                    onChange={handleChangeRule}
+                    onRemove={handleRemoveRule}
+                    onOpenChange={handleDescendantOpenChange}
+                  />
+                ))}
               </div>
 
               {/* Add Rule Button */}
@@ -439,3 +339,120 @@ export const SortControls = ({
     </Popover>
   );
 };
+
+interface FilterRuleRowProps {
+  rule: FilterRule;
+  index: number;
+  filterRuleOptions: FieldDefinition[];
+  getSelectOptions: (fieldKey: string, schemaOptions?: string[]) => string[];
+  onChange: (id: string, key: keyof FilterRule | 'field', value: ItemPropertyValue) => void;
+  onRemove: (id: string) => void;
+  onOpenChange: (open: boolean) => void;
+}
+
+const FilterRuleRow = memo(
+  ({ rule, index, filterRuleOptions, getSelectOptions, onChange, onRemove, onOpenChange }: FilterRuleRowProps) => {
+    const fieldDef = filterRuleOptions.find((f) => f.key === rule.field_key);
+    const availableOps = fieldDef ? TYPE_OPERATORS[fieldDef.type] : [];
+    const selectOptions = fieldDef?.type === 'select' ? getSelectOptions(fieldDef.key, fieldDef.options) : [];
+
+    return (
+      <div className="p-3 border rounded-md bg-muted/20 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs text-muted-foreground">Condition {index + 1}</Label>
+          <Button variant="ghost" size="icon" className="h-6 w-6 -mr-2" onClick={() => onRemove(rule.id)}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+
+        {/* Field & Operator Row */}
+        <div className="flex gap-2">
+          <Select
+            value={rule.field_key}
+            onValueChange={(val) => onChange(rule.id, 'field', val)}
+            onOpenChange={onOpenChange}
+          >
+            <SelectTrigger className="flex-1 h-8 text-xs">
+              <SelectValue placeholder="Field" />
+            </SelectTrigger>
+            <SelectContent>
+              {filterRuleOptions.map((f) => (
+                <SelectItem key={f.key} value={f.key}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={rule.operator}
+            onValueChange={(val) => onChange(rule.id, 'operator', val)}
+            onOpenChange={onOpenChange}
+            disabled={!rule.field_key}
+          >
+            <SelectTrigger className="w-[80px] h-8 text-xs">
+              <SelectValue placeholder="Op" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableOps?.map((op) => (
+                <SelectItem key={op.value} value={op.value}>
+                  {op.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Value Input Row */}
+        <div>
+          {fieldDef?.type === 'select' ? (
+            <Select
+              value={String(rule.value)}
+              onValueChange={(val) => onChange(rule.id, 'value', val)}
+              onOpenChange={onOpenChange}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select value..." />
+              </SelectTrigger>
+              <SelectContent>
+                {selectOptions.map((opt) => {
+                  const isLegacy = !fieldDef.options?.includes(opt);
+                  return (
+                    <SelectItem key={opt} value={opt}>
+                      {opt} {isLegacy && <span className="text-muted-foreground text-[10px] ml-1">(Legacy)</span>}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          ) : fieldDef?.type === 'boolean' ? (
+            <Select
+              value={String(rule.value)}
+              onValueChange={(val) => onChange(rule.id, 'value', val === 'true')}
+              onOpenChange={onOpenChange}
+            >
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">True</SelectItem>
+                <SelectItem value="false">False</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              className="h-8 text-xs"
+              placeholder="Value..."
+              type={fieldDef?.type === 'number' ? 'number' : fieldDef?.type === 'date' ? 'date' : 'text'}
+              value={String(rule.value)}
+              onChange={(e) => onChange(rule.id, 'value', e.target.value)}
+              disabled={!rule.operator}
+            />
+          )}
+        </div>
+      </div>
+    );
+  },
+);
+
+FilterRuleRow.displayName = 'FilterRuleRow';

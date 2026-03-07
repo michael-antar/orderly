@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { Toaster } from '@/components/ui/sonner';
 
-import { CategoryView } from './components/CategoryView';
-import { Header } from './components/Header';
-import { Sidebar } from './components/Sidebar';
+import { CategoryView } from './components/categories/CategoryView';
+import { Header } from './components/layout/Header';
+import { Sidebar } from './components/layout/Sidebar';
 import { useAuth } from './contexts/AuthContext';
 import { ensureUserCategories } from './lib/categoryUtils';
 import { type CategoryDefinition } from './types/types';

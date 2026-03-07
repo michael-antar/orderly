@@ -19,16 +19,31 @@ import type { CategoryDefinition, Item, Status } from '@/types/types';
 import { ItemDetailsContent } from './ItemDetailsContent';
 import { ItemForm } from './ItemForm';
 
-type ItemDetailViewProps = {
+export interface ItemDetailViewProps {
+  /** If null, empty placeholder is shown instead */
   item: Item | null;
   categoryDef: CategoryDefinition | null;
-  activeListStatus?: Status;
   onClose: () => void;
   onEdit: (newStatus: Status, updatedItem: Item) => void;
   onDelete: () => void;
-};
+}
 
+/**
+ * Interactive detail panel for a specific item.
+ * Controls the read-only display, the edit flow, and the deletion lifecycle.
+ *
+ * Side Effects:
+ * - Mutates the Supabase `items` table upon confirmed deletion.
+ */
 export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }: ItemDetailViewProps) => {
+  if (!item || !categoryDef) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p className="text-muted-foreground">Select an item to see details</p>
+      </div>
+    );
+  }
+
   const handleDelete = async () => {
     if (!item) return;
 
@@ -49,14 +64,6 @@ export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }:
     }
   };
 
-  if (!item || !categoryDef) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Select an item to see details</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col m-4 pt-4 lg:pt-0">
       {/* Button Row */}
@@ -70,12 +77,7 @@ export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }:
         {/* Button Row Right Side */}
         <div className="flex">
           {/* Edit Item Form */}
-          <ItemForm
-            item={item}
-            categoryDef={categoryDef}
-            mode="edit"
-            onSuccess={(newStatus, newItem) => onEdit(newStatus, newItem)}
-          />
+          <ItemForm item={item} categoryDef={categoryDef} mode="edit" onSuccess={onEdit} />
 
           {/* Delete Button and Confirmation Dialog */}
           <AlertDialog>

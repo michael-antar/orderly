@@ -201,10 +201,10 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   };
 
   // Toggle selection of item
-  const handleSelectItem = (item: Item) => {
+  const handleSelectItem = useCallback((item: Item) => {
     setSelectedItemId((prev) => (prev === item.id ? null : item.id));
     setIsDetailViewOpen(true);
-  };
+  }, []);
 
   // Refresh list and start calibration
   const handleAddSuccess = useCallback(
@@ -393,7 +393,6 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
         <ItemDetailView
           item={selectedItem}
           categoryDef={categoryDef}
-          activeListStatus={activeTab}
           onClose={() => setIsDetailViewOpen(false)}
           onEdit={handleEditSuccess}
           onDelete={handleDeleteSuccess}

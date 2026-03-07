@@ -22,15 +22,21 @@ import type { CategoryDefinition, Item, Status } from '@/types/types';
 import { TagInput } from '../categories/TagInput';
 import { DynamicFieldRenderer } from '../shared/DynamicFieldRenderer';
 
-type ItemFormProps = {
-  // Determine mode by checking if 'item' prop exists
+export interface ItemFormProps {
+  /** Null if mode is 'add'. */
   item?: Item;
   categoryDef: CategoryDefinition;
   mode: 'add' | 'edit';
   trigger?: React.ReactNode;
   onSuccess: (newStatus: Status, newItem: Item) => void;
-};
+}
 
+/**
+ * Dialog containing a dynamic form for creating or editing items.
+ *
+ * Side Effects:
+ * - Mutates the Supabase `items`, `tags`, and `item_tags` tables on submit (handled via hook).
+ */
 export const ItemForm = memo(function ItemForm({ item, categoryDef, mode, trigger, onSuccess }: ItemFormProps) {
   const {
     isOpen,
@@ -52,7 +58,7 @@ export const ItemForm = memo(function ItemForm({ item, categoryDef, mode, trigge
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger ||
-          (mode == 'add' ? (
+          (mode === 'add' ? (
             <Button>
               <Plus className="h-4 w-4" />
             </Button>

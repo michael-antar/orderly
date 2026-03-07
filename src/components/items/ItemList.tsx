@@ -1,17 +1,28 @@
+import { useCallback } from 'react';
+
 import type { Item } from '@/types/types';
 
 import { ItemCard } from './ItemCard';
 import { ItemCardSkeleton } from './ItemCardSkeleton';
 
-type ItemListProps = {
+const PODIUM_STYLES: Record<number, string> = {
+  0: 'border-yellow-500', // Gold
+  1: 'border-slate-500', // Silver
+  2: 'border-orange-500', // Bronze
+};
+
+export interface ItemListProps {
   items: Item[];
   loading: boolean;
   selectedItem: Item | null;
   onSelectItem: (item: Item) => void;
   emptyMessage: string;
   showPodium?: boolean;
-};
+}
 
+/**
+ * Renders a list of item cards with loading skeletons and podium highlighting.
+ */
 export const ItemList = ({
   items,
   loading,
@@ -20,6 +31,13 @@ export const ItemList = ({
   emptyMessage,
   showPodium = false,
 }: ItemListProps) => {
+  const handleSelect = useCallback(
+    (itemToSelect: Item) => {
+      onSelectItem(itemToSelect);
+    },
+    [onSelectItem],
+  );
+
   // Use skeleton if loading
   if (loading) {
     const skeletonCount = items.length > 0 ? items.length : 5;
@@ -40,16 +58,10 @@ export const ItemList = ({
     );
   }
 
-  const podiumStyles: { [key: number]: string } = {
-    0: 'border-yellow-500', // Gold
-    1: 'border-slate-500', // Silver
-    2: 'border-orange-500', // Bronze
-  };
-
   return (
     <div onClick={(e) => e.stopPropagation()}>
       {items.map((item, index) => {
-        const podiumClass = showPodium ? (podiumStyles[index] ?? '') : '';
+        const podiumClass = showPodium ? (PODIUM_STYLES[index] ?? '') : '';
 
         return (
           <div key={item.id} className="flex items-center gap-4">
@@ -60,7 +72,7 @@ export const ItemList = ({
             <div className="flex-1 min-w-0">
               <ItemCard
                 item={item}
-                onSelect={() => onSelectItem(item)}
+                onSelect={handleSelect}
                 isSelected={selectedItem?.id === item.id}
                 podiumClass={podiumClass}
               />

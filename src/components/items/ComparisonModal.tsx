@@ -19,23 +19,29 @@ import type { CategoryDefinition, Item } from '@/types/types';
 
 import { ItemDetailsContent } from './ItemDetailsContent';
 
-type Result = {
+export interface ComparisonResult {
   winnerName: string;
   loserName: string;
   winnerEloChange: number;
   loserEloChange: number;
-};
+}
 
-type ComparisonModalProps = {
+export interface ComparisonModalProps {
   rankedItems: Item[];
+  /** If included, puts this item in "Calibration Mode  " */
   calibrationItem?: Item | null;
   open: boolean;
   categoryDef: CategoryDefinition;
   onOpenChange: (isOpen: boolean) => void;
   onSuccess: () => void;
   onCalibrationComplete?: () => void;
-};
+}
 
+/**
+ * Modal for head-to-head item comparisons.
+ * Supports both standard random matching and targeted calibration for new items.
+ * Uses Elo rating logic (via Supabase RPC) to update rankings.
+ */
 export const ComparisonModal = ({
   rankedItems,
   calibrationItem,
@@ -48,7 +54,7 @@ export const ComparisonModal = ({
   const { items, currentPair, getNextPair, startNormalComparison, startCalibration, isCalibrating, updateRatings } =
     useComparisonQueue(rankedItems);
 
-  const [result, setResult] = useState<Result | null>(null);
+  const [result, setResult] = useState<ComparisonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [itemToView, setItemToView] = useState<Item | null>(null);
@@ -161,72 +167,22 @@ export const ComparisonModal = ({
             {currentPair && itemA && itemB && (
               <>
                 {/* Left Item Card */}
-                <div
-                  className={cn(
-                    'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
-                    result && result.winnerName === itemA.name && 'border-green-500 bg-green-500/10',
-                    result && result.loserName === itemA.name && 'border-red-500 bg-red-500/10',
-                  )}
-                >
-                  <button
-                    onClick={() => setItemToView(itemA)}
-                    className="text-xl font-semibold text-center h-16 flex items-center hover:underline"
-                    disabled={!!result}
-                  >
-                    {itemA.name}
-                  </button>
-                  {!result ? (
-                    <Button className="w-full" onClick={() => handleChoose(itemA, itemB)} disabled={isLoading}>
-                      Choose
-                    </Button>
-                  ) : (
-                    <div className="h-10 flex items-center justify-center font-semibold">
-                      {(() => {
-                        const eloChange =
-                          result.winnerName === itemA.name ? result.winnerEloChange : result.loserEloChange;
-                        return (
-                          <p className={cn(eloChange > 0 ? 'text-green-500' : 'text-red-500')}>
-                            Elo: {eloChange > 0 ? `+${eloChange}` : eloChange}
-                          </p>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
+                <ComparisonCard
+                  item={itemA}
+                  result={result}
+                  isLoading={isLoading}
+                  onView={() => setItemToView(itemA)}
+                  onChoose={() => handleChoose(itemA, itemB)}
+                />
 
                 {/* Right Item Card */}
-                <div
-                  className={cn(
-                    'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
-                    result && result.winnerName === itemB.name && 'border-green-500 bg-green-500/10',
-                    result && result.loserName === itemB.name && 'border-red-500 bg-red-500/10',
-                  )}
-                >
-                  <button
-                    onClick={() => setItemToView(itemB)}
-                    className="text-xl font-semibold text-center h-16 flex items-center hover:underline"
-                    disabled={!!result}
-                  >
-                    {itemB.name}
-                  </button>
-                  {!result ? (
-                    <Button className="w-full" onClick={() => handleChoose(itemB, itemA)} disabled={isLoading}>
-                      Choose
-                    </Button>
-                  ) : (
-                    <div className="h-10 flex items-center justify-center font-semibold">
-                      {(() => {
-                        const eloChange =
-                          result.winnerName === itemB.name ? result.winnerEloChange : result.loserEloChange;
-                        return (
-                          <p className={cn(eloChange > 0 ? 'text-green-500' : 'text-red-500')}>
-                            Elo: {eloChange > 0 ? `+${eloChange}` : eloChange}
-                          </p>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </div>
+                <ComparisonCard
+                  item={itemB}
+                  result={result}
+                  isLoading={isLoading}
+                  onView={() => setItemToView(itemB)}
+                  onChoose={() => handleChoose(itemB, itemA)}
+                />
               </>
             )}
           </div>
@@ -257,5 +213,51 @@ export const ComparisonModal = ({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+};
+
+export interface ComparisonCardProps {
+  item: Item;
+  result: ComparisonResult | null;
+  isLoading: boolean;
+  onView: () => void;
+  onChoose: () => void;
+}
+
+const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: ComparisonCardProps) => {
+  const isWinner = result?.winnerName === item.name;
+  const isLoser = result?.loserName === item.name;
+  const eloChange = isWinner ? result?.winnerEloChange : isLoser ? result?.loserEloChange : 0;
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
+        isWinner && 'border-green-500 bg-green-500/10',
+        isLoser && 'border-red-500 bg-red-500/10',
+      )}
+    >
+      <button
+        onClick={onView}
+        className="text-xl font-semibold text-center h-16 flex items-center hover:underline"
+        disabled={!!result}
+      >
+        {item.name}
+      </button>
+
+      {!result ? (
+        <Button className="w-full" onClick={onChoose} disabled={isLoading}>
+          Choose
+        </Button>
+      ) : (
+        <div className="h-10 flex items-center justify-center font-semibold">
+          {eloChange !== undefined && (
+            <p className={cn(eloChange > 0 ? 'text-green-500' : 'text-red-500')}>
+              Elo: {eloChange > 0 ? `+${eloChange}` : eloChange}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
