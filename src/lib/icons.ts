@@ -33,6 +33,11 @@ import {
   Zap,
 } from 'lucide-react';
 
+/**
+ * Maps string icon keys to their corresponding Lucide icon components.
+ * Used by `DynamicIcon` to resolve a stored key string to a renderable component.
+ * Includes a `'default'` fallback key that maps to `Circle`.
+ */
 export const iconMap: Record<string, LucideIcon> = {
   restaurant: Utensils,
   movie: Film,
@@ -68,7 +73,10 @@ export const iconMap: Record<string, LucideIcon> = {
   default: Circle,
 };
 
-// Source of truth for selectable icons. Filter default so it doesn't show up as a choice
+/**
+ * Sorted list of all user-selectable icon keys derived from `iconMap`.
+ * The `'default'` key is excluded so it is never presented as a user-facing choice.
+ */
 export const ICON_OPTIONS = Object.keys(iconMap)
   .filter((key) => key !== 'default')
   .sort();

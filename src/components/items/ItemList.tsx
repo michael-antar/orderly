@@ -1,6 +1,4 @@
-import { useCallback } from 'react';
-
-import type { Item } from '@/types/types';
+import type { FieldDefinition, Item } from '@/types/types';
 
 import { ItemCard } from './ItemCard';
 import { ItemCardSkeleton } from './ItemCardSkeleton';
@@ -13,6 +11,7 @@ const PODIUM_STYLES: Record<number, string> = {
 
 export interface ItemListProps {
   items: Item[];
+  fieldDefinitions: FieldDefinition[];
   loading: boolean;
   selectedItem: Item | null;
   onSelectItem: (item: Item) => void;
@@ -25,19 +24,13 @@ export interface ItemListProps {
  */
 export const ItemList = ({
   items,
+  fieldDefinitions,
   loading,
   selectedItem,
   onSelectItem,
   emptyMessage,
   showPodium = false,
 }: ItemListProps) => {
-  const handleSelect = useCallback(
-    (itemToSelect: Item) => {
-      onSelectItem(itemToSelect);
-    },
-    [onSelectItem],
-  );
-
   // Use skeleton if loading
   if (loading) {
     const skeletonCount = items.length > 0 ? items.length : 5;
@@ -72,7 +65,8 @@ export const ItemList = ({
             <div className="flex-1 min-w-0">
               <ItemCard
                 item={item}
-                onSelect={handleSelect}
+                fieldDefinitions={fieldDefinitions}
+                onSelect={onSelectItem}
                 isSelected={selectedItem?.id === item.id}
                 podiumClass={podiumClass}
               />

@@ -19,12 +19,7 @@ export interface ForgotPasswordFormProps extends React.ComponentPropsWithoutRef<
  * Side Effects:
  * - Triggers a network request to Supabase to send a password reset email.
  */
-export function ForgotPasswordForm({
-  className,
-  onSuccess,
-  onViewChange,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void }) {
+export function ForgotPasswordForm({ className, onSuccess, onViewChange, ...props }: ForgotPasswordFormProps) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);

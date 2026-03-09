@@ -125,16 +125,13 @@ export const ComparisonModal = ({
   // Get the first pair when the modal opens
   useEffect(() => {
     if (open) {
-      console.group('[ComparisonModal] Opened. Starting calibration or comparison.');
       if (calibrationItem) {
-        console.log('Received calibrationItem: ', calibrationItem);
         startCalibration(calibrationItem);
       } else {
         startNormalComparison();
       }
       setResult(null);
       setHasStarted(true);
-      console.groupEnd();
     }
   }, [open, startNormalComparison, startCalibration, calibrationItem]);
 

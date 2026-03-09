@@ -251,7 +251,7 @@ export const SortControls = ({
         {/* Flex container for entire popover */}
         <div className="flex flex-col max-h-[75vh]">
           {/* Header + Sort Content (not scrollable) */}
-          <div className="p-4 pb-0 flex-shrink 0">
+          <div className="p-4 pb-0 flex-shrink-0">
             {/* Header */}
             <div className="space-y-2">
               <h4 className="font-medium leading-none">Sort & Filter</h4>

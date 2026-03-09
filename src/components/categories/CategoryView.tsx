@@ -123,11 +123,14 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
       // Apply sorting
       let sortColumn = sortBy;
-      // Map "properties.key" to "properties->key" or "properties->>key" for sorting
-      // TODO: This might get iffy when trying to sort with Numerical field, but this works for now
+      // Map "properties.key" to a JSONB path expression for Supabase.
+      // Number fields use an explicit ::numeric cast so values sort correctly (avoids
+      // lexicographic comparison where "9" > "10").
       if (sortBy.startsWith('properties.')) {
         const key = sortBy.split('.')[1];
-        sortColumn = `properties->>${key}`;
+        const fieldDef = categoryDef.field_definitions.find((f) => f.key === key);
+        sortColumn =
+          fieldDef?.type === 'number' ? `(properties->>'${key}')::numeric` : `properties->>'${key}'`;
       }
 
       const { data, error } = await query.order(sortColumn, {
@@ -356,6 +359,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 <TabsContent value="ranked">
                   <ItemList
                     items={rankedItems}
+                    fieldDefinitions={categoryDef.field_definitions}
                     loading={loading}
                     selectedItem={selectedItem}
                     onSelectItem={handleSelectItem}
@@ -366,6 +370,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 <TabsContent value="backlog">
                   <ItemList
                     items={backlogItems}
+                    fieldDefinitions={categoryDef.field_definitions}
                     loading={loading}
                     selectedItem={selectedItem}
                     onSelectItem={handleSelectItem}

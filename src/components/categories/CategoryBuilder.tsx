@@ -109,7 +109,7 @@ export const CategoryBuilder = ({ categoryId, onSave, onCancel }: CategoryBuilde
       type: 'string',
       required: false,
     };
-    setFields([newField, ...fields]);
+    setFields((prev) => [newField, ...prev]);
 
     // Autofocus
     setTimeout(() => {

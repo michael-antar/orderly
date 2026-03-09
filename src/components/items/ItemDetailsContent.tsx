@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { formatFieldValueAsText } from '@/lib/utils';
 import type { CategoryDefinition, FieldDefinition, Item, ItemPropertyValue, LocationValue } from '@/types/types';
 
 import { TagBadge } from '../categories/TagBadge';
@@ -19,7 +20,7 @@ const renderPropertyValue = (field: FieldDefinition, value: ItemPropertyValue) =
 
   switch (field.type) {
     case 'boolean':
-      return value ? 'Yes' : 'No';
+      return formatFieldValueAsText(field, value);
 
     case 'date': {
       const dateStr = value as string;
@@ -50,7 +51,7 @@ const renderPropertyValue = (field: FieldDefinition, value: ItemPropertyValue) =
     case 'number':
     case 'string':
     default:
-      return String(value);
+      return formatFieldValueAsText(field, value);
   }
 };
 

@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { type CombinedItem } from '@/types/types';
+import { type Item } from '@/types/types';
 
 // Type for a pair of items to be compared
-export type ItemPair = [CombinedItem, CombinedItem];
+/** A tuple representing two items to be matched head-to-head in a comparison. */
+export type ItemPair = [Item, Item];
 
-// Efficiently shuffles an array using the Fisher-Yates shuffle
+/**
+ * Returns a new randomly shuffled copy of the input array using the Fisher-Yates algorithm.
+ * Does **not** mutate the original array.
+ *
+ * @param array - The array to shuffle.
+ * @returns A new array with the same elements in a random order.
+ */
 const shuffle = <T>(array: T[]): T[] => {
   const newArray = [...array];
 
@@ -17,8 +24,22 @@ const shuffle = <T>(array: T[]): T[] => {
   return newArray;
 };
 
-export const useComparisonQueue = (initialItems: CombinedItem[]) => {
-  const [items, setItems] = useState<CombinedItem[]>(initialItems); // Holds the list as it's modifiued by `updateRatings`
+/**
+ * Manages state and logic for item comparison sessions.
+ *
+ * Supports two modes:
+ * - **Normal** (`startNormalComparison`): Builds a queue of random and rating-similar pairs
+ *   from all ranked items, biased towards close matchups for more informative comparisons.
+ * - **Calibration** (`startCalibration`): Generates a short targeted queue to place a
+ *   newly added item against the median, top 25%, and bottom 25% of the ranked list.
+ *
+ * Handles prop synchronisation so the internal item list reflects the latest external
+ * `initialItems` whenever a new comparison session begins.
+ *
+ * @param initialItems - The current list of ranked items available for comparison.
+ */
+export const useComparisonQueue = (initialItems: Item[]) => {
+  const [items, setItems] = useState<Item[]>(initialItems); // Holds the list as it's modifiued by `updateRatings`
 
   const prevInitialItemsRef = useRef(initialItems); // Tracks the `initialItems` prop from the previous render
 
@@ -66,17 +87,11 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
   // Generate mixed queue of random and similar pairs for comparison
   const startNormalComparison = useCallback(() => {
-    console.groupCollapsed('[startNormalComparison] Generate queue for comparisons');
-
     setIsCalibrating(false);
 
     const currentItems = itemsRef.current;
-    console.log({ currentItems: currentItems });
 
     if (currentItems.length < 2) {
-      console.log('currentItems too small for comparisons, ending.');
-      console.groupEnd();
-
       setComparisonQueue([]);
       setCurrentPair(null);
       return;
@@ -101,18 +116,13 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         similarPairs.push([itemA, itemB]);
       }
     }
-    console.log(`Generated ${similarPairs.length} similar pairs`);
-
     const maxPossiblePairs = (currentItems.length * (currentItems.length - 1)) / 2;
-    console.log('Maximum possible pairs:', maxPossiblePairs);
 
     const targetQueueSize = Math.min(100, maxPossiblePairs);
     const numSimilar = Math.min(similarPairs.length, 85);
     const numRandom = targetQueueSize - numSimilar;
-    console.log(`Pair split: ${numSimilar} similar, ${numRandom} random`);
 
     const similarSubset = shuffle(similarPairs).slice(0, numSimilar);
-    console.log('Similar pairs:', similarSubset);
 
     const similarPairIds = new Set<string>(similarSubset.map((pair) => [pair[0].id, pair[1].id].sort().join('-')));
 
@@ -120,11 +130,9 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
     if (numRandom > 0) {
       const availableRandomPairs = maxPossiblePairs - similarPairIds.size;
-      console.log(`Generating ${numRandom} random pairs from ${availableRandomPairs} available random pairs.`);
 
       if (numRandom > availableRandomPairs / 4) {
         // Shuffle and slice (for dense selection)
-        console.log('Generating using shuffle and slice method');
         const randomPool: ItemPair[] = [];
         for (let i = 0; i < currentItems.length; i++) {
           for (let j = i + 1; j < currentItems.length; j++) {
@@ -139,7 +147,6 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
         randomSubset = shuffle(randomPool).slice(0, numRandom);
       } else {
         // Rejection sampling (for sparse selections)
-        console.log('Generating using rejection sampling method');
         const addedPairIds = new Set<string>(similarPairIds);
         const listSize = currentItems.length;
 
@@ -158,39 +165,27 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
           }
         }
       }
-
-      console.log('Random pairs:', randomSubset);
     }
 
     const finalQueue = shuffle([...similarSubset, ...randomSubset]);
-    console.log('Final queue:', finalQueue);
 
     setComparisonQueue(finalQueue);
     setCurrentPair(finalQueue[0] || null);
-
-    console.groupEnd();
   }, []);
 
   // Generate and start a calibration queue
-  const startCalibration = useCallback((newItem: CombinedItem) => {
-    console.group('[startCalibration] Generate queue for calibration');
+  const startCalibration = useCallback((newItem: Item) => {
     setIsCalibrating(true);
     const currentItems = itemsRef.current;
-    console.log({ newItem: newItem, currentItems: currentItems });
 
     const itemInList = currentItems.find((item) => item.id === newItem.id);
     if (!itemInList) {
-      console.error('newItem was not found in the main items list.');
-      console.groupEnd();
+      console.error('[useComparisonQueue] startCalibration: newItem was not found in the main items list.');
       return;
     }
 
     const otherItems = currentItems.filter((item) => item.id !== newItem.id);
-    console.log({ otherItems: otherItems });
     if (otherItems.length === 0) {
-      console.log('No other items to compare against. Ending.');
-      console.groupEnd();
-
       setComparisonQueue([]);
       setCurrentPair(null);
       return;
@@ -204,17 +199,12 @@ export const useComparisonQueue = (initialItems: CombinedItem[]) => {
 
     // Add unique items to the queue
     const indices = [...new Set([midIndex, topQuartileIndex, bottomQuartileIndex])];
-    console.log('Calculated indices to check:', indices);
 
     indices.forEach((index) => {
-      console.log(`Checking index ${index}:`, otherItems[index]);
       if (otherItems[index]) {
         queue.push([itemInList, otherItems[index]]);
       }
     });
-
-    console.log('Final queue being set:', queue);
-    console.groupEnd();
 
     setComparisonQueue(queue);
     setCurrentPair(queue[0] || null);

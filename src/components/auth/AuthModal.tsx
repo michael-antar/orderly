@@ -11,8 +11,8 @@ import {
 
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { LoginForm } from './LoginForm';
-import { SignUpForm } from './sign-up-form';
-import { UpdatePasswordForm } from './update-password-form';
+import { SignUpForm } from './SignUpForm';
+import { UpdatePasswordForm } from './UpdatePasswordForm';
 
 export type AuthView = 'login' | 'signup' | 'update-password' | 'forgot-password';
 

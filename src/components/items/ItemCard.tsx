@@ -2,12 +2,13 @@ import { memo, useMemo } from 'react';
 
 import { Card } from '@/components/ui/card';
 import { cn, getCategoryDetails } from '@/lib/utils';
-import type { Item } from '@/types/types';
+import type { FieldDefinition, Item } from '@/types/types';
 
 import { TagBadge } from '../categories/TagBadge';
 
 export interface ItemCardProps {
   item: Item;
+  fieldDefinitions: FieldDefinition[];
   onSelect: (item: Item) => void;
   isSelected: boolean;
   podiumClass?: string;
@@ -17,14 +18,14 @@ export interface ItemCardProps {
  * Renders an individual item within a list or grid.
  * Wrapped in React.memo to prevent unnecessary re-renders when sibling cards are selected/unselected.
  */
-export const ItemCard = memo(({ item, onSelect, isSelected, podiumClass }: ItemCardProps) => {
+export const ItemCard = memo(({ item, fieldDefinitions, onSelect, isSelected, podiumClass }: ItemCardProps) => {
   const { name, status, rating, tags } = item;
 
   const detailsString = useMemo(() => {
-    return getCategoryDetails(item)
+    return getCategoryDetails(item, fieldDefinitions)
       .map((detail) => detail[1])
       .join(', ');
-  }, [item]);
+  }, [item, fieldDefinitions]);
 
   return (
     <Card

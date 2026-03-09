@@ -19,12 +19,7 @@ export interface SignUpFormProps extends React.ComponentPropsWithoutRef<'div'> {
  * Side Effects:
  * - Mutates the global Supabase session state by updating the current user.
  */
-export function SignUpForm({
-  className,
-  onSuccess,
-  onViewChange,
-  ...props
-}: React.ComponentPropsWithoutRef<'div'> & { onSuccess: () => void; onViewChange: () => void }) {
+export function SignUpForm({ className, onSuccess, onViewChange, ...props }: SignUpFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [repeatPassword, setRepeatPassword] = useState('');

@@ -70,8 +70,8 @@ export const TagInput = ({
 
       setInputValue('');
 
-      // Create a temp tag object
-      // `Date.now()` will create a temp ID > 1 mil, which is treated as new by the hooks
+      // Create a temp tag object with a negative ID to signal it hasn't been persisted yet.
+      // `handleTagSync` in useItemForm detects these via `t.id < 0`.
       const newTag: Tag = {
         id: -(Date.now() + Math.floor(Math.random() * 1000)),
         name: tagName.trim(),
