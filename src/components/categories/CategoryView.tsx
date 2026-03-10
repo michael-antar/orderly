@@ -1,12 +1,11 @@
-import type { PostgrestError } from '@supabase/supabase-js';
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCategoryItems } from '@/hooks/useCategoryItems';
 import { usePrevious } from '@/hooks/usePrevious';
-import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import type { AppliedFilters, CategoryDefinition, Item, Status } from '@/types/types';
 
@@ -27,165 +26,42 @@ import { TagManager } from './TagManager';
 export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition }) => {
   const { user } = useAuth();
 
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<PostgrestError | null>(null);
-  const [activeTab, setActiveTab] = useState<Status>('ranked'); // For passing down to form
+  const {
+    items,
+    loading,
+    error,
+    rankedItems,
+    backlogItems,
+    comparisonRankedItems,
+    sortBy,
+    setSortBy,
+    sortAsc,
+    setSortAsc,
+    filters,
+    setFilters,
+    getItems,
+  } = useCategoryItems(categoryDef, user);
+
+  const [activeTab, setActiveTab] = useState<Status>('ranked');
 
   // - Handle DetailView -
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  // For highlighting item in list and displaying item details
   const selectedItem = useMemo(() => items.find((i) => i.id === selectedItemId) || null, [items, selectedItemId]);
-  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false); // Handle detail view's visibility on small screens
-
-  // - Handle list sorting/filtering -
-  const [sortBy, setSortBy] = useState<string>('rating');
-  const [sortAsc, setSortAsc] = useState<boolean>(false);
-  const [filters, setFilters] = useState<AppliedFilters>({
-    tags: [],
-    rules: [],
-  });
+  const [isDetailViewOpen, setIsDetailViewOpen] = useState(false);
 
   // Handle ComparisonModal
   const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
-  const [calibrationItem, setCalibrationItem] = useState<Item | null>(null); // Hold new item that needs calibration
+  const [calibrationItem, setCalibrationItem] = useState<Item | null>(null);
 
   const prevCategoryId = usePrevious(categoryDef.id);
 
-  // Fetch items
-  const getItems = useCallback(async () => {
-    if (!user || !categoryDef) return { data: [], error: null };
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Base query
-      let query = supabase
-        .from('items')
-        .select('*, tags(*)')
-        .eq('user_id', user.id)
-        .eq('category_def_id', categoryDef.id);
-
-      // Search using tag filters if included
-      if (filters.tags.length > 0) {
-        const tagIds = filters.tags.map((tag) => tag.id);
-        query = supabase
-          .from('items')
-          .select('*, tags!inner(*)')
-          .eq('user_id', user.id)
-          .eq('category_def_id', categoryDef.id)
-          .in('tags.id', tagIds);
-      }
-
-      // Add field filters if included
-      filters.rules.forEach((rule) => {
-        if (!rule.field_key || !rule.operator || rule.value === '') return;
-
-        let column = rule.field_key;
-
-        const standardColumns = ['id', 'name', 'status', 'rating', 'created_at', 'description'];
-
-        if (column.startsWith('properties.')) {
-          const key = column.split('.')[1];
-          // Use arrow syntax for JSON path: properties->>key (text)
-          column = `properties->>${key}`;
-        } else if (!standardColumns.includes(column)) {
-          column = `properties->>${column}`;
-        }
-
-        const val = String(rule.value);
-
-        switch (rule.operator) {
-          case 'is':
-            query = query.eq(column, val); // 'eq' is safer than ilike for non-text
-            break;
-          case 'is_not':
-            query = query.neq(column, val);
-            break;
-          case 'contains':
-            query = query.ilike(column, `%${val}%`);
-            break;
-          case 'gt':
-            query = query.gt(column, val);
-            break;
-          case 'gte':
-            query = query.gte(column, val);
-            break;
-          case 'lt':
-            query = query.lt(column, val);
-            break;
-          case 'lte':
-            query = query.lte(column, val);
-            break;
-        }
-      });
-
-      // Apply sorting
-      let sortColumn = sortBy;
-      // Map "properties.key" to a JSONB path expression for Supabase.
-      // Number fields use an explicit ::numeric cast so values sort correctly (avoids
-      // lexicographic comparison where "9" > "10").
-      if (sortBy.startsWith('properties.')) {
-        const key = sortBy.split('.')[1];
-        const fieldDef = categoryDef.field_definitions.find((f) => f.key === key);
-        sortColumn =
-          fieldDef?.type === 'number' ? `(properties->>'${key}')::numeric` : `properties->>'${key}'`;
-      }
-
-      const { data, error } = await query.order(sortColumn, {
-        ascending: sortAsc,
-        nullsFirst: false,
-      });
-
-      if (error) throw error;
-
-      setItems((data as Item[]) || []);
-      return { data: (data as Item[]) || null, error: null };
-    } catch (error) {
-      console.error('Error fetching items:', error);
-      setError(error as PostgrestError);
-      return { data: [], error: error as PostgrestError };
-    } finally {
-      setLoading(false);
-    }
-  }, [user, categoryDef, filters, sortBy, sortAsc]);
-
-  // Initial fetch and reload
+  // Clear selected item when switching to a different category.
+  // Uses the same same-ID guard as useCategoryItems to avoid clearing the
+  // selection when the user edits the current category's schema.
   useEffect(() => {
-    if (categoryDef) {
-      getItems();
-    }
-  }, [categoryDef, getItems]);
-
-  // Reset UI when switching categories
-  useEffect(() => {
-    // Prevent reset if we just edited the same category schema
     if (prevCategoryId !== undefined && prevCategoryId === categoryDef.id) return;
-
-    // Clear selected item
     setSelectedItemId(null);
-
-    // Clear sort/filter options
-    setSortBy('rating');
-    setSortAsc(false);
-    setFilters({
-      tags: [],
-      rules: [],
-    });
   }, [categoryDef.id, prevCategoryId]);
-
-  const rankedItems = useMemo(() => items.filter((item) => item.status === 'ranked'), [items]);
-  const backlogItems = useMemo(() => items.filter((item) => item.status === 'backlog'), [items]);
-
-  // Always sorted list of ranked items by elo (desc), for use in comparison modal
-  const comparisonRankedItems = useMemo(() => {
-    return [...rankedItems].sort((a, b) => {
-      if (a.rating === null) return 1;
-      if (b.rating === null) return -1;
-      return b.rating - a.rating;
-    });
-  }, [rankedItems]);
 
   // Unselect item and set new active tab for form
   const handleTabChange = (value: Status) => {
