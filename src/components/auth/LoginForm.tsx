@@ -1,0 +1,106 @@
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/lib/supabaseClient';
+import { cn } from '@/lib/utils';
+
+export interface LoginFormProps extends React.ComponentPropsWithoutRef<'div'> {
+  onSuccess: () => void;
+  onViewChange: () => void;
+  onForgotPasswordClick: () => void;
+}
+
+/**
+ * Login form to authenticate users via Supabase.
+ * Handles loading states, error reporting, and navigation to other auth views.
+ *
+ * Side Effects:
+ * - Mutates the global Supabase session state upon successful login.
+ */
+export function LoginForm({ className, onSuccess, onViewChange, onForgotPasswordClick, ...props }: LoginFormProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) throw error;
+      onSuccess();
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className={cn('flex flex-col gap-6', className)} {...props}>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardDescription>Enter your email below to login to your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin}>
+            <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="ml-auto inline-block h-auto p-0 text-sm font-normal underline-offset-4 hover:underline"
+                    onClick={onForgotPasswordClick}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? 'Logging in...' : 'Login'}
+              </Button>
+            </div>
+            <div className="mt-4 text-center text-sm">
+              Don&apos;t have an account?{' '}
+              <Button type="button" variant="link" className="p-0 h-auto font-normal" onClick={onViewChange}>
+                Sign up
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

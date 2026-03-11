@@ -26,10 +26,9 @@
     /* Shadcn */
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
+      "@/*": ["./src/*"]
+    },
+    "types": ["vitest/globals"]
   },
   "include": ["src"]
 }
