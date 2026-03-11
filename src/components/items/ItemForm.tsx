@@ -28,6 +28,12 @@ export interface ItemFormProps {
   categoryDef: CategoryDefinition;
   mode: 'add' | 'edit';
   trigger?: React.ReactNode;
+  /**
+   * Status to pre-select when creating a new item.
+   * Should be the currently active tab so the form reflects where the user is.
+   * Defaults to `'ranked'` when omitted.
+   */
+  defaultStatus?: Status;
   onSuccess: (newStatus: Status, newItem: Item) => void;
 }
 
@@ -37,7 +43,14 @@ export interface ItemFormProps {
  * Side Effects:
  * - Mutates the Supabase `items`, `tags`, and `item_tags` tables on submit (handled via hook).
  */
-export const ItemForm = memo(function ItemForm({ item, categoryDef, mode, trigger, onSuccess }: ItemFormProps) {
+export const ItemForm = memo(function ItemForm({
+  item,
+  categoryDef,
+  mode,
+  trigger,
+  defaultStatus,
+  onSuccess,
+}: ItemFormProps) {
   const {
     isOpen,
     setIsOpen,
@@ -51,6 +64,7 @@ export const ItemForm = memo(function ItemForm({ item, categoryDef, mode, trigge
     mode,
     categoryDef,
     item,
+    defaultStatus,
     onSuccess,
   });
 

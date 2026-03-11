@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,6 +13,12 @@ type UseItemFormProps = {
   categoryDef: CategoryDefinition;
   /** The item to pre-populate the form with. Required when `mode` is `'edit'`. */
   item?: Item;
+  /**
+   * The status to pre-select when creating a new item.
+   * Typically the active tab in the parent list view so the form reflects where the user is.
+   * Defaults to `'ranked'` when omitted.
+   */
+  defaultStatus?: Status;
   /** Called with the saved item's status and full refreshed data after a successful submit. */
   onSuccess: (newStatus: Status, newItem: Item) => void;
 };
@@ -26,13 +32,14 @@ type UseItemFormProps = {
  * @param mode - `'add'` to insert a new item, `'edit'` to update an existing one.
  * @param categoryDef - The parent category's schema, used to initialise dynamic property fields.
  * @param item - The item to pre-populate the form with (required when `mode` is `'edit'`).
+ * @param defaultStatus - Status to pre-select for new items. Defaults to `'ranked'`.
  * @param onSuccess - Callback invoked with the saved item's status and refreshed data after a successful save.
  *
  * Side Effects:
  * - Fetches existing tags from Supabase when the dialog opens.
  * - Inserts or updates rows in the `items`, `tags`, and `item_tags` tables on submit.
  */
-export const useItemForm = ({ mode, categoryDef, item, onSuccess }: UseItemFormProps) => {
+export const useItemForm = ({ mode, categoryDef, item, defaultStatus = 'ranked', onSuccess }: UseItemFormProps) => {
   const { user } = useAuth();
 
   // - State management -
@@ -46,7 +53,7 @@ export const useItemForm = ({ mode, categoryDef, item, onSuccess }: UseItemFormP
     const base = {
       name: item?.name || '',
       description: item?.description || '',
-      status: item?.status || 'ranked',
+      status: item?.status || defaultStatus,
       rating: item?.rating ?? null,
       tags: item?.tags || [],
       properties: {},
@@ -71,17 +78,19 @@ export const useItemForm = ({ mode, categoryDef, item, onSuccess }: UseItemFormP
       ...base,
       properties: initialProps,
     };
-  }, [mode, item, categoryDef]);
+  }, [mode, item, categoryDef, defaultStatus]);
 
   const [formData, setFormData] = useState<ItemFormData>(getInitialState);
 
-  // Reset state when form opens
-  // TODO: Will this reset state when switching google tabs?
+  // A ref that tracks whether the form has been initialised for the current open session.
+  // Using a ref (instead of relying on effect deps) ensures that re-renders caused by
+  // upstream prop reference changes (e.g. categoryDef being re-fetched when the user
+  // switches browser tabs) do NOT reset in-progress form data while the dialog is open.
+  const hasInitialisedRef = useRef(false);
+
   useEffect(() => {
     const fetchTags = async () => {
       if (!user) return;
-      // Fetch tags linked to this user + category def
-      // TODO: 'tags' table currently still uses category_types instead of dynamic category_definitions.id
       const { data: tags } = await supabase
         .from('tags')
         .select('*')
@@ -90,9 +99,19 @@ export const useItemForm = ({ mode, categoryDef, item, onSuccess }: UseItemFormP
 
       setExistingTags(tags || []);
     };
+
     if (isOpen) {
-      setFormData(getInitialState);
-      fetchTags();
+      // Only initialise once per open session — guard against re-runs triggered
+      // by reference-unstable deps (getInitialState, categoryDef, user) while
+      // the form is already open (e.g. parent re-renders on browser tab focus).
+      if (!hasInitialisedRef.current) {
+        hasInitialisedRef.current = true;
+        setFormData(getInitialState);
+        fetchTags();
+      }
+    } else {
+      // Form closed — reset the guard so the next open re-initialises cleanly.
+      hasInitialisedRef.current = false;
     }
   }, [isOpen, getInitialState, categoryDef.id, user]);
 

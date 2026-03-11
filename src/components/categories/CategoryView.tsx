@@ -212,7 +212,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 />
 
                 {/* Add Item Button */}
-                <ItemForm mode="add" categoryDef={categoryDef} onSuccess={handleAddSuccess} />
+                <ItemForm mode="add" categoryDef={categoryDef} defaultStatus={activeTab} onSuccess={handleAddSuccess} />
 
                 {/* Mobile Open Panel Toggle */}
                 <Button
