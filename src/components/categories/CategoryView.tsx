@@ -128,25 +128,28 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   }, [getItems]);
 
   // Unselect item and refresh list
-  const handleDeleteSuccess = () => {
+  const handleDeleteSuccess = useCallback(() => {
     setSelectedItemId(null);
     getItems();
-  };
+  }, [getItems]);
 
   // Refresh both the list and the item detail view
-  const handleTagUpdateSuccess = async () => {
+  const handleTagUpdateSuccess = useCallback(() => {
     getItems();
-  };
+  }, [getItems]);
 
-  const handleSortAndFilterApply = (newSortBy: string, newSortAsc: boolean, newFilters: AppliedFilters) => {
-    setSortBy(newSortBy);
-    setSortAsc(newSortAsc);
-    setFilters(newFilters);
-  };
+  const handleSortAndFilterApply = useCallback(
+    (newSortBy: string, newSortAsc: boolean, newFilters: AppliedFilters) => {
+      setSortBy(newSortBy);
+      setSortAsc(newSortAsc);
+      setFilters(newFilters);
+    },
+    [setSortBy, setSortAsc, setFilters],
+  );
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     getItems();
-  };
+  }, [getItems]);
 
   return (
     <div className="relative h-full overflow-hidden lg:flex">

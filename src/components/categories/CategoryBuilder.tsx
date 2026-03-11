@@ -487,3 +487,5 @@ const FieldEditorRow = memo(
     );
   },
 );
+
+FieldEditorRow.displayName = 'FieldEditorRow';

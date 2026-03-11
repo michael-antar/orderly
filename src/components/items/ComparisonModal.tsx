@@ -20,6 +20,8 @@ import type { CategoryDefinition, Item } from '@/types/types';
 import { ItemDetailsContent } from './ItemDetailsContent';
 
 export interface ComparisonResult {
+  winnerId: string;
+  loserId: string;
   winnerName: string;
   loserName: string;
   winnerEloChange: number;
@@ -105,6 +107,8 @@ export const ComparisonModal = ({
 
       if (newWinner && newLoser && winner.rating !== null && loser.rating !== null) {
         setResult({
+          winnerId: winner.id,
+          loserId: loser.id,
           winnerName: winner.name,
           loserName: loser.name,
           winnerEloChange: newWinner.rating! - winnerRatingBefore!,
@@ -222,8 +226,8 @@ export interface ComparisonCardProps {
 }
 
 const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: ComparisonCardProps) => {
-  const isWinner = result?.winnerName === item.name;
-  const isLoser = result?.loserName === item.name;
+  const isWinner = result?.winnerId === item.id;
+  const isLoser = result?.loserId === item.id;
   const eloChange = isWinner ? result?.winnerEloChange : isLoser ? result?.loserEloChange : 0;
 
   return (

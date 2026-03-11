@@ -106,14 +106,18 @@ export const useComparisonQueue = (initialItems: Item[]) => {
 
         const indexDifference = j - i;
         const ratingDifference =
-          itemA.rating !== null && itemB.rating !== null ? itemA.rating - itemB.rating : Infinity;
+          itemA.rating !== null && itemB.rating !== null ? Math.abs(itemA.rating - itemB.rating) : Infinity;
 
-        // Break early if impossible for any future matches
+        // Break early if impossible for any future matches (items are sorted
+        // by rating desc, so later items only get further away in rating).
         if (indexDifference > 2 && ratingDifference > 200) {
           break;
         }
 
-        similarPairs.push([itemA, itemB]);
+        // Only include pairs that are close in either index position or rating
+        if (indexDifference <= 2 || ratingDifference <= 200) {
+          similarPairs.push([itemA, itemB]);
+        }
       }
     }
     const maxPossiblePairs = (currentItems.length * (currentItems.length - 1)) / 2;

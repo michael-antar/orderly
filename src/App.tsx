@@ -75,7 +75,7 @@ function App() {
       <Toaster />
 
       <Header
-        activeCategoryName={categories.find((c) => c.id === activeCategoryId)?.name}
+        activeCategoryName={activeCategory?.name}
         onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
