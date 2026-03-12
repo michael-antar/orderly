@@ -19,9 +19,11 @@ const itemWithProps = (properties: Item['properties']): Item => ({
   name: 'Test Item',
   status: 'ranked',
   rating: 1000,
+  rd: 350,
   description: null,
   comparison_count: 0,
   created_at: '2024-01-01T00:00:00Z',
+  last_compared_at: null,
   tags: null,
   properties,
 });
