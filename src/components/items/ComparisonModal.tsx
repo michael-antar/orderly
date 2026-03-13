@@ -53,8 +53,16 @@ export const ComparisonModal = ({
   onSuccess,
   onCalibrationComplete,
 }: ComparisonModalProps) => {
-  const { items, currentPair, getNextPair, startNormalComparison, startCalibration, isCalibrating, updateRatings } =
-    useComparisonQueue(rankedItems);
+  const {
+    items,
+    currentPair,
+    getNextPair,
+    startNormalComparison,
+    startCalibration,
+    advanceCalibration,
+    isCalibrating,
+    updateRatings,
+  } = useComparisonQueue(rankedItems);
 
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,6 +130,11 @@ export const ComparisonModal = ({
           { id: newWinner.id, rating: newWinner.rating!, rd: newWinner.rd },
           { id: newLoser.id, rating: newLoser.rating!, rd: newLoser.rd },
         );
+
+        // During calibration, advance the binary search with the winner
+        if (isCalibrating) {
+          advanceCalibration(winner.id);
+        }
       }
     }
     setIsLoading(false);
@@ -129,7 +142,10 @@ export const ComparisonModal = ({
 
   const handleNext = () => {
     setResult(null);
-    getNextPair();
+    if (!isCalibrating) {
+      getNextPair();
+    }
+    // During calibration, advanceCalibration already set the next pair in handleChoose
   };
 
   // Get the first pair when the modal opens

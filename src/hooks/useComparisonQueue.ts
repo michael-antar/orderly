@@ -24,14 +24,35 @@ const shuffle = <T>(array: T[]): T[] => {
   return newArray;
 };
 
+/** State for the adaptive binary-search calibration process. */
+type CalibrationState = {
+  newItem: Item; // The item being calibrated
+  otherItems: Item[]; // The rest of the ranked list (sorted by rating desc)
+  searchLow: number; // Lower bound index in otherItems
+  searchHigh: number; // Upper bound index in otherItems
+  round: number; // Current round (0-indexed)
+  maxRounds: number; // Total rounds (3)
+};
+
+/**
+ * Picks a target index with positional jitter.
+ * Jitter = ±ceil(listSize * 0.05), minimum ±1. Clamped to valid bounds.
+ */
+const pickWithJitter = (targetIndex: number, low: number, high: number, listSize: number): number => {
+  const jitterRange = Math.max(1, Math.ceil(listSize * 0.05));
+  const offset = Math.floor(Math.random() * (jitterRange * 2 + 1)) - jitterRange;
+  return Math.max(low, Math.min(high, targetIndex + offset));
+};
+
 /**
  * Manages state and logic for item comparison sessions.
  *
  * Supports two modes:
  * - **Normal** (`startNormalComparison`): Builds a queue of random and rating-similar pairs
  *   from all ranked items, biased towards close matchups for more informative comparisons.
- * - **Calibration** (`startCalibration`): Generates a short targeted queue to place a
- *   newly added item against the median, top 25%, and bottom 25% of the ranked list.
+ * - **Calibration** (`startCalibration` / `advanceCalibration`): Uses an adaptive binary
+ *   search to place a new item. Each round narrows the search range based on win/loss,
+ *   with positional jitter to prevent the same "gatekeeper" items every time.
  *
  * Handles prop synchronisation so the internal item list reflects the latest external
  * `initialItems` whenever a new comparison session begins.
@@ -67,6 +88,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
   const [currentPair, setCurrentPair] = useState<ItemPair | null>(null);
   const [, setComparisonQueue] = useState<ItemPair[]>([]);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const [, setCalibrationState] = useState<CalibrationState | null>(null);
 
   const updateRatings = useCallback(
     (
@@ -180,7 +202,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     setCurrentPair(finalQueue[0] || null);
   }, []);
 
-  // Generate and start a calibration queue
+  // Initialize adaptive calibration (binary search)
   const startCalibration = useCallback((newItem: Item) => {
     setIsCalibrating(true);
     const currentItems = itemsRef.current;
@@ -193,28 +215,77 @@ export const useComparisonQueue = (initialItems: Item[]) => {
 
     const otherItems = currentItems.filter((item) => item.id !== newItem.id);
     if (otherItems.length === 0) {
-      setComparisonQueue([]);
+      setCalibrationState(null);
       setCurrentPair(null);
       return;
     }
 
-    // Compare against the median, top 25%, and bottom 25%
-    const queue: ItemPair[] = [];
-    const midIndex = Math.floor(otherItems.length / 2);
-    const topQuartileIndex = Math.floor(otherItems.length * 0.25);
-    const bottomQuartileIndex = Math.floor(otherItems.length * 0.75);
+    const maxRounds = Math.min(3, otherItems.length);
+    const low = 0;
+    const high = otherItems.length - 1;
+    const midIndex = Math.floor((low + high) / 2);
+    const opponentIndex = pickWithJitter(midIndex, low, high, otherItems.length);
 
-    // Add unique items to the queue
-    const indices = [...new Set([midIndex, topQuartileIndex, bottomQuartileIndex])];
+    const state: CalibrationState = {
+      newItem: itemInList,
+      otherItems,
+      searchLow: low,
+      searchHigh: high,
+      round: 0,
+      maxRounds,
+    };
 
-    indices.forEach((index) => {
-      if (otherItems[index]) {
-        queue.push([itemInList, otherItems[index]]);
+    setCalibrationState(state);
+    setCurrentPair([itemInList, otherItems[opponentIndex]]);
+  }, []);
+
+  /**
+   * Advance calibration after a comparison result.
+   * Narrows the binary search range based on whether the new item won or lost,
+   * then picks the next opponent from the midpoint of the new range (with jitter).
+   *
+   * @param winnerId - The id of the item that won the comparison.
+   */
+  const advanceCalibration = useCallback((winnerId: string) => {
+    setCalibrationState((prev) => {
+      if (!prev) return null;
+
+      const { newItem, otherItems, searchLow, searchHigh, round, maxRounds } = prev;
+      const nextRound = round + 1;
+
+      // Calibration complete
+      if (nextRound >= maxRounds) {
+        setCurrentPair(null);
+        setIsCalibrating(false);
+        return null;
       }
-    });
 
-    setComparisonQueue(queue);
-    setCurrentPair(queue[0] || null);
+      const mid = Math.floor((searchLow + searchHigh) / 2);
+      let newLow: number;
+      let newHigh: number;
+
+      if (winnerId === newItem.id) {
+        // New item won → it's better than midpoint, search the upper half (lower indices = higher rated)
+        newLow = searchLow;
+        newHigh = Math.max(searchLow, mid - 1);
+      } else {
+        // New item lost → it's worse than midpoint, search the lower half (higher indices = lower rated)
+        newLow = Math.min(searchHigh, mid + 1);
+        newHigh = searchHigh;
+      }
+
+      const nextMid = Math.floor((newLow + newHigh) / 2);
+      const opponentIndex = pickWithJitter(nextMid, newLow, newHigh, otherItems.length);
+
+      setCurrentPair([newItem, otherItems[opponentIndex]]);
+
+      return {
+        ...prev,
+        searchLow: newLow,
+        searchHigh: newHigh,
+        round: nextRound,
+      };
+    });
   }, []);
 
   const getNextPair = useCallback(() => {
@@ -231,6 +302,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     getNextPair,
     startNormalComparison,
     startCalibration,
+    advanceCalibration,
     isCalibrating,
     updateRatings,
   };
