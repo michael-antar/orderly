@@ -32,6 +32,7 @@ type CalibrationState = {
   searchHigh: number; // Upper bound index in otherItems
   round: number; // Current round (0-indexed)
   maxRounds: number; // Total rounds (3)
+  usedOpponentIds: Set<string>; // Prevents the same gatekeeper appearing twice
 };
 
 /**
@@ -58,9 +59,11 @@ const pickWithJitter = (targetIndex: number, low: number, high: number, listSize
  * `initialItems` whenever a new comparison session begins.
  *
  * @param initialItems - The current list of ranked items available for comparison.
+ *   **Must be sorted by rating descending** (as provided by `comparisonRankedItems`).
+ *   The seeding logic relies on this ordering for index-proximity heuristics.
  */
 export const useComparisonQueue = (initialItems: Item[]) => {
-  const [items, setItems] = useState<Item[]>(initialItems); // Holds the list as it's modifiued by `updateRatings`
+  const [items, setItems] = useState<Item[]>(initialItems); // Holds the list as it's modified by `updateRatings`
 
   const prevInitialItemsRef = useRef(initialItems); // Tracks the `initialItems` prop from the previous render
 
@@ -110,7 +113,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     [],
   );
 
-  // Generate mixed queue of random and similar pairs for comparison
+  // Generate mixed queue of random, similar, and high-uncertainty pairs for comparison
   const startNormalComparison = useCallback(() => {
     setIsCalibrating(false);
 
@@ -122,7 +125,30 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       return;
     }
 
-    // Within 200 rating points or 2 positions
+    // --- Identify high-RD (uncertain) items that benefit most from comparisons ---
+    const avgRd = currentItems.reduce((sum, item) => sum + item.rd, 0) / currentItems.length;
+    const uncertainItems = currentItems.filter((item) => item.rd > Math.max(avgRd, 100));
+
+    // Build pairs involving at least one uncertain item against a nearby-rated opponent
+    const uncertainPairs: ItemPair[] = [];
+    for (const item of uncertainItems) {
+      // Find the closest items by index position (list is sorted by rating desc)
+      const itemIndex = currentItems.indexOf(item);
+      for (let offset = 1; offset <= 3 && uncertainPairs.length < 30; offset++) {
+        if (itemIndex - offset >= 0) {
+          uncertainPairs.push([item, currentItems[itemIndex - offset]]);
+        }
+        if (itemIndex + offset < currentItems.length) {
+          uncertainPairs.push([item, currentItems[itemIndex + offset]]);
+        }
+      }
+    }
+
+    // --- Similar pairs: close in rating or position ---
+    // Use a dynamic rating threshold based on average RD — items with overlapping
+    // confidence intervals are still meaningfully comparable
+    const similarThreshold = Math.max(200, Math.round(avgRd * 1.5));
+
     const similarPairs: ItemPair[] = [];
     for (let i = 0; i < currentItems.length; i++) {
       const itemA = currentItems[i];
@@ -135,30 +161,37 @@ export const useComparisonQueue = (initialItems: Item[]) => {
 
         // Break early if impossible for any future matches (items are sorted
         // by rating desc, so later items only get further away in rating).
-        if (indexDifference > 2 && ratingDifference > 200) {
+        if (indexDifference > 2 && ratingDifference > similarThreshold) {
           break;
         }
 
         // Only include pairs that are close in either index position or rating
-        if (indexDifference <= 2 || ratingDifference <= 200) {
+        if (indexDifference <= 2 || ratingDifference <= similarThreshold) {
           similarPairs.push([itemA, itemB]);
         }
       }
     }
+
+    // --- Assemble the queue with budget allocation ---
     const maxPossiblePairs = (currentItems.length * (currentItems.length - 1)) / 2;
-
     const targetQueueSize = Math.min(100, maxPossiblePairs);
-    const numSimilar = Math.min(similarPairs.length, 85);
-    const numRandom = targetQueueSize - numSimilar;
 
+    // Budget: up to 20 uncertain, up to 65 similar, rest random
+    const numUncertain = Math.min(uncertainPairs.length, 20);
+    const numSimilar = Math.min(similarPairs.length, Math.max(0, targetQueueSize - numUncertain - 15));
+    const numRandom = Math.max(0, targetQueueSize - numUncertain - numSimilar);
+
+    const uncertainSubset = shuffle(uncertainPairs).slice(0, numUncertain);
     const similarSubset = shuffle(similarPairs).slice(0, numSimilar);
 
-    const similarPairIds = new Set<string>(similarSubset.map((pair) => [pair[0].id, pair[1].id].sort().join('-')));
+    const usedPairIds = new Set<string>(
+      [...uncertainSubset, ...similarSubset].map((pair) => [pair[0].id, pair[1].id].sort().join('-')),
+    );
 
     let randomSubset: ItemPair[] = [];
 
     if (numRandom > 0) {
-      const availableRandomPairs = maxPossiblePairs - similarPairIds.size;
+      const availableRandomPairs = maxPossiblePairs - usedPairIds.size;
 
       if (numRandom > availableRandomPairs / 4) {
         // Shuffle and slice (for dense selection)
@@ -168,7 +201,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
             const itemA = currentItems[i];
             const itemB = currentItems[j];
             const pairId = [itemA.id, itemB.id].sort().join('-');
-            if (!similarPairIds.has(pairId)) {
+            if (!usedPairIds.has(pairId)) {
               randomPool.push([itemA, itemB]);
             }
           }
@@ -176,7 +209,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
         randomSubset = shuffle(randomPool).slice(0, numRandom);
       } else {
         // Rejection sampling (for sparse selections)
-        const addedPairIds = new Set<string>(similarPairIds);
+        const addedPairIds = new Set<string>(usedPairIds);
         const listSize = currentItems.length;
 
         while (randomSubset.length < numRandom) {
@@ -196,7 +229,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       }
     }
 
-    const finalQueue = shuffle([...similarSubset, ...randomSubset]);
+    const finalQueue = shuffle([...uncertainSubset, ...similarSubset, ...randomSubset]);
 
     setComparisonQueue(finalQueue);
     setCurrentPair(finalQueue[0] || null);
@@ -226,6 +259,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     const midIndex = Math.floor((low + high) / 2);
     const opponentIndex = pickWithJitter(midIndex, low, high, otherItems.length);
 
+    const opponent = otherItems[opponentIndex];
     const state: CalibrationState = {
       newItem: itemInList,
       otherItems,
@@ -233,10 +267,11 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       searchHigh: high,
       round: 0,
       maxRounds,
+      usedOpponentIds: new Set([opponent.id]),
     };
 
     setCalibrationState(state);
-    setCurrentPair([itemInList, otherItems[opponentIndex]]);
+    setCurrentPair([itemInList, opponent]);
   }, []);
 
   /**
@@ -250,7 +285,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     setCalibrationState((prev) => {
       if (!prev) return null;
 
-      const { newItem, otherItems, searchLow, searchHigh, round, maxRounds } = prev;
+      const { newItem, otherItems, searchLow, searchHigh, round, maxRounds, usedOpponentIds } = prev;
       const nextRound = round + 1;
 
       // Calibration complete
@@ -275,7 +310,26 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       }
 
       const nextMid = Math.floor((newLow + newHigh) / 2);
-      const opponentIndex = pickWithJitter(nextMid, newLow, newHigh, otherItems.length);
+      let opponentIndex = pickWithJitter(nextMid, newLow, newHigh, otherItems.length);
+
+      // Avoid re-using the same gatekeeper opponent — scan outward from the picked index
+      if (usedOpponentIds.has(otherItems[opponentIndex].id)) {
+        let found = false;
+        for (let delta = 1; delta <= newHigh - newLow; delta++) {
+          for (const dir of [1, -1]) {
+            const candidate = opponentIndex + delta * dir;
+            if (candidate >= newLow && candidate <= newHigh && !usedOpponentIds.has(otherItems[candidate].id)) {
+              opponentIndex = candidate;
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
+      }
+
+      const nextUsed = new Set(usedOpponentIds);
+      nextUsed.add(otherItems[opponentIndex].id);
 
       setCurrentPair([newItem, otherItems[opponentIndex]]);
 
@@ -284,6 +338,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
         searchLow: newLow,
         searchHigh: newHigh,
         round: nextRound,
+        usedOpponentIds: nextUsed,
       };
     });
   }, []);

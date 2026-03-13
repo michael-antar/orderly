@@ -12,8 +12,8 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 
 ## Key Features
 
-- **Head-to-Head Ranking**: Utilizes an Elo-based system to create a true, ordered list.
-- **Smart Calibration**: New items are quickly placed in their approximate rank with just a few initial comparisons.
+- **Head-to-Head Ranking**: Utilizes a Glicko-1 rating system with confidence tracking to create a true, ordered list.
+- **Smart Calibration**: New items are quickly placed in their approximate rank via an adaptive binary-search calibration process.
 - **Custom Categories**: Categories are fully dynamic. Start with defaults (movies, shows, books, albums, and restaurants), edit them, or build completely custom categories from scratch.
 - **Advanced Sorting & Filtering**: Organize, sort, and filter your ranked items based on custom tags and your specific dynamic fields.
 - **Responsive Design**: Fully usable on both desktop and mobile.
@@ -28,34 +28,53 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 
 ## Technical Details
 
-### The Elo Ranking System
+### The Glicko-1 Rating System
 
-The core feature of this application is the ranking system. It will pin items against each other in matches using the _Elo rating system_.
+The core feature of this application is the ranking system. Items are compared head-to-head using the **Glicko-1 rating system**, an improvement over Elo that tracks a _Ratings Deviation_ (RD) alongside each item's rating. RD represents confidence in the rating — a high RD means the rating is uncertain, while a low RD means it is well-established.
 
-**Expected Score**: The probability of one item winning against another based on their current ratings.
-
-$$
-E_A = \frac{1}{1 + 10\frac{R_B - R_A}{400}}
-$$
-
-> Where $E_A$ is the expected score for item A, and $R_A$ and $R_B$ are the current ratings for items A and B
-
-**Rating Update**: An item's new rating after a match.
+**Expected Score**: The probability of one item winning against another, weighted by both items' confidence.
 
 $$
-R'_A = R_A + K \times (S_A - E_A)
+E_A = \frac{1}{1 + 10^{-g(RD_B) \cdot (R_A - R_B) / 400}}
 $$
 
-> Where $R'_A$ is the new rating, $R_A$ is the current rating, $K$ is the **K-factor**, $S_A$ is the actual score (1 for a win, 0 for a loss), and $E_A$ is the expected score
+$$
+g(RD) = \frac{1}{\sqrt{1 + 3q^2 \cdot RD^2 / \pi^2}}
+$$
 
-**K-Factor**: A variable that determines the maximum possible rating change from a single comparison. The K-factor will be dynamically adjusted as an item becomes more established. A new item will start with a high K-factor of 40, then lower to 20 after 15 matches, and finally 10 after 30 comparisons.
+> Where $q = \ln(10)/400$, $R_A$ and $R_B$ are ratings, and $RD_B$ is the opponent's ratings deviation
+
+**Rating Update**: An item's new rating after a comparison.
+
+$$
+R'_A = R_A + \frac{q}{\frac{1}{RD_A^2} + \frac{1}{d^2}} \cdot g(RD_B) \cdot (S_A - E_A)
+$$
+
+> Where $d^2 = 1 / (q^2 \cdot g(RD_B)^2 \cdot E_A \cdot (1 - E_A))$ and $S_A$ is the actual score (1 for a win, 0 for a loss)
+
+**Ratings Deviation Update**: Confidence tightens after each comparison.
+
+$$
+RD'_A = \sqrt{\frac{1}{\frac{1}{RD_A^2} + \frac{1}{d^2}}}
+$$
+
+**Time Decay**: If an item has not been compared recently, its RD gradually increases back toward the maximum (350), reflecting growing uncertainty.
+
+$$
+RD_{\text{current}} = \min\left(350,\; \sqrt{RD_{\text{old}}^2 + c^2 \cdot t}\right)
+$$
+
+> Where $c = \sqrt{(350^2 - 30^2) / 90}$ and $t$ is the number of elapsed rating periods (days)
 
 ### Comparison Seeding
 
 To keep the ranking system healthy and accurate, item matchups are generated using two distinct modes.
 
-- **Calibration**: New items are put through 3 initial "calibration" matchups against items at the top, middle, and bottom of the list to quickly find their approximate rank.
-- **Normal Comparison**: The system generates a queue of up to 100 unique comparisons. It seeds up to 85 "similar" comparisons (items with a similar Elo rating or list position) to refine the rankings, and 15 random comparisons to prevent stagnation and allow for major upsets. This blend ensures that the list remains fluid and accurate over time.
+- **Calibration (Adaptive Binary Search)**: New items are put through 3 calibration matchups using a binary search strategy. Each round narrows the search range based on whether the new item won or lost, with positional jitter to avoid always matching against the same "gatekeeper" items. This quickly estimates where a new item belongs.
+- **Normal Comparison (Three-Tier Seeding)**: The system generates a queue of up to 100 unique comparisons using three tiers:
+  - **Uncertain pairs** (up to 20): Items with high RD (low confidence) are prioritized because their ratings benefit most from additional data.
+  - **Similar pairs** (up to ~65): Items that are close in rating or list position. The similarity threshold is dynamic, based on the category's average RD — items whose confidence intervals overlap are still meaningfully comparable.
+  - **Random pairs** (remainder): Random matchups to prevent stagnation and allow for major upsets.
 
 ### Database Schema
 
@@ -63,15 +82,13 @@ The database is designed around a central `items` table, which stores the core i
 
 Instead of rigid, category-specific tables, Orderly utilizes a dynamic schema approach. A `category_definitions` table stores the custom field configurations (the schema) for each category. The `items` table then uses a flexible JSON data column to store the specific properties of an item based on its category's schema.
 
-A `tags` table and a many-to-many `item_tags` junction table provide the flexible tagging system. Finally, a `comparisons` table logs the history of every matchup to track Elo rating changes over time.
+Each item also tracks a `rd` (Ratings Deviation) value representing rating confidence and a `last_compared_at` timestamp used for time-based RD decay.
+
+A `tags` table and a many-to-many `item_tags` junction table provide the flexible tagging system. Finally, a `comparisons` table logs the history of every matchup, including RD snapshots before and after each comparison.
 
 ![Database Schema](docs/database_schema.png)
 
 ## Roadmap
-
-### Glicko Rating System
-
-(Used by popular games like Counter-Strike and chess sites). A more modern approach to the Elo-based system that takes into account the _staleness_ of an item. The rating of an item that has not been matched in a long time might be unreliable, so we take into account a **ratings deviation**. An implementation of the **Glicko-2 System**, which takes into account volatility when on a win or lose streak, can also be considered in the future.
 
 ### Advanced Location & Recommendation Algorithm
 
@@ -108,15 +125,15 @@ This project uses Supabase for its backend and database. As the database contain
 1. Clone the repositiory: `git clone https://github.com/michael-antar/orderly.git`
 2. Install npm packages: `npm install`
 3. Set up your enviornment:
-    - Create a new file in the root of the project named `.env.local`
-    - Add your Supabase Project URL and Anon Key to this file:
+   - Create a new file in the root of the project named `.env.local`
+   - Add your Supabase Project URL and Anon Key to this file:
 
-        ```
-        VITE_SUPABASE_URL=YOUR_SUPABASE_URL
-        VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-        ```
+     ```
+     VITE_SUPABASE_URL=YOUR_SUPABASE_URL
+     VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+     ```
 
-    - You will also need to apply the database schema, including the custom SQL functions, to your own Supabase project
+   - You will also need to apply the database schema, including the custom SQL functions, to your own Supabase project
 
 ## Usage
 

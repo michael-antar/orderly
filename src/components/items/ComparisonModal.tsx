@@ -73,14 +73,17 @@ export const ComparisonModal = ({
     (openState: boolean) => {
       onOpenChange(openState);
       if (!openState) {
-        if (isCalibrating && onCalibrationComplete) {
+        // Use the `calibrationItem` prop (stable for the session lifetime) rather
+        // than the `isCalibrating` state, which is set to false *before* the
+        // auto-close effect fires when calibration finishes naturally.
+        if (calibrationItem && onCalibrationComplete) {
           onCalibrationComplete();
         } else {
           onSuccess();
         }
       }
     },
-    [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
+    [onOpenChange, calibrationItem, onCalibrationComplete, onSuccess],
   );
 
   const handleChoose = async (winner: Item, loser: Item) => {
@@ -116,14 +119,14 @@ export const ComparisonModal = ({
       const newWinner = updatedItems.find((i) => i.id === winner.id);
       const newLoser = updatedItems.find((i) => i.id === loser.id);
 
-      if (newWinner && newLoser && winner.rating !== null && loser.rating !== null) {
+      if (newWinner && newLoser && winnerRatingBefore != null && loserRatingBefore != null) {
         setResult({
           winnerId: winner.id,
           loserId: loser.id,
           winnerName: winner.name,
           loserName: loser.name,
-          winnerRatingChange: newWinner.rating! - winnerRatingBefore!,
-          loserRatingChange: newLoser.rating! - loserRatingBefore!,
+          winnerRatingChange: newWinner.rating! - winnerRatingBefore,
+          loserRatingChange: newLoser.rating! - loserRatingBefore,
         });
 
         updateRatings(
@@ -275,8 +278,12 @@ const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: Compariso
       ) : (
         <div className="h-10 flex items-center justify-center font-semibold">
           {ratingChange !== undefined && (
-            <p className={cn(ratingChange > 0 ? 'text-green-500' : 'text-red-500')}>
-              {ratingChange > 0 ? `+${ratingChange}` : ratingChange}
+            <p
+              className={cn(
+                ratingChange > 0 ? 'text-green-500' : ratingChange < 0 ? 'text-red-500' : 'text-muted-foreground',
+              )}
+            >
+              {ratingChange > 0 ? `+${Math.round(ratingChange)}` : Math.round(ratingChange)}
             </p>
           )}
         </div>
