@@ -211,11 +211,16 @@ export const useComparisonQueue = (initialItems: Item[]) => {
         // Rejection sampling (for sparse selections)
         const addedPairIds = new Set<string>(usedPairIds);
         const listSize = currentItems.length;
+        const maxIterations = numRandom * 10; // Safety cap to prevent infinite loops
+        let iterations = 0;
 
-        while (randomSubset.length < numRandom) {
+        while (randomSubset.length < numRandom && iterations < maxIterations) {
+          iterations++;
           const i = Math.floor(Math.random() * listSize);
           let j = Math.floor(Math.random() * listSize);
-          if (i === j) j = (j + 1) % listSize;
+          while (i === j) {
+            j = Math.floor(Math.random() * listSize);
+          }
 
           const itemA = currentItems[i];
           const itemB = currentItems[j];

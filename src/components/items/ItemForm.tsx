@@ -34,6 +34,11 @@ export interface ItemFormProps {
    * Defaults to `'ranked'` when omitted.
    */
   defaultStatus?: Status;
+  /**
+   * Default rating for newly ranked items, typically the category average.
+   * Overrides the hardcoded 1000 so new items start closer to the cluster.
+   */
+  defaultRating?: number;
   onSuccess: (newStatus: Status, newItem: Item) => void;
 }
 
@@ -49,6 +54,7 @@ export const ItemForm = memo(function ItemForm({
   mode,
   trigger,
   defaultStatus,
+  defaultRating,
   onSuccess,
 }: ItemFormProps) {
   const {
@@ -65,6 +71,7 @@ export const ItemForm = memo(function ItemForm({
     categoryDef,
     item,
     defaultStatus,
+    defaultRating,
     onSuccess,
   });
 

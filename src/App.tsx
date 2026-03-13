@@ -50,7 +50,7 @@ function App() {
       setIsCategoriesLoading(false);
     };
     if (!authLoading) init();
-  }, [user, authLoading, refreshCategories]);
+  }, [authLoading, refreshCategories]);
 
   // Full screen loader (Only for initial auth check)
   // TODO: Later switch with full UI skeleton for better transition
@@ -74,10 +74,7 @@ function App() {
     <div className="flex flex-col h-screen bg-background">
       <Toaster />
 
-      <Header
-        activeCategoryName={activeCategory?.name}
-        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
-      />
+      <Header activeCategoryName={activeCategory?.name} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar

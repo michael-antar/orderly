@@ -65,36 +65,40 @@ export function useCategoryItems(categoryDef: CategoryDefinition, user: User | n
     setError(null);
 
     try {
-      // Base query
+      // Always fetch with a LEFT JOIN so every item retains its full tag list,
+      // regardless of which tags (if any) the user is filtering on.
       let query = supabase
         .from('items')
         .select('*, tags(*)')
         .eq('user_id', user.id)
         .eq('category_def_id', categoryDef.id);
 
-      // Rebuild with an INNER JOIN when filtering by tags so only items that
-      // have ALL specified tags are returned (Supabase requires `tags!inner`).
-      if (filters.tags.length > 0) {
-        const tagIds = filters.tags.map((tag) => tag.id);
-        query = supabase
-          .from('items')
-          .select('*, tags!inner(*)')
-          .eq('user_id', user.id)
-          .eq('category_def_id', categoryDef.id)
-          .in('tags.id', tagIds);
-      }
-
-      // Apply field-level filter rules
+      // --- Split filter rules into server-side and client-side ---
+      // Numeric property comparisons (gt/gte/lt/lte) must be applied client-side
+      // because `properties->>'key'` returns text; Supabase/PostgREST would
+      // compare lexicographically ("9" > "10") which is incorrect for numbers.
       const standardColumns = ['id', 'name', 'status', 'rating', 'created_at', 'description'];
+
+      type FilterRule = (typeof filters.rules)[number];
+      const clientNumericRules: FilterRule[] = [];
 
       filters.rules.forEach((rule) => {
         if (!rule.field_key || !rule.operator || rule.value === '') return;
+
+        // Detect numeric dynamic-property rules that need client-side handling
+        if (['gt', 'gte', 'lt', 'lte'].includes(rule.operator) && rule.field_key.startsWith('properties.')) {
+          const key = rule.field_key.split('.')[1];
+          const fieldDef = categoryDef.field_definitions.find((f) => f.key === key);
+          if (fieldDef?.type === 'number') {
+            clientNumericRules.push(rule);
+            return; // Don't add to server query
+          }
+        }
 
         let column = rule.field_key;
 
         if (column.startsWith('properties.')) {
           const key = column.split('.')[1];
-          // Use ->> (text extraction) for JSONB property access
           column = `properties->>${key}`;
         } else if (!standardColumns.includes(column)) {
           column = `properties->>${column}`;
@@ -128,7 +132,9 @@ export function useCategoryItems(categoryDef: CategoryDefinition, user: User | n
       });
 
       // Apply sorting. Number-typed dynamic fields use an explicit ::numeric cast
-      // to avoid lexicographic comparison (where "9" > "10" as text).
+      // so PostgREST orders numerically rather than lexicographically.
+      // NOTE: This relies on PostgREST supporting inline type casts in the
+      // `order` parameter — verified to work with Supabase-hosted PostgREST.
       let sortColumn = sortBy;
       if (sortBy.startsWith('properties.')) {
         const key = sortBy.split('.')[1];
@@ -143,8 +149,48 @@ export function useCategoryItems(categoryDef: CategoryDefinition, user: User | n
 
       if (error) throw error;
 
-      setItems((data as Item[]) || []);
-      return { data: (data as Item[]) || null, error: null };
+      let filteredData: Item[] = (data as Item[]) || [];
+
+      // --- Client-side: ALL-match tag filter ---
+      // Applied client-side because PostgREST's `.in('tags.id', …)` returns
+      // items matching ANY of the specified tags (OR), not ALL of them (AND).
+      if (filters.tags.length > 0) {
+        const requiredTagIds = new Set(filters.tags.map((tag) => tag.id));
+        filteredData = filteredData.filter((item) => {
+          const itemTagIds = new Set((item.tags ?? []).map((t: { id: number }) => t.id));
+          return [...requiredTagIds].every((id) => itemTagIds.has(id));
+        });
+      }
+
+      // --- Client-side: Numeric property comparison filters ---
+      if (clientNumericRules.length > 0) {
+        filteredData = filteredData.filter((item) =>
+          clientNumericRules.every((rule) => {
+            const key = rule.field_key.split('.')[1];
+            const raw = item.properties?.[key];
+            if (raw == null) return false;
+            const numVal = Number(raw);
+            const threshold = Number(rule.value);
+            if (isNaN(numVal) || isNaN(threshold)) return false;
+
+            switch (rule.operator) {
+              case 'gt':
+                return numVal > threshold;
+              case 'gte':
+                return numVal >= threshold;
+              case 'lt':
+                return numVal < threshold;
+              case 'lte':
+                return numVal <= threshold;
+              default:
+                return true;
+            }
+          }),
+        );
+      }
+
+      setItems(filteredData);
+      return { data: filteredData, error: null };
     } catch (err) {
       console.error('Error fetching items:', err);
       setError(err as PostgrestError);

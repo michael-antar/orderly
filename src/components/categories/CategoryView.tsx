@@ -1,5 +1,6 @@
 import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -96,8 +97,12 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
         const freshItem = updatedItems.find((i) => i.id === newItem.id);
         const rankedCount = updatedItems.filter((i) => i.status === 'ranked').length;
 
-        // Only calibrate if there is at least 1 other item to compare against
-        if (freshItem && rankedCount > 1) {
+        if (!freshItem && rankedCount > 1) {
+          // Item exists but doesn't match active filters — calibration can't run
+          toast.info('Calibration skipped', {
+            description: 'The new item doesn\u2019t match the current filters. Remove filters to calibrate it.',
+          });
+        } else if (freshItem && rankedCount > 1) {
           setCalibrationItem(freshItem);
           setIsComparisonModalOpen(true);
         }
@@ -150,6 +155,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   const handleRetry = useCallback(() => {
     getItems();
   }, [getItems]);
+
+  // Compute category average rating so new items start near the cluster instead of hardcoded 1000
+  const averageRating = useMemo(() => {
+    const rated = comparisonRankedItems.filter((i) => i.rating !== null);
+    if (rated.length === 0) return 1000;
+    return Math.round(rated.reduce((sum, i) => sum + i.rating!, 0) / rated.length);
+  }, [comparisonRankedItems]);
 
   return (
     <div className="relative h-full overflow-hidden lg:flex">
@@ -212,7 +224,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 />
 
                 {/* Add Item Button */}
-                <ItemForm mode="add" categoryDef={categoryDef} defaultStatus={activeTab} onSuccess={handleAddSuccess} />
+                <ItemForm
+                  mode="add"
+                  categoryDef={categoryDef}
+                  defaultStatus={activeTab}
+                  defaultRating={averageRating}
+                  onSuccess={handleAddSuccess}
+                />
 
                 {/* Mobile Open Panel Toggle */}
                 <Button
