@@ -16,7 +16,7 @@ export interface UseCategoryItemsReturn {
   /** Items filtered to `status === 'backlog'`, in fetch order. */
   backlogItems: Item[];
   /**
-   * Ranked items always sorted by Elo descending — used as the stable input
+   * Ranked items always sorted by rating descending — used as the stable input
    * for the comparison modal regardless of the active sort/filter selection.
    */
   comparisonRankedItems: Item[];

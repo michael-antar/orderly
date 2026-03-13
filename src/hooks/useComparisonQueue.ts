@@ -69,14 +69,17 @@ export const useComparisonQueue = (initialItems: Item[]) => {
   const [isCalibrating, setIsCalibrating] = useState(false);
 
   const updateRatings = useCallback(
-    (updatedItem1: { id: string; rating: number }, updatedItem2: { id: string; rating: number }) => {
+    (
+      updatedItem1: { id: string; rating: number; rd: number },
+      updatedItem2: { id: string; rating: number; rd: number },
+    ) => {
       setItems((currentItems) =>
         currentItems.map((item) => {
           if (item.id === updatedItem1.id) {
-            return { ...item, rating: updatedItem1.rating };
+            return { ...item, rating: updatedItem1.rating, rd: updatedItem1.rd };
           }
           if (item.id === updatedItem2.id) {
-            return { ...item, rating: updatedItem2.rating };
+            return { ...item, rating: updatedItem2.rating, rd: updatedItem2.rd };
           }
           return item;
         }),
@@ -97,7 +100,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       return;
     }
 
-    // Within 200 elo or 2 positions
+    // Within 200 rating points or 2 positions
     const similarPairs: ItemPair[] = [];
     for (let i = 0; i < currentItems.length; i++) {
       const itemA = currentItems[i];

@@ -71,14 +71,16 @@ export const ItemDetailsContent = ({ item, categoryDef }: ItemDetailsContentProp
       {/* Item Title */}
       <h2 className="text-3xl font-bold break-words overflow-hidden">{item.name}</h2>
 
-      {/* Metadata (Ranked/Backlog, Elo, 'created_at' timestamp) */}
+      {/* Metadata (Ranked/Backlog, Rating, 'created_at' timestamp) */}
       <div className="flex justify-between flex-wrap mt-3">
-        {/* Status (Elo if ranked, backlog badge if backlog) */}
+        {/* Status (Rating if ranked, backlog badge if backlog) */}
         {item.status === 'ranked' ? (
           <div className="flex items-center gap-1.5 text-amber-500 font-semibold">
             <Star className="h-4 w-4 fill-current" />
             <span>{item.rating}</span>
-            <span className="text-muted-foreground text-sm font-normal ml-1">ELO</span>
+            <span className="text-muted-foreground text-sm font-normal ml-1">
+              {item.rd >= 200 ? '(uncertain)' : item.rd >= 100 ? '(settling)' : ''}
+            </span>
           </div>
         ) : (
           <Badge variant="secondary">Backlog</Badge>

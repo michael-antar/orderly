@@ -74,7 +74,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
       setSortAsc(true);
     } else {
       // ranked
-      setSortBy('rating'); // Elo
+      setSortBy('rating'); // Rating
       setSortAsc(false);
     }
   };
@@ -178,7 +178,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                   items={items}
                   sortBy={sortBy}
                   sortAsc={sortAsc}
-                  isEloDisabled={activeTab === 'backlog'}
+                  isRatingDisabled={activeTab === 'backlog'}
                   filters={filters}
                   onSortApply={handleSortAndFilterApply}
                 />
