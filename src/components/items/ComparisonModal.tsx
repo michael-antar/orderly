@@ -24,8 +24,8 @@ export interface ComparisonResult {
   loserId: string;
   winnerName: string;
   loserName: string;
-  winnerEloChange: number;
-  loserEloChange: number;
+  winnerRatingChange: number;
+  loserRatingChange: number;
 }
 
 export interface ComparisonModalProps {
@@ -42,7 +42,7 @@ export interface ComparisonModalProps {
 /**
  * Modal for head-to-head item comparisons.
  * Supports both standard random matching and targeted calibration for new items.
- * Uses Elo rating logic (via Supabase RPC) to update rankings.
+ * Uses Glicko-1 rating logic (via Supabase RPC) to update rankings.
  */
 export const ComparisonModal = ({
   rankedItems,
@@ -53,8 +53,16 @@ export const ComparisonModal = ({
   onSuccess,
   onCalibrationComplete,
 }: ComparisonModalProps) => {
-  const { items, currentPair, getNextPair, startNormalComparison, startCalibration, isCalibrating, updateRatings } =
-    useComparisonQueue(rankedItems);
+  const {
+    items,
+    currentPair,
+    getNextPair,
+    startNormalComparison,
+    startCalibration,
+    advanceCalibration,
+    isCalibrating,
+    updateRatings,
+  } = useComparisonQueue(rankedItems);
 
   const [result, setResult] = useState<ComparisonResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,14 +73,17 @@ export const ComparisonModal = ({
     (openState: boolean) => {
       onOpenChange(openState);
       if (!openState) {
-        if (isCalibrating && onCalibrationComplete) {
+        // Use the `calibrationItem` prop (stable for the session lifetime) rather
+        // than the `isCalibrating` state, which is set to false *before* the
+        // auto-close effect fires when calibration finishes naturally.
+        if (calibrationItem && onCalibrationComplete) {
           onCalibrationComplete();
         } else {
           onSuccess();
         }
       }
     },
-    [onOpenChange, isCalibrating, onCalibrationComplete, onSuccess],
+    [onOpenChange, calibrationItem, onCalibrationComplete, onSuccess],
   );
 
   const handleChoose = async (winner: Item, loser: Item) => {
@@ -98,24 +109,35 @@ export const ComparisonModal = ({
       return;
     }
 
-    // Re-fetch the two items to get their updated ratings
-    const { data: updatedItems } = await supabase.from('items').select('id, rating').in('id', [winner.id, loser.id]);
+    // Re-fetch the two items to get their updated ratings and RD
+    const { data: updatedItems } = await supabase
+      .from('items')
+      .select('id, rating, rd')
+      .in('id', [winner.id, loser.id]);
 
     if (updatedItems) {
       const newWinner = updatedItems.find((i) => i.id === winner.id);
       const newLoser = updatedItems.find((i) => i.id === loser.id);
 
-      if (newWinner && newLoser && winner.rating !== null && loser.rating !== null) {
+      if (newWinner && newLoser && winnerRatingBefore != null && loserRatingBefore != null) {
         setResult({
           winnerId: winner.id,
           loserId: loser.id,
           winnerName: winner.name,
           loserName: loser.name,
-          winnerEloChange: newWinner.rating! - winnerRatingBefore!,
-          loserEloChange: newLoser.rating! - loserRatingBefore!,
+          winnerRatingChange: newWinner.rating! - winnerRatingBefore,
+          loserRatingChange: newLoser.rating! - loserRatingBefore,
         });
 
-        updateRatings({ id: newWinner.id, rating: newWinner.rating! }, { id: newLoser.id, rating: newLoser.rating! });
+        updateRatings(
+          { id: newWinner.id, rating: newWinner.rating!, rd: newWinner.rd },
+          { id: newLoser.id, rating: newLoser.rating!, rd: newLoser.rd },
+        );
+
+        // During calibration, advance the binary search with the winner
+        if (isCalibrating) {
+          advanceCalibration(winner.id);
+        }
       }
     }
     setIsLoading(false);
@@ -123,7 +145,10 @@ export const ComparisonModal = ({
 
   const handleNext = () => {
     setResult(null);
-    getNextPair();
+    if (!isCalibrating) {
+      getNextPair();
+    }
+    // During calibration, advanceCalibration already set the next pair in handleChoose
   };
 
   // Get the first pair when the modal opens
@@ -156,7 +181,7 @@ export const ComparisonModal = ({
           <DialogTitle>{result ? `${result.winnerName} wins!` : 'Which is better?'}</DialogTitle>
           <DialogDescription>
             {result
-              ? "The Elo ratings have been updated. Click 'Next Matchup' to continue."
+              ? "The ratings have been updated. Click 'Next Matchup' to continue."
               : isCalibrating
                 ? 'A few quick comparisons to place your new item. Click on an item to view its details.'
                 : 'Select the item you prefer. Click on an item to view its details.'}
@@ -228,7 +253,7 @@ export interface ComparisonCardProps {
 const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: ComparisonCardProps) => {
   const isWinner = result?.winnerId === item.id;
   const isLoser = result?.loserId === item.id;
-  const eloChange = isWinner ? result?.winnerEloChange : isLoser ? result?.loserEloChange : 0;
+  const ratingChange = isWinner ? result?.winnerRatingChange : isLoser ? result?.loserRatingChange : 0;
 
   return (
     <div
@@ -252,9 +277,13 @@ const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: Compariso
         </Button>
       ) : (
         <div className="h-10 flex items-center justify-center font-semibold">
-          {eloChange !== undefined && (
-            <p className={cn(eloChange > 0 ? 'text-green-500' : 'text-red-500')}>
-              Elo: {eloChange > 0 ? `+${eloChange}` : eloChange}
+          {ratingChange !== undefined && (
+            <p
+              className={cn(
+                ratingChange > 0 ? 'text-green-500' : ratingChange < 0 ? 'text-red-500' : 'text-muted-foreground',
+              )}
+            >
+              {ratingChange > 0 ? `+${Math.round(ratingChange)}` : Math.round(ratingChange)}
             </p>
           )}
         </div>

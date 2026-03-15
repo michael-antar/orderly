@@ -21,6 +21,9 @@ export interface ItemListProps {
 
 /**
  * Renders a list of item cards with loading skeletons and podium highlighting.
+ * On initial load (empty list), full skeletons are shown. On re-fetches (list
+ * already populated), existing items are dimmed with pointer events disabled
+ * to avoid a jarring full-skeleton flash.
  */
 export const ItemList = ({
   items,
@@ -31,12 +34,11 @@ export const ItemList = ({
   emptyMessage,
   showPodium = false,
 }: ItemListProps) => {
-  // Use skeleton if loading
-  if (loading) {
-    const skeletonCount = items.length > 0 ? items.length : 5;
+  // Initial load — no items yet, show skeletons
+  if (loading && items.length === 0) {
     return (
       <div className="ml-10">
-        {Array.from({ length: skeletonCount }).map((_, index) => (
+        {Array.from({ length: 5 }).map((_, index) => (
           <ItemCardSkeleton key={index} />
         ))}
       </div>
@@ -52,7 +54,10 @@ export const ItemList = ({
   }
 
   return (
-    <div onClick={(e) => e.stopPropagation()}>
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className={loading ? 'opacity-50 pointer-events-none' : undefined}
+    >
       {items.map((item, index) => {
         const podiumClass = showPodium ? (PODIUM_STYLES[index] ?? '') : '';
 

@@ -52,9 +52,11 @@ export type Item = {
   name: string;
   status: Status;
   rating: number | null; // null = Status.backlog
+  rd: number; // Glicko-1 ratings deviation (uncertainty). 350 = max, ~30 = very confident
   description: string | null;
   comparison_count: number;
   created_at: string;
+  last_compared_at: string | null;
 
   tags: Tag[] | null;
   properties: Record<string, ItemPropertyValue>; // Store key-value pairs like: { address: "...", distance: 5 }
@@ -84,6 +86,7 @@ export type ItemFormData = {
   description: string;
   status: Status;
   rating: number | null;
+  rd: number; // Glicko-1 ratings deviation
 
   tags: Tag[];
   properties: Record<string, ItemPropertyValue>;

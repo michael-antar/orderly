@@ -19,6 +19,11 @@ type UseItemFormProps = {
    * Defaults to `'ranked'` when omitted.
    */
   defaultStatus?: Status;
+  /**
+   * Default rating for newly ranked items. When provided, overrides the
+   * hardcoded 1000 so new items start closer to the category's current cluster.
+   */
+  defaultRating?: number;
   /** Called with the saved item's status and full refreshed data after a successful submit. */
   onSuccess: (newStatus: Status, newItem: Item) => void;
 };
@@ -39,7 +44,14 @@ type UseItemFormProps = {
  * - Fetches existing tags from Supabase when the dialog opens.
  * - Inserts or updates rows in the `items`, `tags`, and `item_tags` tables on submit.
  */
-export const useItemForm = ({ mode, categoryDef, item, defaultStatus = 'ranked', onSuccess }: UseItemFormProps) => {
+export const useItemForm = ({
+  mode,
+  categoryDef,
+  item,
+  defaultStatus = 'ranked',
+  defaultRating = 1000,
+  onSuccess,
+}: UseItemFormProps) => {
   const { user } = useAuth();
 
   // - State management -
@@ -55,6 +67,7 @@ export const useItemForm = ({ mode, categoryDef, item, defaultStatus = 'ranked',
       description: item?.description || '',
       status: item?.status || defaultStatus,
       rating: item?.rating ?? null,
+      rd: item?.rd ?? 350,
       tags: item?.tags || [],
       properties: {},
     };
@@ -152,7 +165,8 @@ export const useItemForm = ({ mode, categoryDef, item, defaultStatus = 'ranked',
         name: formData.name,
         description: formData.description?.trim() || null,
         status: formData.status,
-        rating: formData.status === 'ranked' ? (formData.rating ?? 1000) : null,
+        rating: formData.status === 'ranked' ? (formData.rating ?? defaultRating) : null,
+        rd: formData.status === 'ranked' ? (formData.rd ?? 350) : 350,
         properties: propertiesToSave,
         category_def_id: categoryDef.id,
       };
@@ -214,23 +228,50 @@ export const useItemForm = ({ mode, categoryDef, item, defaultStatus = 'ranked',
     const originalTagIds = item?.tags?.map((t) => t.id) || [];
 
     // Tags created via TagInput are given a temporary negative ID (see TagInput.handleCreate).
-    // Any tag with id < 0 needs to be inserted into the DB before linking.
+    // Any tag with id < 0 needs to be persisted — but we first check whether a tag with the
+    // same name already exists for this user/category to avoid creating duplicates.
     const tagsToCreate = finalTags.filter((t) => t.id < 0);
     let newTagIds: number[] = [];
 
     if (tagsToCreate.length > 0) {
-      const payload = tagsToCreate.map((t) => ({
-        name: t.name,
-        user_id: user!.id,
-        category_def_id: categoryDef.id,
-      }));
+      // Check for existing tags with the same names (case-insensitive)
+      const { data: existingMatches } = await supabase
+        .from('tags')
+        .select('id, name')
+        .eq('user_id', user!.id)
+        .eq('category_def_id', categoryDef.id);
 
-      const { data: createdTags, error } = await supabase.from('tags').insert(payload).select('id');
+      const existingByName = new Map(
+        (existingMatches ?? []).map((t) => [t.name.toLowerCase(), t.id] as const),
+      );
 
-      if (error) {
-        throw new Error('Failed to create new tags.');
+      // Reuse existing tag IDs for names that already exist
+      const reusedIds: number[] = [];
+      const trulyNewTags = tagsToCreate.filter((t) => {
+        const existingId = existingByName.get(t.name.toLowerCase());
+        if (existingId !== undefined) {
+          reusedIds.push(existingId);
+          return false;
+        }
+        return true;
+      });
+
+      if (trulyNewTags.length > 0) {
+        const payload = trulyNewTags.map((t) => ({
+          name: t.name,
+          user_id: user!.id,
+          category_def_id: categoryDef.id,
+        }));
+
+        const { data: createdTags, error } = await supabase.from('tags').insert(payload).select('id');
+
+        if (error) {
+          throw new Error('Failed to create new tags.');
+        }
+        newTagIds = [...reusedIds, ...createdTags.map((t) => t.id)];
+      } else {
+        newTagIds = reusedIds;
       }
-      newTagIds = createdTags.map((t) => t.id);
     }
 
     // Collect all real (persisted) tag IDs - existing tags have positive IDs, newly created ones are now in newTagIds

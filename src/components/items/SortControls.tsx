@@ -53,7 +53,7 @@ const TYPE_OPERATORS: Record<string, { value: FilterOperator; label: string }[]>
 export interface SortControlsProps {
   categoryDef: CategoryDefinition;
   items: Item[];
-  isEloDisabled: boolean;
+  isRatingDisabled: boolean;
 
   sortBy: string;
   sortAsc: boolean;
@@ -71,7 +71,7 @@ export interface SortControlsProps {
 export const SortControls = ({
   categoryDef,
   items,
-  isEloDisabled,
+  isRatingDisabled,
   sortBy,
   sortAsc,
   filters,
@@ -121,7 +121,7 @@ export const SortControls = ({
   // Combine base and dynamic sort options. Memoize to only calculate once on every render
   const sortOptions = useMemo(() => {
     const base = [
-      { label: 'Rating (Elo)', value: 'rating', disabled: isEloDisabled },
+      { label: 'Rating', value: 'rating', disabled: isRatingDisabled },
       { label: 'Name', value: 'name', disabled: false },
       { label: 'Date Added', value: 'created_at', disabled: false },
     ];
@@ -136,7 +136,7 @@ export const SortControls = ({
       }));
 
     return [...base, ...dynamic];
-  }, [categoryDef, isEloDisabled]);
+  }, [categoryDef, isRatingDisabled]);
 
   // Get list of filterable fields (type must be included in supported TYPE_OPERATORS)
   const filterRuleOptions = useMemo(() => {

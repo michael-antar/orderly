@@ -45,8 +45,6 @@ export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }:
   }
 
   const handleDelete = async () => {
-    if (!item) return;
-
     try {
       const { error } = await supabase.from('items').delete().eq('id', item.id);
 
