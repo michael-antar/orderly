@@ -37,10 +37,12 @@ type CalibrationState = {
 
 /**
  * Picks a target index with positional jitter.
- * Jitter = ±ceil(listSize * 0.05), minimum ±1. Clamped to valid bounds.
+ * Jitter is ±25% of the current search range, minimum ±1.
+ * Clamped to [low, high] so the pick never escapes the current search zone.
  */
-const pickWithJitter = (targetIndex: number, low: number, high: number, listSize: number): number => {
-  const jitterRange = Math.max(1, Math.ceil(listSize * 0.05));
+const pickWithJitter = (targetIndex: number, low: number, high: number): number => {
+  const rangeSize = high - low + 1;
+  const jitterRange = Math.max(1, Math.ceil(rangeSize * 0.25));
   const offset = Math.floor(Math.random() * (jitterRange * 2 + 1)) - jitterRange;
   return Math.max(low, Math.min(high, targetIndex + offset));
 };
@@ -91,6 +93,8 @@ export const useComparisonQueue = (initialItems: Item[]) => {
   const [currentPair, setCurrentPair] = useState<ItemPair | null>(null);
   const [, setComparisonQueue] = useState<ItemPair[]>([]);
   const [isCalibrating, setIsCalibrating] = useState(false);
+  const [calibrationRound, setCalibrationRound] = useState(0);
+  const [calibrationMaxRounds, setCalibrationMaxRounds] = useState(0);
   const [, setCalibrationState] = useState<CalibrationState | null>(null);
 
   const updateRatings = useCallback(
@@ -262,7 +266,7 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     const low = 0;
     const high = otherItems.length - 1;
     const midIndex = Math.floor((low + high) / 2);
-    const opponentIndex = pickWithJitter(midIndex, low, high, otherItems.length);
+    const opponentIndex = pickWithJitter(midIndex, low, high);
 
     const opponent = otherItems[opponentIndex];
     const state: CalibrationState = {
@@ -276,6 +280,8 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     };
 
     setCalibrationState(state);
+    setCalibrationRound(1);
+    setCalibrationMaxRounds(maxRounds);
     setCurrentPair([itemInList, opponent]);
   }, []);
 
@@ -297,6 +303,8 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       if (nextRound >= maxRounds) {
         setCurrentPair(null);
         setIsCalibrating(false);
+        setCalibrationRound(0);
+        setCalibrationMaxRounds(0);
         return null;
       }
 
@@ -315,11 +323,12 @@ export const useComparisonQueue = (initialItems: Item[]) => {
       }
 
       const nextMid = Math.floor((newLow + newHigh) / 2);
-      let opponentIndex = pickWithJitter(nextMid, newLow, newHigh, otherItems.length);
+      let opponentIndex = pickWithJitter(nextMid, newLow, newHigh);
 
       // Avoid re-using the same gatekeeper opponent — scan outward from the picked index
       if (usedOpponentIds.has(otherItems[opponentIndex].id)) {
         let found = false;
+        // First try within the current search range
         for (let delta = 1; delta <= newHigh - newLow; delta++) {
           for (const dir of [1, -1]) {
             const candidate = opponentIndex + delta * dir;
@@ -331,12 +340,27 @@ export const useComparisonQueue = (initialItems: Item[]) => {
           }
           if (found) break;
         }
+        // Fallback: expand beyond range to find any unused opponent
+        if (!found) {
+          for (let delta = 1; delta < otherItems.length; delta++) {
+            for (const dir of [1, -1]) {
+              const candidate = opponentIndex + delta * dir;
+              if (candidate >= 0 && candidate < otherItems.length && !usedOpponentIds.has(otherItems[candidate].id)) {
+                opponentIndex = candidate;
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+        }
       }
 
       const nextUsed = new Set(usedOpponentIds);
       nextUsed.add(otherItems[opponentIndex].id);
 
       setCurrentPair([newItem, otherItems[opponentIndex]]);
+      setCalibrationRound(nextRound + 1);
 
       return {
         ...prev,
@@ -364,6 +388,8 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     startCalibration,
     advanceCalibration,
     isCalibrating,
+    calibrationRound,
+    calibrationMaxRounds,
     updateRatings,
   };
 };

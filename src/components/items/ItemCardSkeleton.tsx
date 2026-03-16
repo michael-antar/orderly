@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
  */
 export const ItemCardSkeleton = () => {
   return (
-    <Card className="mb-4 p-4">
+    <Card className="mb-4 p-4 animate-shimmer">
       <div className="flex flex-col gap-2">
         <div className="flex flex-col">
           <div className="flex items-baseline">

@@ -1,3 +1,5 @@
+import { ListChecks, Package } from 'lucide-react';
+
 import type { FieldDefinition, Item } from '@/types/types';
 
 import { ItemCard } from './ItemCard';
@@ -46,18 +48,17 @@ export const ItemList = ({
   }
 
   if (items.length === 0) {
+    const Icon = showPodium !== undefined ? ListChecks : Package;
     return (
-      <div className="flex justify-center mt-5">
+      <div className="flex flex-col items-center justify-center gap-3 text-center py-16 px-4">
+        <Icon className="h-8 w-8 text-muted-foreground" />
         <p className="text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div
-      onClick={(e) => e.stopPropagation()}
-      className={loading ? 'opacity-50 pointer-events-none' : undefined}
-    >
+    <div onClick={(e) => e.stopPropagation()} className={loading ? 'opacity-50 pointer-events-none' : undefined}>
       {items.map((item, index) => {
         const podiumClass = showPodium ? (PODIUM_STYLES[index] ?? '') : '';
 

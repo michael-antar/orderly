@@ -49,6 +49,24 @@ export const CategoryManager = ({ categories, onDataChange }: CategoryManagerPro
   const headerRef = useRef<HTMLDivElement>(null);
 
   const handleDelete = async (id: string) => {
+    // Cascade: delete related records before the category itself
+    const { data: categoryItems } = await supabase.from('items').select('id').eq('category_def_id', id);
+    const itemIds = (categoryItems || []).map((i) => i.id);
+
+    if (itemIds.length > 0) {
+      // Delete comparisons referencing these items
+      await supabase.from('comparisons').delete().in('winner_id', itemIds);
+      await supabase.from('comparisons').delete().in('loser_id', itemIds);
+      // Delete item–tag associations
+      await supabase.from('item_tags').delete().in('item_id', itemIds);
+      // Delete items
+      await supabase.from('items').delete().eq('category_def_id', id);
+    }
+
+    // Delete tags
+    await supabase.from('tags').delete().eq('category_def_id', id);
+
+    // Delete the category
     const { error } = await supabase.from('category_definitions').delete().eq('id', id);
 
     if (error) {
@@ -87,6 +105,7 @@ export const CategoryManager = ({ categories, onDataChange }: CategoryManagerPro
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground">
           <Settings className="mr-2 h-4 w-4" />
+          <span className="ml-1 truncate md:hidden">Manage Categories</span>
         </Button>
       </DialogTrigger>
 

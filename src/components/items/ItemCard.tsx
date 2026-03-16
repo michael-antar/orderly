@@ -29,7 +29,11 @@ export const ItemCard = memo(({ item, fieldDefinitions, onSelect, isSelected, po
 
   return (
     <Card
-      className={cn('mb-4 p-4 cursor-default', isSelected ? 'bg-muted' : 'hover:bg-muted/50', podiumClass)}
+      className={cn(
+        'mb-4 p-4 cursor-default transition-all duration-200',
+        isSelected ? 'bg-muted' : 'hover:bg-muted/50 hover:shadow-sm hover:-translate-y-px',
+        podiumClass,
+      )}
       onClick={() => onSelect(item)}
     >
       <div className="flex flex-col gap-2">
