@@ -1,5 +1,6 @@
 import { Menu } from 'lucide-react';
 
+import Logo from '@/assets/logo.svg';
 import { Button } from '@/components/ui/button';
 
 import { UserProfile } from '../auth/UserProfile';
@@ -16,7 +17,7 @@ type HeaderProps = {
  */
 export const Header = ({ activeCategoryName, onMenuClick }: HeaderProps) => {
   return (
-    <header className="relative flex items-center justify-between p-4 bg-background border-b border-border">
+    <header className="relative flex items-center justify-between p-3 bg-background border-b border-border">
       <div className="flex items-center gap-4">
         {/* Mobile Menu Button */}
         <Button variant="ghost" size="icon" className="md:hidden" onClick={onMenuClick}>
@@ -25,8 +26,11 @@ export const Header = ({ activeCategoryName, onMenuClick }: HeaderProps) => {
         </Button>
 
         {/* Logo + Breadcrumb */}
-        <div className="flex items-baseline gap-4">
-          <h1 className="text-3xl font-bold">Orderly</h1>
+        <div className="flex items-end gap-4">
+          <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight">
+            <img src={Logo} alt="Orderly Logo" className="w-8 h-8" />
+            Orderly
+          </h1>
           {activeCategoryName ? (
             <span className="text-xl text-foreground font-medium">{activeCategoryName}</span>
           ) : (

@@ -6,9 +6,9 @@ import { ItemCard } from './ItemCard';
 import { ItemCardSkeleton } from './ItemCardSkeleton';
 
 const PODIUM_STYLES: Record<number, string> = {
-  0: 'border-yellow-500', // Gold
-  1: 'border-slate-500', // Silver
-  2: 'border-orange-500', // Bronze
+  0: 'border-2 border-yellow-400/80 bg-yellow-400/10 shadow-sm',
+  1: 'border-2 border-slate-400/60 bg-slate-400/10 shadow-sm',
+  2: 'border-2 border-orange-500/60 bg-orange-400/10 shadow-sm',
 };
 
 export interface ItemListProps {

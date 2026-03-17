@@ -317,8 +317,8 @@ const ComparisonCard = ({ item, fieldDefinitions, result, isLoading, onView, onC
     <div
       className={cn(
         'flex flex-col rounded-lg border p-4 transition-all duration-300',
-        isWinner && 'border-green-500 bg-green-500/10 scale-[1.02]',
-        isLoser && 'border-red-500 bg-red-500/10 scale-[0.98] opacity-75',
+        isWinner && 'border-green-500 bg-green-500/10 scale-[1.02] shadow-md shadow-primary/20',
+        isLoser && 'border-red-500 bg-red-500/10 scale-[0.98] opacity-70',
         !result && !isLoading && 'hover:border-primary/50 cursor-pointer',
       )}
       onClick={!result && !isLoading ? onChoose : undefined}

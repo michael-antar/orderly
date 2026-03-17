@@ -9,25 +9,27 @@ export interface TagBadgeProps {
   className?: string;
 }
 
-// Simple hashing function to generate a color from a string
-const stringToHslColor = (str: string, s: number, l: number): string => {
+// Derive a stable hue (0–360) from a tag name for OKLCH color generation
+const nameToHue = (name: string): number => {
   let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, ${s}%, ${l}%)`;
+  return Math.abs(hash) % 360;
 };
 
 /**
- * Read-only tag with a hash-generated background and text color based on the name.
+ * Read-only tag with a hue-derived color that automatically adapts to light/dark
+ * mode via the `.tag-badge` CSS class defined in index.css.
  */
 export const TagBadge = memo(({ name, children, className }: TagBadgeProps) => {
-  const backgroundColor = stringToHslColor(name, 30, 80); // Lighter background
-  const textColor = stringToHslColor(name, 80, 25); // Darker text
+  const hue = nameToHue(name);
 
   return (
-    <Badge style={{ backgroundColor, color: textColor }} className={cn('border-transparent', className)}>
+    <Badge
+      style={{ '--tag-hue': hue } as React.CSSProperties}
+      className={cn('tag-badge border-transparent', className)}
+    >
       {name}
       {children}
     </Badge>

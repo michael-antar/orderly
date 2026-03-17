@@ -79,7 +79,7 @@ export const ItemDetailsContent = ({ item, categoryDef }: ItemDetailsContentProp
             <Star className="h-4 w-4 fill-current" />
             <span>{item.rating}</span>
             <span className="text-muted-foreground text-sm font-normal ml-1">
-              {item.rd >= 200 ? '(uncertain)' : item.rd >= 100 ? '(settling)' : ''}
+              {item.rd >= 250 ? '(uncertain)' : item.rd >= 150 ? '(settling)' : ''}
             </span>
           </div>
         ) : (
