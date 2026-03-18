@@ -90,10 +90,7 @@ export const ItemForm = memo(function ItemForm({
           ))}
       </DialogTrigger>
 
-      <DialogContent
-        className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{mode === 'add' ? `Add New ${categoryDef.name}` : `Edit ${categoryDef.name}`}</DialogTitle>
           <DialogDescription>

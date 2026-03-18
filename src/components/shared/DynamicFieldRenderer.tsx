@@ -16,6 +16,7 @@ export interface DynamicFieldRendererProps {
  */
 export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRendererProps) => {
   const label = field.label || field.key;
+  const fieldId = `field-${field.key}`;
 
   // --- Select (Enum) ---
   if (field.type === 'select' && field.options) {
@@ -24,9 +25,11 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
 
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold">{label}</Label>
+        <Label htmlFor={fieldId} className="text-sm font-semibold">
+          {label}
+        </Label>
         <Select value={stringValue || undefined} onValueChange={onChange}>
-          <SelectTrigger>
+          <SelectTrigger id={fieldId}>
             <SelectValue placeholder="Select..." />
           </SelectTrigger>
           <SelectContent>
@@ -51,8 +54,10 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
   if (field.type === 'boolean') {
     return (
       <div className="flex items-center justify-between rounded-lg border p-4">
-        <Label className="text-sm font-semibold">{label}</Label>
-        <Switch checked={!!value} onCheckedChange={onChange} />
+        <Label htmlFor={fieldId} className="text-sm font-semibold">
+          {label}
+        </Label>
+        <Switch id={fieldId} checked={!!value} onCheckedChange={onChange} />
       </div>
     );
   }
@@ -63,8 +68,11 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
 
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold">{label}</Label>
+        <Label htmlFor={fieldId} className="text-sm font-semibold">
+          {label}
+        </Label>
         <Input
+          id={fieldId}
           type="number"
           value={numValue}
           onChange={(e) => {
@@ -83,8 +91,11 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
 
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold">{label}</Label>
+        <Label htmlFor={fieldId} className="text-sm font-semibold">
+          {label}
+        </Label>
         <Input
+          id={fieldId}
           type="date" // Native browser date picker
           value={dateValue}
           onChange={(e) => onChange(e.target.value)}
@@ -103,8 +114,11 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
 
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold">{label}</Label>
+        <Label htmlFor={fieldId} className="text-sm font-semibold">
+          {label}
+        </Label>
         <Input
+          id={fieldId}
           value={locValue.address}
           onChange={(e) =>
             onChange({
@@ -125,8 +139,10 @@ export const DynamicFieldRenderer = ({ field, value, onChange }: DynamicFieldRen
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-semibold">{label}</Label>
-      <Input value={strValue} onChange={(e) => onChange(e.target.value)} />
+      <Label htmlFor={fieldId} className="text-sm font-semibold">
+        {label}
+      </Label>
+      <Input id={fieldId} value={strValue} onChange={(e) => onChange(e.target.value)} />
     </div>
   );
 };

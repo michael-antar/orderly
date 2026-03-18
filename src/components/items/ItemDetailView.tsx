@@ -1,4 +1,4 @@
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, MousePointerClick, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import {
@@ -38,8 +38,9 @@ export interface ItemDetailViewProps {
 export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }: ItemDetailViewProps) => {
   if (!item || !categoryDef) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground">Select an item to see details</p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 text-center px-4">
+        <MousePointerClick className="h-8 w-8 text-muted-foreground" />
+        <p className="text-muted-foreground">Select an item to see its details</p>
       </div>
     );
   }

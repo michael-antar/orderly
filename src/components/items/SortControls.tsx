@@ -228,19 +228,40 @@ export const SortControls = ({
   }, []);
 
   const handleClearFilters = () => {
+    const defaultSortBy = isRatingDisabled ? 'name' : 'rating';
+    const defaultSortAsc = isRatingDisabled;
+    setLocalSortBy(defaultSortBy);
+    setLocalSortAsc(defaultSortAsc);
     setLocalFilters({ tags: [], rules: [] });
   };
+
+  const defaultSortBy = isRatingDisabled ? 'name' : 'rating';
+  const defaultSortAsc = isRatingDisabled;
+  const hasActiveFilters =
+    filters.tags.length > 0 || filters.rules.length > 0 || sortBy !== defaultSortBy || sortAsc !== defaultSortAsc;
+
+  const hasPendingChanges =
+    isOpen &&
+    (localSortBy !== sortBy ||
+      localSortAsc !== sortAsc ||
+      JSON.stringify(localFilters) !== JSON.stringify(filters));
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" title="Sort & Filter">
+        <Button variant="outline" size="icon" title="Sort & Filter" className="relative">
           <SlidersHorizontal className="h-4 w-4" />
+          {hasPendingChanges ? (
+            <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-muted-foreground" />
+          ) : (
+            hasActiveFilters && <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary" />
+          )}
+          <span className="sr-only">Sort & Filter</span>
         </Button>
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-80 p-0"
+        className="w-[min(20rem,calc(100vw-2rem))] p-0"
         onPointerDownOutside={(e) => {
           // If any descendant is open, prevent the main popover from closing
           if (openDescendants > 0 || isTagPopoverOpen) {
@@ -330,7 +351,7 @@ export const SortControls = ({
               {/* Clear Button */}
               <Separator />
               <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                Clear All Filters
+                Reset All
               </Button>
             </div>
           </div>

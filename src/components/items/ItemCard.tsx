@@ -6,6 +6,19 @@ import type { FieldDefinition, Item } from '@/types/types';
 
 import { TagBadge } from '../categories/TagBadge';
 
+/** Three-dot confidence indicator derived from the Glicko-1 RD value. */
+const RDConfidence = ({ rd }: { rd: number }) => {
+  // 3 dots = high confidence (rd < 150), 2 = medium, 1 = low
+  const filled = rd < 150 ? 3 : rd < 250 ? 2 : 1;
+  return (
+    <div className="flex gap-0.5 items-center" title={`Rating confidence (RD: ${Math.round(rd)})`}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className={cn('w-1 h-1 rounded-full', i < filled ? 'bg-primary/70' : 'bg-muted-foreground/20')} />
+      ))}
+    </div>
+  );
+};
+
 export interface ItemCardProps {
   item: Item;
   fieldDefinitions: FieldDefinition[];
@@ -29,7 +42,11 @@ export const ItemCard = memo(({ item, fieldDefinitions, onSelect, isSelected, po
 
   return (
     <Card
-      className={cn('mb-4 p-4 cursor-default', isSelected ? 'bg-muted' : 'hover:bg-muted/50', podiumClass)}
+      className={cn(
+        'mb-4 p-4 cursor-default transition-all duration-200',
+        isSelected ? 'bg-muted' : 'hover:bg-muted/50 hover:shadow-sm hover:-translate-y-px',
+        podiumClass,
+      )}
       onClick={() => onSelect(item)}
     >
       <div className="flex flex-col gap-2">
@@ -37,7 +54,10 @@ export const ItemCard = memo(({ item, fieldDefinitions, onSelect, isSelected, po
           <div className="flex items-baseline">
             <h3 className="text-xl font-semibold truncate leading-tight">{name}</h3>
             {status === 'ranked' && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground leading-tight">{rating}</span>
+              <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                <span className="text-sm font-normal text-muted-foreground leading-tight tabular-nums">{rating}</span>
+                <RDConfidence rd={item.rd} />
+              </div>
             )}
           </div>
           {detailsString && <p className="text-sm text-muted-foreground truncate">{detailsString}</p>}

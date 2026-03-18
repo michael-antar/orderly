@@ -1,3 +1,4 @@
+import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Toaster } from '@/components/ui/sonner';
@@ -53,12 +54,11 @@ function App() {
   }, [authLoading, refreshCategories]);
 
   // Full screen loader (Only for initial auth check)
-  // TODO: Later switch with full UI skeleton for better transition
-  // TODO: Is this even necessary? Shouldn't a user always be found + sidebar/catview should always show at least skeleton?
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <p className="text-lg text-muted-foreground">Loading application...</p>
+      <div className="flex flex-col items-center justify-center h-screen bg-background gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading Orderly...</p>
       </div>
     );
   }
@@ -95,9 +95,17 @@ function App() {
           {activeCategory ? (
             <CategoryView key={activeCategory.id} categoryDef={activeCategory} />
           ) : (
-            /* Empty State if something goes wrong or no cats */
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              {isCategoriesLoading ? 'Loading Categories...' : 'No categories found.'}
+            <div className="h-full flex flex-col items-center justify-center text-center px-4">
+              {isCategoriesLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              ) : (
+                <>
+                  <p className="text-lg font-medium">No categories found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Create a category from the sidebar to get started.
+                  </p>
+                </>
+              )}
             </div>
           )}
         </main>

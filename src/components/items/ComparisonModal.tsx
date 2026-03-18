@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { TagBadge } from '@/components/categories/TagBadge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,8 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useComparisonQueue } from '@/hooks/useComparisonQueue';
 import { supabase } from '@/lib/supabaseClient';
-import { cn } from '@/lib/utils';
-import type { CategoryDefinition, Item } from '@/types/types';
+import { cn, getCategoryDetails } from '@/lib/utils';
+import type { CategoryDefinition, FieldDefinition, Item } from '@/types/types';
 
 import { ItemDetailsContent } from './ItemDetailsContent';
 
@@ -61,6 +62,7 @@ export const ComparisonModal = ({
     startCalibration,
     advanceCalibration,
     isCalibrating,
+    calibrationMaxRounds,
     updateRatings,
   } = useComparisonQueue(rankedItems);
 
@@ -68,11 +70,16 @@ export const ComparisonModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [itemToView, setItemToView] = useState<Item | null>(null);
+  // Tracks the pair currently shown on screen, surviving after currentPair goes null
+  const [displayedPair, setDisplayedPair] = useState<[Item, Item] | null>(null);
+  // Track the number of completed calibration rounds (advances on "Next Matchup", not on "Choose")
+  const [completedCalibrationRounds, setCompletedCalibrationRounds] = useState(0);
 
   const handleOpenChange = useCallback(
     (openState: boolean) => {
-      onOpenChange(openState);
       if (!openState) {
+        // Reset started state so auto-close doesn't fire prematurely on next open
+        setHasStarted(false);
         // Use the `calibrationItem` prop (stable for the session lifetime) rather
         // than the `isCalibrating` state, which is set to false *before* the
         // auto-close effect fires when calibration finishes naturally.
@@ -82,6 +89,7 @@ export const ComparisonModal = ({
           onSuccess();
         }
       }
+      onOpenChange(openState);
     },
     [onOpenChange, calibrationItem, onCalibrationComplete, onSuccess],
   );
@@ -133,22 +141,20 @@ export const ComparisonModal = ({
           { id: newWinner.id, rating: newWinner.rating!, rd: newWinner.rd },
           { id: newLoser.id, rating: newLoser.rating!, rd: newLoser.rd },
         );
-
-        // During calibration, advance the binary search with the winner
-        if (isCalibrating) {
-          advanceCalibration(winner.id);
-        }
       }
     }
     setIsLoading(false);
   };
 
   const handleNext = () => {
-    setResult(null);
-    if (!isCalibrating) {
+    if (isCalibrating) {
+      // Advance calibration now (on "Next Matchup" press, not on choose)
+      advanceCalibration(result!.winnerId);
+      setCompletedCalibrationRounds((prev) => prev + 1);
+    } else {
       getNextPair();
     }
-    // During calibration, advanceCalibration already set the next pair in handleChoose
+    setResult(null);
   };
 
   // Get the first pair when the modal opens
@@ -161,40 +167,80 @@ export const ComparisonModal = ({
       }
       setResult(null);
       setHasStarted(true);
+      setCompletedCalibrationRounds(0);
+      setDisplayedPair(null);
     }
   }, [open, startNormalComparison, startCalibration, calibrationItem]);
 
-  // Automatically close the modal when the queue is empty
+  // Keep displayedPair in sync with currentPair (but don't clear it when currentPair becomes null)
+  useEffect(() => {
+    if (currentPair) {
+      setDisplayedPair(currentPair);
+    }
+  }, [currentPair]);
+
+  // Automatically close the modal when the queue is empty (and no result is being displayed)
   useEffect(() => {
     if (hasStarted && !currentPair && !result) {
       handleOpenChange(false);
     }
   }, [currentPair, result, hasStarted, handleOpenChange]);
 
-  const itemA = currentPair?.[0];
-  const itemB = currentPair?.[1];
+  const itemA = displayedPair?.[0];
+  const itemB = displayedPair?.[1];
+
+  // Determine if this is the last calibration round (result shown but no next pair)
+  const isLastCalibrationResult = !!(result && isCalibrating && completedCalibrationRounds + 1 >= calibrationMaxRounds);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{result ? `${result.winnerName} wins!` : 'Which is better?'}</DialogTitle>
+          <DialogTitle>
+            {isLastCalibrationResult
+              ? 'Calibration complete!'
+              : result
+                ? `${result.winnerName} wins!`
+                : 'Which is better?'}
+          </DialogTitle>
           <DialogDescription>
-            {result
-              ? "The ratings have been updated. Click 'Next Matchup' to continue."
-              : isCalibrating
-                ? 'A few quick comparisons to place your new item. Click on an item to view its details.'
-                : 'Select the item you prefer. Click on an item to view its details.'}
+            {isLastCalibrationResult
+              ? 'Your new item has been placed in the ranking.'
+              : result
+                ? "The ratings have been updated. Click 'Next Matchup' to continue."
+                : isCalibrating
+                  ? `Calibration round ${completedCalibrationRounds + 1} of ${calibrationMaxRounds} — placing your new item.`
+                  : 'Select the item you prefer. Click on an item to view its details.'}
           </DialogDescription>
+          {calibrationMaxRounds > 0 && isCalibrating && (
+            <div className="flex gap-1.5 pt-2">
+              {Array.from({ length: calibrationMaxRounds }).map((_, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'h-1.5 flex-1 rounded-full transition-colors',
+                    i < completedCalibrationRounds
+                      ? 'bg-primary'
+                      : i === completedCalibrationRounds && result
+                        ? isLastCalibrationResult
+                          ? 'bg-primary'
+                          : 'bg-muted-foreground/40'
+                        : 'bg-muted',
+                  )}
+                />
+              ))}
+            </div>
+          )}
         </DialogHeader>
 
         <Sheet open={!!itemToView} onOpenChange={(isOpen) => !isOpen && setItemToView(null)}>
           <div className="grid grid-cols-2 gap-4 py-4">
-            {currentPair && itemA && itemB && (
+            {displayedPair && itemA && itemB && (
               <>
                 {/* Left Item Card */}
                 <ComparisonCard
                   item={itemA}
+                  fieldDefinitions={categoryDef.field_definitions}
                   result={result}
                   isLoading={isLoading}
                   onView={() => setItemToView(itemA)}
@@ -204,6 +250,7 @@ export const ComparisonModal = ({
                 {/* Right Item Card */}
                 <ComparisonCard
                   item={itemB}
+                  fieldDefinitions={categoryDef.field_definitions}
                   result={result}
                   isLoading={isLoading}
                   onView={() => setItemToView(itemB)}
@@ -228,9 +275,15 @@ export const ComparisonModal = ({
 
         <DialogFooter>
           {result ? (
-            <Button variant="secondary" className="w-full" onClick={handleNext}>
-              {isCalibrating && !currentPair ? 'Finishing...' : 'Next Matchup'}
-            </Button>
+            isLastCalibrationResult ? (
+              <Button variant="secondary" className="w-full" onClick={() => handleOpenChange(false)}>
+                Done
+              </Button>
+            ) : (
+              <Button variant="secondary" className="w-full" onClick={handleNext}>
+                Next Matchup
+              </Button>
+            )
           ) : (
             <Button variant="secondary" className="w-full" onClick={() => handleOpenChange(false)}>
               Done
@@ -244,50 +297,84 @@ export const ComparisonModal = ({
 
 export interface ComparisonCardProps {
   item: Item;
+  fieldDefinitions: FieldDefinition[];
   result: ComparisonResult | null;
   isLoading: boolean;
   onView: () => void;
   onChoose: () => void;
 }
 
-const ComparisonCard = ({ item, result, isLoading, onView, onChoose }: ComparisonCardProps) => {
+const ComparisonCard = ({ item, fieldDefinitions, result, isLoading, onView, onChoose }: ComparisonCardProps) => {
   const isWinner = result?.winnerId === item.id;
   const isLoser = result?.loserId === item.id;
   const ratingChange = isWinner ? result?.winnerRatingChange : isLoser ? result?.loserRatingChange : 0;
 
+  const detailsString = getCategoryDetails(item, fieldDefinitions)
+    .map((detail) => detail[1])
+    .join(', ');
+
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-4 rounded-lg border p-4 transition-colors',
-        isWinner && 'border-green-500 bg-green-500/10',
-        isLoser && 'border-red-500 bg-red-500/10',
+        'flex flex-col rounded-lg border p-4 transition-all duration-300',
+        isWinner && 'border-green-500 bg-green-500/10 scale-[1.02] shadow-md shadow-primary/20',
+        isLoser && 'border-red-500 bg-red-500/10 scale-[0.98] opacity-70',
+        !result && !isLoading && 'hover:border-primary/50 cursor-pointer',
       )}
+      onClick={!result && !isLoading ? onChoose : undefined}
     >
+      {/* Item name — clickable to view details */}
       <button
-        onClick={onView}
-        className="text-xl font-semibold text-center h-16 flex items-center hover:underline"
-        disabled={!!result}
+        onClick={(e) => {
+          e.stopPropagation();
+          onView();
+        }}
+        className="text-lg font-semibold text-center min-h-[3rem] flex items-center justify-center hover:underline"
       >
         {item.name}
       </button>
 
-      {!result ? (
-        <Button className="w-full" onClick={onChoose} disabled={isLoading}>
-          Choose
-        </Button>
-      ) : (
-        <div className="h-10 flex items-center justify-center font-semibold">
-          {ratingChange !== undefined && (
-            <p
-              className={cn(
-                ratingChange > 0 ? 'text-green-500' : ratingChange < 0 ? 'text-red-500' : 'text-muted-foreground',
-              )}
-            >
-              {ratingChange > 0 ? `+${Math.round(ratingChange)}` : Math.round(ratingChange)}
-            </p>
-          )}
+      {/* Item details summary */}
+      {detailsString && <p className="text-xs text-muted-foreground text-center truncate mt-1">{detailsString}</p>}
+
+      {/* Tags */}
+      {item.tags && item.tags.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-1 mt-2">
+          {item.tags.slice(0, 3).map((tag) => (
+            <TagBadge key={tag.id} name={tag.name} />
+          ))}
+          {item.tags.length > 3 && <span className="text-xs text-muted-foreground">+{item.tags.length - 3}</span>}
         </div>
       )}
+
+      {/* Choose button or result */}
+      <div className="mt-auto pt-3">
+        {!result ? (
+          <Button
+            className="w-full"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChoose();
+            }}
+            disabled={isLoading}
+          >
+            Choose
+          </Button>
+        ) : (
+          <div className="h-10 flex items-center justify-center font-semibold">
+            {ratingChange !== undefined && (
+              <p
+                className={cn(
+                  'transition-all duration-300',
+                  ratingChange > 0 ? 'text-green-500' : ratingChange < 0 ? 'text-red-500' : 'text-muted-foreground',
+                )}
+              >
+                {ratingChange > 0 ? `+${Math.round(ratingChange)}` : Math.round(ratingChange)}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

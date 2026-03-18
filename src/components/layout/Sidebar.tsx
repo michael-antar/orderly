@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { CategoryDefinition } from '@/types/types';
 
@@ -49,30 +50,48 @@ export const Sidebar = ({
 
       {/* Nav list */}
       <nav className="flex flex-col gap-2">
-        {isLoading
-          ? // Skeleton
-            Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full md:w-10 md:mx-auto rounded-md" />
-            ))
-          : categories.map((cat) => (
-              <Button
-                key={cat.id}
-                variant={activeCategoryId === cat.id ? 'secondary' : 'ghost'}
-                className={cn(
-                  'justify-start w-full',
-                  'md:w-10 md:h-10 md:justify-center md:p-0', // Icon-only on desktop
-                )}
-                onClick={() => onCategorySelect(cat.id)}
-                title={cat.name}
-              >
-                <DynamicIcon name={cat.icon} className="h-5 w-5 shrink-0" />
-                <span className="ml-3 truncate md:hidden">{cat.name}</span>
-              </Button>
-            ))}
+        <TooltipProvider delayDuration={300}>
+          {isLoading
+            ? // Skeleton
+              Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full md:w-10 md:mx-auto rounded-md" />
+              ))
+            : categories.map((cat) => (
+                <Tooltip key={cat.id}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={activeCategoryId === cat.id ? 'secondary' : 'ghost'}
+                      className={cn(
+                        'justify-start w-full',
+                        'md:w-10 md:h-10 md:justify-center md:p-0', // Icon-only on desktop
+                      )}
+                      onClick={() => onCategorySelect(cat.id)}
+                    >
+                      <DynamicIcon name={cat.icon} className="h-5 w-5 shrink-0" />
+                      <span className="ml-3 truncate md:hidden">{cat.name}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="hidden md:block">
+                    {cat.name}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+        </TooltipProvider>
       </nav>
 
       <div className="mt-auto pt-4 border-t">
-        <CategoryManager categories={categories} onDataChange={onCategoriesChange} />
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <CategoryManager categories={categories} onDataChange={onCategoriesChange} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="hidden md:block">
+              Manage Categories
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </aside>
   );
