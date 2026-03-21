@@ -65,7 +65,7 @@ export const ItemList = ({
         return (
           <div key={item.id} className="flex items-center gap-4">
             {/* Index Number */}
-            <span className="w-8 text-center text-lg font-semibold text-muted-foreground">{index + 1}</span>
+            <span className="w-2 text-center text-lg font-semibold text-muted-foreground">{index + 1}</span>
 
             {/* Item Card */}
             <div className="flex-1 min-w-0">

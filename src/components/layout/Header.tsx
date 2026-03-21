@@ -29,7 +29,7 @@ export const Header = ({ activeCategoryName, onMenuClick }: HeaderProps) => {
         <div className="flex items-end gap-4 min-w-0">
           <h1 className="flex items-center gap-2 text-2xl font-black tracking-tight shrink-0">
             <img src={Logo} alt="Orderly Logo" className="w-8 h-8" />
-            Orderly
+            <span className="hidden md:block">Orderly</span>
           </h1>
           {activeCategoryName ? (
             <span className="text-xl text-foreground font-medium truncate">{activeCategoryName}</span>
