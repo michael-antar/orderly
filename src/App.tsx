@@ -88,7 +88,7 @@ function App() {
         />
 
         {isSidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-10 md:hidden" onClick={() => setIsSidebarOpen(false)} />
+          <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />
         )}
 
         <main className="flex-1 overflow-y-auto">

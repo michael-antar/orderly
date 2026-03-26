@@ -64,7 +64,7 @@ export const ItemDetailView = ({ item, categoryDef, onClose, onEdit, onDelete }:
   };
 
   return (
-    <div className="flex flex-col m-4 pt-4 lg:pt-0">
+    <div className="flex flex-col m-3 sm:m-4 pt-3 sm:pt-4 lg:pt-0">
       {/* Button Row */}
       <div className="flex gap-2 justify-between lg:justify-end">
         {/* Close Button (Mobile Only) */}
