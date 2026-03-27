@@ -1,4 +1,4 @@
-import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
+import { AlertTriangle, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -80,9 +80,9 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
     }
   };
 
-  // Toggle selection of item
+  // Select item and open detail view
   const handleSelectItem = useCallback((item: Item) => {
-    setSelectedItemId((prev) => (prev === item.id ? null : item.id));
+    setSelectedItemId(item.id);
     setIsDetailViewOpen(true);
   }, []);
 
@@ -231,18 +231,6 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                   defaultRating={averageRating}
                   onSuccess={handleAddSuccess}
                 />
-
-                {/* Mobile Open Panel Toggle */}
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="lg:hidden"
-                  onClick={() => setIsDetailViewOpen(true)}
-                  disabled={!selectedItem} // Disable button if no item is selected
-                >
-                  <PanelRightOpen />
-                  <span className="sr-only">Open details panel</span>
-                </Button>
               </div>
             </div>
           </header>
@@ -282,7 +270,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
       {/* Overlay for mobile view */}
       {isDetailViewOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setIsDetailViewOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => {
+            setIsDetailViewOpen(false);
+            setSelectedItemId(null);
+          }}
+        />
       )}
 
       {/* Right Column: Detail View */}
@@ -295,7 +289,10 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
         <ItemDetailView
           item={selectedItem}
           categoryDef={categoryDef}
-          onClose={() => setIsDetailViewOpen(false)}
+          onClose={() => {
+            setIsDetailViewOpen(false);
+            setSelectedItemId(null);
+          }}
           onEdit={handleEditSuccess}
           onDelete={handleDeleteSuccess}
         />
