@@ -1,4 +1,4 @@
-import { AlertTriangle, PanelRightOpen, Swords } from 'lucide-react';
+import { AlertTriangle, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -80,9 +80,9 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
     }
   };
 
-  // Toggle selection of item
+  // Select item and open detail view
   const handleSelectItem = useCallback((item: Item) => {
-    setSelectedItemId((prev) => (prev === item.id ? null : item.id));
+    setSelectedItemId(item.id);
     setIsDetailViewOpen(true);
   }, []);
 
@@ -173,9 +173,9 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
           onValueChange={(value) => handleTabChange(value as Status)}
         >
           {/* Left Side Header */}
-          <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 m-4 mb-0 pb-4 border-b">
+          <header className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2 sm:gap-x-6 sm:gap-y-4 mx-3 sm:mx-4 mt-3 sm:mt-4 mb-0 pb-3 sm:pb-4 border-b">
             {/* Controls */}
-            <div className="flex flex-grow flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-grow flex-wrap items-center justify-between gap-1.5 sm:gap-2 md:gap-4">
               {/* Status Tabs */}
               <TabsList>
                 <TabsTrigger value="ranked">Ranked</TabsTrigger>
@@ -231,24 +231,12 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                   defaultRating={averageRating}
                   onSuccess={handleAddSuccess}
                 />
-
-                {/* Mobile Open Panel Toggle */}
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="lg:hidden"
-                  onClick={() => setIsDetailViewOpen(true)}
-                  disabled={!selectedItem} // Disable button if no item is selected
-                >
-                  <PanelRightOpen />
-                  <span className="sr-only">Open details panel</span>
-                </Button>
               </div>
             </div>
           </header>
 
           {/* Item List Container */}
-          <div className="flex-1 p-4 pt-6 overflow-y-auto" onClick={() => setSelectedItemId(null)}>
+          <div className="flex-1 p-3 pt-4 sm:p-4 sm:pt-6 overflow-y-auto" onClick={() => setSelectedItemId(null)}>
             {error ? (
               <ErrorState onRetry={handleRetry} />
             ) : (
@@ -282,20 +270,29 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
       {/* Overlay for mobile view */}
       {isDetailViewOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setIsDetailViewOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => {
+            setIsDetailViewOpen(false);
+            setSelectedItemId(null);
+          }}
+        />
       )}
 
       {/* Right Column: Detail View */}
       <div
         className={cn(
-          'overflow-y-auto absolute top-0 right-0 h-screen w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 lg:static lg:w-1/2 lg:h-auto lg:translate-x-0',
+          'overflow-y-auto absolute top-0 right-0 h-full w-[85%] bg-background border-l transition-transform duration-300 ease-in-out z-30 lg:static lg:w-1/2 lg:h-auto lg:translate-x-0',
           isDetailViewOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >
         <ItemDetailView
           item={selectedItem}
           categoryDef={categoryDef}
-          onClose={() => setIsDetailViewOpen(false)}
+          onClose={() => {
+            setIsDetailViewOpen(false);
+            setSelectedItemId(null);
+          }}
           onEdit={handleEditSuccess}
           onDelete={handleDeleteSuccess}
         />
