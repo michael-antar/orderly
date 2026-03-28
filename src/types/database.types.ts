@@ -221,16 +221,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_tags_with_usage: {
-        Args: { p_category: Database["public"]["Enums"]["item_category"] }
-        Returns: {
-          category: Database["public"]["Enums"]["item_category"]
-          id: number
-          is_used: boolean
-          name: string
-          user_id: string
-        }[]
-      }
       get_user_id_from_item: { Args: { item_id: string }; Returns: string }
       handle_comparison: {
         Args: { p_loser_id: string; p_winner_id: string }
@@ -239,9 +229,7 @@ export type Database = {
       seed_user_categories: { Args: never; Returns: undefined }
     }
     Enums: {
-      item_category: "restaurant" | "movie" | "book" | "show" | "album"
       item_status: "ranked" | "backlog"
-      price_range: "$" | "$$" | "$$$" | "$$$$"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -369,9 +357,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      item_category: ["restaurant", "movie", "book", "show", "album"],
       item_status: ["ranked", "backlog"],
-      price_range: ["$", "$$", "$$$", "$$$$"],
     },
   },
 } as const
