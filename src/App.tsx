@@ -22,7 +22,7 @@ function App() {
     if (!user) return;
 
     try {
-      const userCats = await ensureUserCategories();
+      const userCats = await ensureUserCategories(user.id);
       setCategories(userCats);
 
       setActiveCategoryId((currentId) => {

@@ -214,8 +214,12 @@ export const CategoryBuilder = ({ categoryId, onSave, onCancel }: CategoryBuilde
     let error;
 
     if (categoryId) {
-      // Update
-      const { error: updateError } = await supabase.from('category_definitions').update(payload).eq('id', categoryId);
+      // Update — also filter by user_id so we never accidentally touch a global template row
+      const { error: updateError } = await supabase
+        .from('category_definitions')
+        .update(payload)
+        .eq('id', categoryId)
+        .eq('user_id', user.id);
       error = updateError;
     } else {
       // Create
