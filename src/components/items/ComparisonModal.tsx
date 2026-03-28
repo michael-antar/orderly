@@ -74,6 +74,8 @@ export const ComparisonModal = ({
   const [displayedPair, setDisplayedPair] = useState<[Item, Item] | null>(null);
   // Track the number of completed calibration rounds (advances on "Next Matchup", not on "Choose")
   const [completedCalibrationRounds, setCompletedCalibrationRounds] = useState(0);
+  // Whether the user chose "Keep Comparing" after calibration finished
+  const [continueAfterCalibration, setContinueAfterCalibration] = useState(false);
 
   const handleOpenChange = useCallback(
     (openState: boolean) => {
@@ -83,7 +85,9 @@ export const ComparisonModal = ({
         // Use the `calibrationItem` prop (stable for the session lifetime) rather
         // than the `isCalibrating` state, which is set to false *before* the
         // auto-close effect fires when calibration finishes naturally.
-        if (calibrationItem && onCalibrationComplete) {
+        // Also treat "continue after calibration" sessions as calibration-originated
+        // so the parent properly cleans up the calibration item.
+        if ((calibrationItem || continueAfterCalibration) && onCalibrationComplete) {
           onCalibrationComplete();
         } else {
           onSuccess();
@@ -91,7 +95,7 @@ export const ComparisonModal = ({
       }
       onOpenChange(openState);
     },
-    [onOpenChange, calibrationItem, onCalibrationComplete, onSuccess],
+    [onOpenChange, calibrationItem, continueAfterCalibration, onCalibrationComplete, onSuccess],
   );
 
   const handleChoose = async (winner: Item, loser: Item) => {
@@ -169,6 +173,7 @@ export const ComparisonModal = ({
       setHasStarted(true);
       setCompletedCalibrationRounds(0);
       setDisplayedPair(null);
+      setContinueAfterCalibration(false);
     }
   }, [open, startNormalComparison, startCalibration, calibrationItem]);
 
@@ -179,18 +184,31 @@ export const ComparisonModal = ({
     }
   }, [currentPair]);
 
-  // Automatically close the modal when the queue is empty (and no result is being displayed)
-  useEffect(() => {
-    if (hasStarted && !currentPair && !result) {
-      handleOpenChange(false);
-    }
-  }, [currentPair, result, hasStarted, handleOpenChange]);
-
   const itemA = displayedPair?.[0];
   const itemB = displayedPair?.[1];
 
   // Determine if this is the last calibration round (result shown but no next pair)
   const isLastCalibrationResult = !!(result && isCalibrating && completedCalibrationRounds + 1 >= calibrationMaxRounds);
+
+  // Calculate the calibrated item's rank position
+  const calibratedItemRank =
+    isLastCalibrationResult && calibrationItem
+      ? [...items].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).findIndex((i) => i.id === calibrationItem.id) + 1
+      : null;
+
+  // Automatically close the modal when the queue is empty (and no result is being displayed)
+  // Skip auto-close when showing the calibration completion screen (isLastCalibrationResult)
+  useEffect(() => {
+    if (hasStarted && !currentPair && !result && !isLastCalibrationResult) {
+      handleOpenChange(false);
+    }
+  }, [currentPair, result, hasStarted, handleOpenChange, isLastCalibrationResult]);
+
+  const handleContinueComparing = () => {
+    setContinueAfterCalibration(true);
+    setResult(null);
+    startNormalComparison();
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -205,7 +223,7 @@ export const ComparisonModal = ({
           </DialogTitle>
           <DialogDescription>
             {isLastCalibrationResult
-              ? 'Your new item has been placed in the ranking.'
+              ? `${calibrationItem?.name} placed at #${calibratedItemRank}. Want to keep refining your rankings?`
               : result
                 ? "The ratings have been updated. Click 'Next Matchup' to continue."
                 : isCalibrating
@@ -276,9 +294,14 @@ export const ComparisonModal = ({
         <DialogFooter>
           {result ? (
             isLastCalibrationResult ? (
-              <Button variant="secondary" className="w-full" onClick={() => handleOpenChange(false)}>
-                Done
-              </Button>
+              <div className="flex w-full gap-2">
+                <Button variant="secondary" className="flex-1" onClick={() => handleOpenChange(false)}>
+                  Done
+                </Button>
+                <Button className="flex-1" onClick={handleContinueComparing}>
+                  Keep Comparing
+                </Button>
+              </div>
             ) : (
               <Button variant="secondary" className="w-full" onClick={handleNext}>
                 Next Matchup

@@ -1,4 +1,4 @@
-import { AlertTriangle, Swords } from 'lucide-react';
+import { AlertTriangle, Sparkles, Swords } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -163,6 +163,11 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
     return Math.round(rated.reduce((sum, i) => sum + i.rating!, 0) / rated.length);
   }, [comparisonRankedItems]);
 
+  // Count items with high rating uncertainty (RD > 250 = low confidence)
+  const uncertainCount = useMemo(() => {
+    return rankedItems.filter((i) => i.rd > 250).length;
+  }, [rankedItems]);
+
   return (
     <div className="relative h-full overflow-hidden lg:flex">
       {/* Left Column: Item List */}
@@ -202,6 +207,7 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 <Button
                   variant="outline"
                   size="icon"
+                  className="xl:hidden"
                   onClick={() => {
                     // Clear any leftover calibration item from a previous session
                     setCalibrationItem(null);
@@ -211,6 +217,18 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                 >
                   <Swords className="h-4 w-4" />
                   <span className="sr-only">Compare Items</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hidden xl:inline-flex"
+                  onClick={() => {
+                    setCalibrationItem(null);
+                    setIsComparisonModalOpen(true);
+                  }}
+                  disabled={activeTab === 'backlog' || rankedItems.length < 2}
+                >
+                  <Swords className="h-4 w-4" />
+                  Compare
                 </Button>
 
                 <ComparisonModal
@@ -242,6 +260,23 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
             ) : (
               <>
                 <TabsContent value="ranked">
+                  {uncertainCount > 0 && activeTab === 'ranked' && rankedItems.length >= 2 && (
+                    <button
+                      className="flex items-center gap-2 w-full mb-4 px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 text-sm text-primary hover:bg-primary/10 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setCalibrationItem(null);
+                        setIsComparisonModalOpen(true);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4 shrink-0" />
+                      <span>
+                        {uncertainCount === 1
+                          ? '1 item has an uncertain ranking'
+                          : `${uncertainCount} items have uncertain rankings`}
+                        {' \u2014 compare to improve accuracy'}
+                      </span>
+                    </button>
+                  )}
                   <ItemList
                     items={rankedItems}
                     fieldDefinitions={categoryDef.field_definitions}
