@@ -14,6 +14,7 @@ import { ComparisonModal } from '../items/ComparisonModal';
 import { ItemDetailView } from '../items/ItemDetailView';
 import { ItemForm } from '../items/ItemForm';
 import { ItemList } from '../items/ItemList';
+import { ShareListDialog } from '../items/ShareListDialog';
 import { SortControls } from '../items/SortControls';
 import { TagManager } from './TagManager';
 
@@ -202,6 +203,13 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
                 {/* Tag Management Modal */}
                 <TagManager categoryDefId={categoryDef.id} onSuccess={handleTagUpdateSuccess} />
+
+                {/* Share List */}
+                <ShareListDialog
+                  categoryDef={categoryDef}
+                  items={activeTab === 'ranked' ? rankedItems : backlogItems}
+                  activeTab={activeTab}
+                />
 
                 {/* Comparison Button */}
                 <Button
