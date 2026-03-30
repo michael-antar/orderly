@@ -23,6 +23,8 @@ export interface ShareListDialogProps {
   categoryDef: CategoryDefinition;
   items: Item[];
   activeTab: 'ranked' | 'backlog';
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const MEDAL_EMOJIS: Record<number, string> = {
@@ -90,8 +92,15 @@ function formatShareText(
   return lines.join('\n');
 }
 
-export const ShareListDialog = ({ categoryDef, items, activeTab }: ShareListDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ShareListDialog = ({ categoryDef, items, activeTab, open: openProp, onOpenChange: onOpenChangeProp }: ShareListDialogProps) => {
+  const isControlled = openProp !== undefined;
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isControlled ? openProp : isOpenInternal;
+
+  const setIsOpen = (open: boolean) => {
+    if (isControlled) onOpenChangeProp?.(open);
+    else setIsOpenInternal(open);
+  };
   const [copied, setCopied] = useState(false);
 
   // Options
@@ -143,12 +152,14 @@ export const ShareListDialog = ({ categoryDef, items, activeTab }: ShareListDial
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="icon" disabled={items.length === 0}>
-          <Share2 className="h-4 w-4" />
-          <span className="sr-only">Share List</span>
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" disabled={items.length === 0}>
+            <Share2 className="h-4 w-4" />
+            <span className="sr-only">Share List</span>
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

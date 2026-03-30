@@ -41,6 +41,8 @@ export interface TagWithUsage extends Tag {
 export interface TagManagerProps {
   categoryDefId: string;
   onSuccess: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -50,10 +52,12 @@ export interface TagManagerProps {
  * - Fetches tag data from Supabase when the dialog opens.
  * - Mutates the `tags` and `item_tags` tables on create/rename/delete actions.
  */
-export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
+export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenChange: onOpenChangeProp }: TagManagerProps) => {
   const { user } = useAuth();
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isControlled = openProp !== undefined;
+  const isOpen = isControlled ? openProp : isOpenInternal;
   const [loading, setLoading] = useState(false);
   const [tags, setTags] = useState<TagWithUsage[]>([]);
 
@@ -103,7 +107,11 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
   }, [isOpen, fetchTags]);
 
   const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
+    if (isControlled) {
+      onOpenChangeProp?.(open);
+    } else {
+      setIsOpenInternal(open);
+    }
     // If the dialog is closing, reset the form state
     if (!open) {
       setIsCreatingTag(false);
@@ -211,12 +219,14 @@ export const TagManager = ({ categoryDefId, onSuccess }: TagManagerProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Tags className="h-4 w-4" />
-          <span className="sr-only">Manage Tags</span>
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon">
+            <Tags className="h-4 w-4" />
+            <span className="sr-only">Manage Tags</span>
+          </Button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
