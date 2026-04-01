@@ -1,4 +1,4 @@
-import { LayoutList, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, LayoutList, Pencil, Plus, Settings, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -93,6 +93,31 @@ export const CategoryManager = ({ categories, onDataChange }: CategoryManagerPro
     onDataChange?.();
   };
 
+  const handleReorder = async (index: number, direction: 'up' | 'down') => {
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    if (swapIndex < 0 || swapIndex >= categories.length) return;
+
+    const catA = categories[index];
+    const catB = categories[swapIndex];
+
+    // Swap sort_order values in the database
+    const { error: errorA } = await supabase
+      .from('category_definitions')
+      .update({ sort_order: catB.sort_order })
+      .eq('id', catA.id);
+
+    const { error: errorB } = await supabase
+      .from('category_definitions')
+      .update({ sort_order: catA.sort_order })
+      .eq('id', catB.id);
+
+    if (errorA || errorB) {
+      toast.error('Failed to reorder', { description: (errorA || errorB)?.message });
+    } else {
+      onDataChange?.();
+    }
+  };
+
   return (
     <Dialog
       open={isOpen}
@@ -147,13 +172,37 @@ export const CategoryManager = ({ categories, onDataChange }: CategoryManagerPro
                 </div>
               ) : (
                 <div className="grid gap-3">
-                  {categories.map((cat) => (
+                  {categories.map((cat, index) => (
                     <div
                       key={cat.id}
                       onClick={() => handleEdit(cat.id)}
                       className="flex items-center justify-between p-3 border rounded-lg bg-background hover:border-primary/50 hover:shadow-sm transition-all group cursor-pointer"
                     >
                       <div className="flex items-center gap-4">
+                        {/* Reorder buttons */}
+                        <div className="flex flex-col gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            disabled={index === 0}
+                            onClick={() => handleReorder(index, 'up')}
+                            title="Move up"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-5 w-5"
+                            disabled={index === categories.length - 1}
+                            onClick={() => handleReorder(index, 'down')}
+                            title="Move down"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                        </div>
+
                         <div className="p-2.5 bg-muted rounded-md group-hover:bg-primary/10 transition-colors">
                           <DynamicIcon name={cat.icon} className="h-5 w-5 text-primary" />
                         </div>

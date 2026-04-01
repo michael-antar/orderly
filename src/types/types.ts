@@ -21,6 +21,7 @@ export type CategoryDefinition = {
   name: string;
   icon: string; // Lucide icon name
   field_definitions: FieldDefinition[];
+  sort_order: number;
 };
 
 // --- Database Item Types ---

@@ -222,8 +222,15 @@ export const CategoryBuilder = ({ categoryId, onSave, onCancel }: CategoryBuilde
         .eq('user_id', user.id);
       error = updateError;
     } else {
-      // Create
-      const { error: insertError } = await supabase.from('category_definitions').insert(payload);
+      // Create — set sort_order to place at end of the list
+      const { count } = await supabase
+        .from('category_definitions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      const { error: insertError } = await supabase
+        .from('category_definitions')
+        .insert({ ...payload, sort_order: count ?? 0 });
       error = insertError;
     }
 

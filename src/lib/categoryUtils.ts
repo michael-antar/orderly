@@ -90,7 +90,8 @@ export async function ensureUserCategories(userId: string): Promise<CategoryDefi
     .from('category_definitions')
     .select('*')
     .eq('user_id', userId)
-    .order('created_at', { ascending: true }); // Oldest first
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
 
   if (error) throw error;
 
@@ -110,6 +111,7 @@ export async function ensureUserCategories(userId: string): Promise<CategoryDefi
     .from('category_definitions')
     .select('*')
     .eq('user_id', userId)
+    .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 
   const userCategories = (seeded as unknown as CategoryDefinition[]) || [];
