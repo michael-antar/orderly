@@ -1,4 +1,4 @@
-import { Plus, Tags, Trash2 } from 'lucide-react';
+import { GitMerge, Plus, Tags, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabaseClient';
@@ -36,6 +37,7 @@ export interface TagResponse extends Tag {
 
 export interface TagWithUsage extends Tag {
   is_used: boolean;
+  usage_count: number;
 }
 
 export interface TagManagerProps {
@@ -64,6 +66,9 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
   // For creating a new tag
   const [isCreatingTag, setIsCreatingTag] = useState(false);
   const [newTagName, setNewTagName] = useState('');
+  // For merging tags
+  const [mergeSource, setMergeSource] = useState<TagWithUsage | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState<string>('');
   // For tracking unlinked tags
   const unusedTags = useMemo(() => tags.filter((tag) => !tag.is_used), [tags]);
 
@@ -83,13 +88,17 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
 
       const rawData = data as unknown as TagResponse[];
 
-      const tagsWithUsage: TagWithUsage[] = rawData.map((t) => ({
-        id: t.id,
-        name: t.name,
-        category_def_id: t.category_def_id,
-        user_id: t.user_id,
-        is_used: (t.item_tags?.[0]?.count || 0) > 0,
-      }));
+      const tagsWithUsage: TagWithUsage[] = rawData.map((t) => {
+        const count = t.item_tags?.[0]?.count || 0;
+        return {
+          id: t.id,
+          name: t.name,
+          category_def_id: t.category_def_id,
+          user_id: t.user_id,
+          is_used: count > 0,
+          usage_count: count,
+        };
+      });
 
       setTags(tagsWithUsage);
     } catch (error) {
@@ -116,6 +125,8 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
     if (!open) {
       setIsCreatingTag(false);
       setNewTagName('');
+      setMergeSource(null);
+      setMergeTargetId('');
     }
   };
 
@@ -163,7 +174,7 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
       toast.error('Create failed', { description: 'There was a problem creating the new tag.' });
     } else {
       const newTag = data as Tag;
-      const newTagWithUsage: TagWithUsage = { ...newTag, is_used: false }; // New tags are unused by default
+      const newTagWithUsage: TagWithUsage = { ...newTag, is_used: false, usage_count: 0 };
 
       toast.success('Tag created', { description: `'${newTag.name}' has been added to your tags.` });
 
@@ -177,24 +188,20 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
   };
 
   const handleDelete = async (tagToDelete: Tag) => {
-    // Delete all associations from the junction table
-    // TODO: This would not be necessary if I am using ON DELETE CASCADE, but am unsure how to confirm that on supabase
-    const { error: junctionError } = await supabase.from('item_tags').delete().eq('tag_id', tagToDelete.id);
-
-    if (junctionError) {
-      toast.error('Delete failed', { description: 'Could not remove tag from items.' });
-      return;
+    // Clear merge source if the tag being deleted is selected for merge
+    if (mergeSource?.id === tagToDelete.id) {
+      setMergeSource(null);
+      setMergeTargetId('');
     }
 
-    // Delete the tag itself from the tags table
-    const { error: tagError } = await supabase.from('tags').delete().eq('id', tagToDelete.id);
+    // ON DELETE CASCADE on item_tags.tag_id handles junction table cleanup
+    const { error } = await supabase.from('tags').delete().eq('id', tagToDelete.id);
 
-    if (tagError) {
+    if (error) {
       toast.error('Delete failed', { description: 'There was a problem deleting the tag.' });
     } else {
       toast.success('Tag deleted', { description: `'${tagToDelete.name}' has been permanently deleted.` });
 
-      // Refresh the list in the UI
       setTags((prev) => prev.filter((tag) => tag.id !== tagToDelete.id));
       onSuccess();
     }
@@ -217,6 +224,59 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
     }
   };
 
+  const handleMerge = async () => {
+    if (!mergeSource || !mergeTargetId) return;
+    const targetTag = tags.find((t) => String(t.id) === mergeTargetId);
+    if (!targetTag) return;
+
+    try {
+      // Find items that already have the target tag to avoid unique constraint violations
+      const { data: targetItems, error: fetchError } = await supabase
+        .from('item_tags')
+        .select('item_id')
+        .eq('tag_id', targetTag.id);
+
+      if (fetchError) throw fetchError;
+
+      const targetItemIds = (targetItems ?? []).map((r) => r.item_id);
+
+      // Remove source associations where item already has the target tag
+      if (targetItemIds.length > 0) {
+        const { error: dupeError } = await supabase
+          .from('item_tags')
+          .delete()
+          .eq('tag_id', mergeSource.id)
+          .in('item_id', targetItemIds);
+
+        if (dupeError) throw dupeError;
+      }
+
+      // Reassign remaining source associations to the target tag
+      const { error: updateError } = await supabase
+        .from('item_tags')
+        .update({ tag_id: targetTag.id })
+        .eq('tag_id', mergeSource.id);
+
+      if (updateError) throw updateError;
+
+      // Delete the now-empty source tag
+      const { error: deleteError } = await supabase.from('tags').delete().eq('id', mergeSource.id);
+      if (deleteError) throw deleteError;
+
+      toast.success('Tags merged', {
+        description: `'${mergeSource.name}' has been merged into '${targetTag.name}'.`,
+      });
+
+      setMergeSource(null);
+      setMergeTargetId('');
+      onSuccess();
+      fetchTags();
+    } catch (error) {
+      console.error('Error merging tags:', error);
+      toast.error('Merge failed', { description: 'There was a problem merging the tags.' });
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {!isControlled && (
@@ -231,23 +291,80 @@ export const TagManager = ({ categoryDefId, onSuccess, open: openProp, onOpenCha
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Manage Tags</DialogTitle>
-          <DialogDescription>Create, rename, or delete tags for this category.</DialogDescription>
+          <DialogDescription>Create, rename, merge, or delete tags for this category.</DialogDescription>
         </DialogHeader>
 
         <Separator />
 
         {/* Display Tags */}
         <div className="pt-4 px-2 max-h-[400px] overflow-y-auto">
+          {/* Merge Panel */}
+          {mergeSource && (
+            <div className="mb-3 rounded-md border bg-muted/50 p-3">
+              <p className="text-sm font-medium mb-2">
+                Merge &ldquo;{mergeSource.name}&rdquo; into:
+              </p>
+              <div className="flex items-center gap-2">
+                <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select target tag..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tags
+                      .filter((t) => t.id !== mergeSource.id)
+                      .map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.name} ({t.usage_count})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" disabled={!mergeTargetId} onClick={handleMerge}>
+                  Merge
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setMergeSource(null);
+                    setMergeTargetId('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <p className="text-sm text-center text-muted-foreground">Loading tags...</p>
           ) : tags.length > 0 ? (
             <ul className="space-y-2">
               {tags.map((tag) => (
-                <li key={tag.id} className="flex items-center justify-between">
+                <li key={tag.id} className="flex items-center gap-2">
                   <EditableTag tag={tag} onRename={handleRename} />
+                  <span
+                    className="ml-auto shrink-0 text-xs text-muted-foreground"
+                    title={`Used by ${tag.usage_count} item${tag.usage_count !== 1 ? 's' : ''}`}
+                  >
+                    {tag.usage_count} {tag.usage_count === 1 ? 'item' : 'items'}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    title="Merge into another tag"
+                    disabled={tags.length < 2}
+                    onClick={() => {
+                      setMergeSource(tag);
+                      setMergeTargetId('');
+                    }}
+                  >
+                    <GitMerge className="h-4 w-4" />
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
