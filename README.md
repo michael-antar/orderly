@@ -16,6 +16,7 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 - **Smart Calibration**: New items are quickly placed in their approximate rank via an adaptive binary-search calibration process.
 - **Custom Categories**: Categories are fully dynamic. Start with defaults (movies, shows, books, albums, and restaurants), edit them, or build completely custom categories from scratch.
 - **Advanced Sorting & Filtering**: Organize, sort, and filter your ranked items based on custom tags and your specific dynamic fields.
+- **List Sharing**: Copy your ranked list to the clipboard with customizable toggles for what info to include, filtered or sorted views, and a top-X limit.
 - **Responsive Design**: Fully usable on both desktop and mobile.
 - **Secure & Private**: All data is tied to a user's private account.
 
@@ -31,6 +32,8 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 ### The Glicko-1 Rating System
 
 The core feature of this application is the ranking system. Items are compared head-to-head using the **Glicko-1 rating system**, an improvement over Elo that tracks a _Ratings Deviation_ (RD) alongside each item's rating. RD represents confidence in the rating — a high RD means the rating is uncertain, while a low RD means it is well-established.
+
+> This is the same rating system used by _Chess.com_ and _Pokemon Showdown_ (And games like _Counter Strike_ and _Dota_ use a variation called _Glicko-2_)
 
 **Expected Score**: The probability of one item winning against another, weighted by both items' confidence.
 
@@ -64,17 +67,45 @@ $$
 RD_{\text{current}} = \min\left(350,\; \sqrt{RD_{\text{old}}^2 + c^2 \cdot t}\right)
 $$
 
-> Where $c = \sqrt{(350^2 - 30^2) / 90}$ and $t$ is the number of elapsed rating periods (days)
+> Where $c = \sqrt{(350^2 - 30^2) / 90}$ and $t$ is the number of elapsed rating periods (days). In my setup, it would take _90 days of inactivity_ for an item with the minimum RD (30) to reach maximum RD, and it would take a moderately established item ($RD = 200$) roughly 61 days.
 
 ### Comparison Seeding
 
 To keep the ranking system healthy and accurate, item matchups are generated using two distinct modes.
 
-- **Calibration (Adaptive Binary Search)**: New items are put through 3 calibration matchups using a binary search strategy. Each round narrows the search range based on whether the new item won or lost, with positional jitter to avoid always matching against the same "gatekeeper" items. This quickly estimates where a new item belongs.
-- **Normal Comparison (Three-Tier Seeding)**: The system generates a queue of up to 100 unique comparisons using three tiers:
-  - **Uncertain pairs** (up to 20): Items with high RD (low confidence) are prioritized because their ratings benefit most from additional data.
-  - **Similar pairs** (up to ~65): Items that are close in rating or list position. The similarity threshold is dynamic, based on the category's average RD — items whose confidence intervals overlap are still meaningfully comparable.
-  - **Random pairs** (remainder): Random matchups to prevent stagnation and allow for major upsets.
+#### Calibration (Adaptive Binary Search)
+
+New items are put through 3 calibration matchups using a binary search strategy. Each round narrows the search range based on whether the new item won or lost, with positional jitter to avoid always matching against the same "gatekeeper" items. This quickly estimates where a new item belongs.
+
+**Jitter**: Each opponent pick targets the midpoint of the current search range, then applies a random offset of ±25% of that range (minimum ±1), clamped to stay within bounds:
+
+$$
+\text{jitter} = \max\left(1,\; \left\lceil 0.25 \times (high - low + 1) \right\rceil\right)
+$$
+
+$$
+\text{opponent} = \text{clamp}\left(\left\lfloor \frac{low + high}{2} \right\rfloor + \text{Uniform}(-\text{jitter},\; \text{jitter}),\; low,\; high\right)
+$$
+
+#### Normal Comparison (Three-Tier Seeding)
+
+The system generates a queue of up to 100 unique comparisons using three tiers:
+
+**Uncertain pairs** (up to 20): Items with high RD (low confidence) are prioritized because their ratings benefit most from additional data. An item is considered uncertain when its RD exceeds both the category average and a minimum floor:
+
+$$
+RD_i > \max\left(\overline{RD},\; 100\right)
+$$
+
+**Similar pairs** (up to ~65): Items that are close in rating or list position. The similarity threshold is dynamic, based on the category's average RD — items whose confidence intervals overlap are still meaningfully comparable:
+
+$$
+\text{threshold} = \max\left(200,\; \left\lfloor 1.5 \times \overline{RD} + 0.5 \right\rfloor\right)
+$$
+
+> A pair is included if their index distance ≤ 2 or $|R_A - R_B| \leq \text{threshold}$
+
+**Random pairs** (remainder): Random matchups to prevent stagnation and allow for major upsets.
 
 ### Database Schema
 
@@ -90,29 +121,29 @@ A `tags` table and a many-to-many `item_tags` junction table provide the flexibl
 
 ## Roadmap
 
-### Advanced Location & Recommendation Algorithm
+### Location Field Type
 
-Currently, the `location` field type stores and displays an address string. In a future update, this will be expanded to combine a location's _quality_ (Elo rating) and _convenience_ (distance from the user) to provide an ordered list of recommendations.
+Currently, the `location` field type stores and displays an address string. In a future update, it will be expanded into a fully spatial feature:
 
-Locations will be converted to latitude and longitude coordinates using **geocoding** (e.g., via the OpenCage free tier). The **Geolocation API** will be used for retrieving the user's current coordinates.
-
-The distance between the user and item coordinates will be calculated using the **Haversine Formula**:
-
-$$
-a = sin^2(\dfrac{\Delta\phi}{2}) + cos(\phi_2) \cdot sin^2(\dfrac{\Delta\lambda}{2})
-$$
+- **Geocoding**: Addresses are converted to coordinates via the OpenCage or Nominatim free tier, with **address autocomplete** to assist input.
+- **Distance Calculation**: The **Haversine Formula** calculates straight-line distance between the user (via the Geolocation API) and each item's coordinates.
 
 $$
-c = 2 \cdot atan^2(\sqrt{a}, \sqrt{1 - a})
+a = \sin^2\left(\dfrac{\Delta\phi}{2}\right) + \cos(\phi_1) \cdot \cos(\phi_2) \cdot \sin^2\left(\dfrac{\Delta\lambda}{2}\right)
 $$
 
 $$
-d = R \cdot c
+d = 2R \cdot \text{atan2}\left(\sqrt{a},\, \sqrt{1 - a}\right)
 $$
 
-> Where $c$ is the central angle, $R$ is the Earth's radius, and $d$ is the final distance
+- **Distance-Aware Sorting**: Categories with a location field gain a custom sort mode that blends an item's _quality_ (rating) with _convenience_ (proximity). A slider lets the user control the weight of each factor, applied via an S-curve so extreme preferences are handled gracefully.
+- **Range Filtering**: Items can be filtered to only show locations within a specified distance.
 
-Calculating distance using actual driving distance could be implemented in the future using a service like **Openrouteservice**.
+### Semantic / Fuzzy Search
+
+A global search bar in the header will allow searching across all items in any category. As the user types, results appear in a dropdown and can be clicked to open the item's details. A category selector allows scoping the search to a single category.
+
+Search will use **fuzzy matching** with **Levenshtein distance** to handle typos and slight misspellings, ensuring relevant results even with imperfect input.
 
 ### Matchup History
 
@@ -133,10 +164,16 @@ This project uses Supabase for its backend and database. As the database contain
      VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
      ```
 
-   - You will also need to apply the database schema, including the custom SQL functions, to your own Supabase project
+4. Apply the database schema:
+   - Install the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started)
+   - Link to your project: `supabase link`
+   - Push the migrations: `npm run db:push`
 
 ## Usage
 
 - Start the development server: `npm run dev`
 - Build for production: `npm run build`
 - Format all files with Prettier: `npm run format`
+- Push database migrations: `npm run db:push`
+- Create a new migration: `npm run db:new <name>`
+- Generate TypeScript types from the database: `npm run db:types`

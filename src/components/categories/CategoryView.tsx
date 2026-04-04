@@ -1,8 +1,14 @@
-import { AlertTriangle, Sparkles, Swords } from 'lucide-react';
+import { AlertTriangle, MoreHorizontal, Share2, Sparkles, Swords, Tags } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCategoryItems } from '@/hooks/useCategoryItems';
@@ -14,6 +20,7 @@ import { ComparisonModal } from '../items/ComparisonModal';
 import { ItemDetailView } from '../items/ItemDetailView';
 import { ItemForm } from '../items/ItemForm';
 import { ItemList } from '../items/ItemList';
+import { ShareListDialog } from '../items/ShareListDialog';
 import { SortControls } from '../items/SortControls';
 import { TagManager } from './TagManager';
 
@@ -44,6 +51,10 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
   } = useCategoryItems(categoryDef, user);
 
   const [activeTab, setActiveTab] = useState<Status>('ranked');
+
+  // More actions menu
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   // - Handle DetailView -
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -189,6 +200,44 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
 
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                {/* More Actions (Tag Manager + Share) */}
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span className="sr-only">More actions</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => setIsTagManagerOpen(true)}>
+                      <Tags className="h-4 w-4" />
+                      Manage Tags
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => setIsShareOpen(true)}
+                      disabled={(activeTab === 'ranked' ? rankedItems : backlogItems).length === 0}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share List
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Controlled dialogs rendered outside the dropdown */}
+                <TagManager
+                  categoryDefId={categoryDef.id}
+                  onSuccess={handleTagUpdateSuccess}
+                  open={isTagManagerOpen}
+                  onOpenChange={setIsTagManagerOpen}
+                />
+                <ShareListDialog
+                  categoryDef={categoryDef}
+                  items={activeTab === 'ranked' ? rankedItems : backlogItems}
+                  activeTab={activeTab}
+                  open={isShareOpen}
+                  onOpenChange={setIsShareOpen}
+                />
+
                 {/* Sort Controls */}
                 <SortControls
                   categoryDef={categoryDef}
@@ -199,9 +248,6 @@ export const CategoryView = ({ categoryDef }: { categoryDef: CategoryDefinition 
                   filters={filters}
                   onSortApply={handleSortAndFilterApply}
                 />
-
-                {/* Tag Management Modal */}
-                <TagManager categoryDefId={categoryDef.id} onSuccess={handleTagUpdateSuccess} />
 
                 {/* Comparison Button */}
                 <Button

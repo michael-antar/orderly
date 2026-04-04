@@ -252,10 +252,10 @@ export const ComparisonModal = ({
         </DialogHeader>
 
         <Sheet open={!!itemToView} onOpenChange={(isOpen) => !isOpen && setItemToView(null)}>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {displayedPair && itemA && itemB && (
               <>
-                {/* Left Item Card */}
+                {/* Item A Card */}
                 <ComparisonCard
                   item={itemA}
                   fieldDefinitions={categoryDef.field_definitions}
@@ -265,7 +265,12 @@ export const ComparisonModal = ({
                   onChoose={() => handleChoose(itemA, itemB)}
                 />
 
-                {/* Right Item Card */}
+                {/* VS divider — visible only in stacked mobile layout */}
+                <div className="flex items-center justify-center -my-2 sm:hidden">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">vs</span>
+                </div>
+
+                {/* Item B Card */}
                 <ComparisonCard
                   item={itemB}
                   fieldDefinitions={categoryDef.field_definitions}
@@ -352,7 +357,7 @@ const ComparisonCard = ({ item, fieldDefinitions, result, isLoading, onView, onC
           e.stopPropagation();
           onView();
         }}
-        className="text-lg font-semibold text-center min-h-[3rem] flex items-center justify-center hover:underline"
+        className="text-lg font-semibold text-center min-h-[3rem] flex items-center justify-center underline sm:no-underline sm:hover:underline decoration-muted-foreground/50 underline-offset-2"
       >
         {item.name}
       </button>
