@@ -16,6 +16,7 @@ The ideal user is anyone who loves to track and rank their experiences. Whether 
 - **Smart Calibration**: New items are quickly placed in their approximate rank via an adaptive binary-search calibration process.
 - **Custom Categories**: Categories are fully dynamic. Start with defaults (movies, shows, books, albums, and restaurants), edit them, or build completely custom categories from scratch.
 - **Advanced Sorting & Filtering**: Organize, sort, and filter your ranked items based on custom tags and your specific dynamic fields.
+- **List Sharing**: Copy your ranked list to the clipboard with customizable toggles for what info to include, filtered or sorted views, and a top-X limit.
 - **Responsive Design**: Fully usable on both desktop and mobile.
 - **Secure & Private**: All data is tied to a user's private account.
 
@@ -71,9 +72,32 @@ $$
 To keep the ranking system healthy and accurate, item matchups are generated using two distinct modes.
 
 - **Calibration (Adaptive Binary Search)**: New items are put through 3 calibration matchups using a binary search strategy. Each round narrows the search range based on whether the new item won or lost, with positional jitter to avoid always matching against the same "gatekeeper" items. This quickly estimates where a new item belongs.
+
+  **Jitter**: Each opponent pick targets the midpoint of the current search range, then applies a random offset of ±25% of that range (minimum ±1), clamped to stay within bounds:
+
+  $$
+  \text{jitter} = \max\!\left(1,\; \left\lceil 0.25 \times (high - low + 1) \right\rceil\right)
+  $$
+
+  $$
+  \text{opponent} = \text{clamp}\!\left(\left\lfloor \frac{low + high}{2} \right\rfloor + \text{Uniform}(-\text{jitter},\; \text{jitter}),\; low,\; high\right)
+  $$
+
 - **Normal Comparison (Three-Tier Seeding)**: The system generates a queue of up to 100 unique comparisons using three tiers:
-  - **Uncertain pairs** (up to 20): Items with high RD (low confidence) are prioritized because their ratings benefit most from additional data.
-  - **Similar pairs** (up to ~65): Items that are close in rating or list position. The similarity threshold is dynamic, based on the category's average RD — items whose confidence intervals overlap are still meaningfully comparable.
+  - **Uncertain pairs** (up to 20): Items with high RD (low confidence) are prioritized because their ratings benefit most from additional data. An item is considered uncertain when its RD exceeds both the category average and a minimum floor:
+
+    $$
+    RD_i > \max\!\left(\overline{RD},\; 100\right)
+    $$
+
+  - **Similar pairs** (up to ~65): Items that are close in rating or list position. The similarity threshold is dynamic, based on the category's average RD — items whose confidence intervals overlap are still meaningfully comparable:
+
+    $$
+    \text{threshold} = \max\!\left(200,\; \left\lfloor 1.5 \times \overline{RD} + 0.5 \right\rfloor\right)
+    $$
+
+    > A pair is included if their index distance ≤ 2 or $|R_A - R_B| \leq \text{threshold}$
+
   - **Random pairs** (remainder): Random matchups to prevent stagnation and allow for major upsets.
 
 ### Database Schema
@@ -133,10 +157,16 @@ This project uses Supabase for its backend and database. As the database contain
      VITE_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
      ```
 
-   - You will also need to apply the database schema, including the custom SQL functions, to your own Supabase project
+4. Apply the database schema:
+   - Install the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started)
+   - Link to your project: `supabase link`
+   - Push the migrations: `npm run db:push`
 
 ## Usage
 
 - Start the development server: `npm run dev`
 - Build for production: `npm run build`
 - Format all files with Prettier: `npm run format`
+- Push database migrations: `npm run db:push`
+- Create a new migration: `npm run db:new <name>`
+- Generate TypeScript types from the database: `npm run db:types`
