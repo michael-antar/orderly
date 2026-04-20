@@ -135,15 +135,24 @@ export const useComparisonQueue = (initialItems: Item[]) => {
 
     // Build pairs involving at least one uncertain item against a nearby-rated opponent
     const uncertainPairs: ItemPair[] = [];
+    const uncertainPairIds = new Set<string>();
     for (const item of uncertainItems) {
       // Find the closest items by index position (list is sorted by rating desc)
       const itemIndex = currentItems.indexOf(item);
       for (let offset = 1; offset <= 3 && uncertainPairs.length < 30; offset++) {
         if (itemIndex - offset >= 0) {
-          uncertainPairs.push([item, currentItems[itemIndex - offset]]);
+          const pairId = [item.id, currentItems[itemIndex - offset].id].sort().join('-');
+          if (!uncertainPairIds.has(pairId)) {
+            uncertainPairIds.add(pairId);
+            uncertainPairs.push([item, currentItems[itemIndex - offset]]);
+          }
         }
         if (itemIndex + offset < currentItems.length) {
-          uncertainPairs.push([item, currentItems[itemIndex + offset]]);
+          const pairId = [item.id, currentItems[itemIndex + offset].id].sort().join('-');
+          if (!uncertainPairIds.has(pairId)) {
+            uncertainPairIds.add(pairId);
+            uncertainPairs.push([item, currentItems[itemIndex + offset]]);
+          }
         }
       }
     }
@@ -186,11 +195,19 @@ export const useComparisonQueue = (initialItems: Item[]) => {
     const numRandom = Math.max(0, targetQueueSize - numUncertain - numSimilar);
 
     const uncertainSubset = shuffle(uncertainPairs).slice(0, numUncertain);
-    const similarSubset = shuffle(similarPairs).slice(0, numSimilar);
 
-    const usedPairIds = new Set<string>(
-      [...uncertainSubset, ...similarSubset].map((pair) => [pair[0].id, pair[1].id].sort().join('-')),
-    );
+    const usedPairIds = new Set<string>(uncertainSubset.map((pair) => [pair[0].id, pair[1].id].sort().join('-')));
+
+    // Filter similar pairs to exclude any already selected as uncertain pairs
+    const availableSimilarPairs = similarPairs.filter((pair) => {
+      const pairId = [pair[0].id, pair[1].id].sort().join('-');
+      return !usedPairIds.has(pairId);
+    });
+    const similarSubset = shuffle(availableSimilarPairs).slice(0, numSimilar);
+
+    for (const pair of similarSubset) {
+      usedPairIds.add([pair[0].id, pair[1].id].sort().join('-'));
+    }
 
     let randomSubset: ItemPair[] = [];
 
