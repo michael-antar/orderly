@@ -9,6 +9,7 @@ How to run omp sessions for the migration in [`migration-plan.md`](./migration-p
 3. **Plan, then build.** Plan mode is read-only. Approving the plan switches to implementation.
 4. **Verify by running things.** "Tests pass" isn't the bar. The exit criteria in the plan are things you can observe working.
 5. **Close out every session**, even partial ones. Stale docs mislead every later session.
+6. **A PR is a handoff, not a formality.** The agent writes the diff, drafts the PR text, and opens the PR once I approve that text. I review and merge. No agent ever merges.
 
 ## Where context lives
 
@@ -62,8 +63,10 @@ flowchart TD
   G -->|sub-step done| H["/skill:phase-closeout"]
   G -->|phase done| H
   H --> I[Review diff myself<br/>read learning note]
-  I --> J[Commit, push, open PR, merge]
-  J --> A
+  I --> J[Agent: commit, push,<br/>draft PR title + body]
+  J --> K[Approve the text<br/>agent runs gh pr create]
+  K --> L[I merge<br/>Flux deploys from main]
+  L --> A
 ```
 
 ### 1. Start
@@ -98,7 +101,9 @@ flowchart TD
 
 - Run `/skill:phase-closeout`. It updates the docs, writes the learning note, runs the checks, and drafts the PR text.
 - **Read the diff myself before committing.** AI wrote the code; I'm the reviewer. This is also when I learn: read the learning note next to the diff, and add my own questions to it.
-- Commit, push, open the PR, check CI passes, merge. Flux deploys from `main`.
+- Approve the commit messages, then let the agent commit and push the branch. Approve the PR title and body, then let it run `gh pr create`.
+- Check CI passes on the PR. If it goes red, send it back to the agent; don't merge around it.
+- **You merge.** Flux deploys from `main` after that.
 
 ### 5. Between sessions
 
@@ -126,11 +131,10 @@ Use these as-is when the agent needs a nudge:
 ## Git and PR conventions
 
 - Branches: `phase-N-<slug>` or `phase-Na-<slug>`. Never commit straight to `main`.
-- Commits: small and descriptive. The agent can propose messages; I approve.
-- PR description, drafted by the close-out skill:
-  - what changed
-  - how it was verified (commands and their output)
-  - docs updated
-  - follow-ups
+- **Merge authority is mine.** Agents branch, commit, push, and open PRs; they never merge, never enable auto-merge, and never delete the branch afterwards. `main` is protected (PR required, force-push and deletion off, admins included). That protection is the backstop, not something to route around by weakening it.
+- **Three approvals per session:** commit messages, the PR title and body before `gh pr create` runs, and the merge itself. The first two are text I read and edit; the third is mine alone.
+- Commits: small and descriptive. The agent proposes the messages; I approve before it commits.
+- PR description: short, and shaped like the commit message — a sentence of rationale, then a bullet per file or per logical change. No headings, no boilerplate sections, no restating the diff. Add verification or follow-ups only when they carry information the bullets don't. Drafted by the close-out skill and shown to me for edits before the PR opens.
+- The PR title does the same job as a commit subject: squash-merge turns it into the commit on `main`.
 - Squash-merge, so `main` has one commit per sub-step.
 - Docs, ADRs, this workflow, and `.omp/skills/` are all tracked in Git. They're the shared memory between sessions, and the ADRs and learning notes double as portfolio material.

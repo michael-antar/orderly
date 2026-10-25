@@ -56,6 +56,14 @@ Report to the user:
 
 - a verification table (criterion, evidence, ✅ or ❌)
 - the docs changed
-- a drafted PR title and description (what changed, how it was verified, docs updated, follow-ups)
+- a drafted PR title and description, in the short commit-message shape `docs/workflow.md` asks for: a rationale sentence, then a bullet per file or logical change — no headings, no restating the diff
 
 Don't commit, push, or open the PR unless the user asks. The user reviews the diff first.
+
+If the user asks you to commit and open the PR:
+
+1. Show the exact commit message(s) and wait for approval, then commit and push the branch.
+2. Show the exact PR title and body, apply the user's edits, and wait for explicit approval.
+3. Only then run `gh pr create`. Report the PR URL and CI status, and stop.
+
+**Never merge the PR.** No `gh pr merge`, no `--auto`, no merging through the API or web UI, no deleting the branch afterwards, and never push to `main`. Merging is the user's decision alone, even when every check is green. See `AGENTS.md` → "Git & Pull Requests".

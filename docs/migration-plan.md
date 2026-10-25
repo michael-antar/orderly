@@ -1,7 +1,7 @@
 # Migration Plan: Supabase SPA → Go backend on a self-managed VPS
 
 Status: **Phase 0 (planning) complete — Phase 1 next.**
-Owner: Michael. Last updated: 2026-10-23.
+Owner: the repository maintainer. Last updated: 2026-10-23.
 
 This is the master plan. Every AI session working on the migration starts here; see [`workflow.md`](./workflow.md) for how to run those sessions. Decisions live in [`adr/`](./adr/README.md); this file holds the phases, their status, and open questions.
 
