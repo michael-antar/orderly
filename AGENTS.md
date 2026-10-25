@@ -69,6 +69,14 @@ flowchart TD
 
 Required env in `.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. The client throws if either is missing.
 
+## Git & Pull Requests
+
+- **Human reviews and merges every PR. Agents never merge.** No `gh pr merge`, no `--auto`, no auto-merge/merge queue toggled on, no `gh api` merge call, no merging through the web UI on his behalf. This holds even when CI is green and every criterion is verified.
+- **Agents never write to `main`.** `main` is protected on GitHub: a PR is required, force-push and branch deletion are off, and the rules apply to admins. Removing or weakening that protection to get around it is a violation, not a workaround.
+- **Creating a PR is its own approval step.** When asked to open one, draft the exact title and body, show them, wait for approval and edits, then run `gh pr create`. Don't open it first and summarize afterwards. The same applies to commit messages: propose, get approval, then commit.
+- In scope for an agent: branch, commit, and push the session branch when asked, then report the PR URL and CI status. Stop there.
+- Mechanics live in `docs/workflow.md` → "Git and PR conventions"; the session-side handoff is `/skill:phase-closeout`.
+
 ## Code Conventions & Common Patterns
 
 **Language / formatting**
