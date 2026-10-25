@@ -56,7 +56,7 @@ Report to the user:
 
 - a verification table (criterion, evidence, ✅ or ❌)
 - the docs changed
-- a drafted PR title and description (what changed, how it was verified, docs updated, follow-ups)
+- a drafted PR title and description, in the short commit-message shape `docs/workflow.md` asks for: a rationale sentence, then a bullet per file or logical change — no headings, no restating the diff
 
 Don't commit, push, or open the PR unless the user asks. The user reviews the diff first.
 

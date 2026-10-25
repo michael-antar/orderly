@@ -134,10 +134,7 @@ Use these as-is when the agent needs a nudge:
 - **Merge authority is mine.** Agents branch, commit, push, and open PRs; they never merge, never enable auto-merge, and never delete the branch afterwards. `main` is protected (PR required, force-push and deletion off, admins included). That protection is the backstop, not something to route around by weakening it.
 - **Three approvals per session:** commit messages, the PR title and body before `gh pr create` runs, and the merge itself. The first two are text I read and edit; the third is mine alone.
 - Commits: small and descriptive. The agent proposes the messages; I approve before it commits.
-- PR description, drafted by the close-out skill and shown to me for edits before the PR opens:
-  - what changed
-  - how it was verified (commands and their output)
-  - docs updated
-  - follow-ups
+- PR description: short, and shaped like the commit message — a sentence of rationale, then a bullet per file or per logical change. No headings, no boilerplate sections, no restating the diff. Add verification or follow-ups only when they carry information the bullets don't. Drafted by the close-out skill and shown to me for edits before the PR opens.
+- The PR title does the same job as a commit subject: squash-merge turns it into the commit on `main`.
 - Squash-merge, so `main` has one commit per sub-step.
 - Docs, ADRs, this workflow, and `.omp/skills/` are all tracked in Git. They're the shared memory between sessions, and the ADRs and learning notes double as portfolio material.
