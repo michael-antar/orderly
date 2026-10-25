@@ -173,7 +173,11 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - `users` and `sessions` tables in `public` (via a Supabase CLI migration; [ADR-0006](./adr/0006-goose-migrations.md) covers the tooling switch later).
   - Copy each existing user's `id`, email, and bcrypt hash from `auth.users`, **keeping the UUIDs**.
   - Repoint the four `user_id` foreign keys from `auth.users(id)` to `public.users(id)`.
-  - Drop the RLS policies and any remaining `auth.uid()` functions.
+  - Drop the RLS policies and any remaining `auth.uid()` functions. **Keep RLS enabled** on every table: with RLS on and no policies, Supabase's API roles are denied everything, while the Go API's role (which bypasses RLS) still works.
+- **Security gate, required before merge.** Supabase stays live through Phase 5, and on existing projects every new `public` table is automatically granted to the `anon` and `authenticated` roles ([Supabase docs](https://supabase.com/docs/guides/database/data-api)). The anon key ships in the SPA bundle, so `users` and `sessions` (password hashes, session hashes) would be readable over Supabase REST. The Go ownership checks don't cover that route. In the same migration that creates these tables:
+  - `REVOKE ALL` on `users`, `sessions`, and the reset-token table from `anon` and `authenticated`, plus `ENABLE ROW LEVEL SECURITY` with no policies.
+  - Once the SPA no longer calls Supabase directly, either disable the Data API in the project settings or revoke those roles' access to the whole `public` schema.
+  - **Verify:** `curl` Supabase REST (`/rest/v1/users`, `/rest/v1/sessions`) with the anon key, and again with a logged-in user's JWT. Both must return an error or an empty result. Record the output in the PR.
 - Endpoints: register, log in, log out, `GET /api/me`, request password reset, reset password.
   - Opaque session token in a cookie; only its SHA-256 hash is stored in the database.
   - argon2id for new passwords; imported bcrypt hashes are verified and rehashed to argon2id on the next successful login.
@@ -186,6 +190,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - I can log in with my existing password and see all my data.
 - The password reset email arrives and works.
 - No Supabase auth calls remain in `web/`.
+- Supabase REST can't read `users` or `sessions` with either the anon key or a user JWT (security gate above).
 
 ### Phase 6: Data cutover
 

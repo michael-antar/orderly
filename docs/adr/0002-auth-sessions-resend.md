@@ -40,4 +40,5 @@
 - No third-party auth dependency. The tradeoff is that the security-sensitive code is now mine and needs careful review and tests.
 - Password reset depends on owning a domain with working DNS (Phase 1).
 - RLS stops being the safety net once the API uses its own database role. Every query must filter by the authenticated user ID, and the ownership tests in Phase 2+ are mandatory.
+- While Supabase is still live (Phases 5–6), credential tables in `public` are exposed through Supabase's Data API by default (automatic grants to `anon`/`authenticated`). They must be revoked from those roles and have RLS enabled with no policies, and REST access must be verified as denied before Phase 5 merges. See the Phase 5 security gate in the migration plan.
 - Email verification on signup is deferred. It can be added later with the same token mechanism used for password reset.
