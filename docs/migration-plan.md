@@ -1,6 +1,6 @@
 # Migration Plan: Supabase SPA → Go backend on a self-managed VPS
 
-Status: **Phase 0 (planning) complete — Phase 1 next.**
+Status: **Phase 1a in progress.**
 Owner: the repository maintainer. Last updated: 2026-10-23.
 
 This is the master plan. Every AI session working on the migration starts here; see [`workflow.md`](./workflow.md) for how to run those sessions. Decisions live in [`adr/`](./adr/README.md); this file holds the phases, their status, and open questions.
@@ -85,7 +85,7 @@ Each phase is one branch and one PR (or one per sub-step if a phase is large), m
 |#|Phase|Status|
 |---|---|---|
 |0|Planning docs, ADRs, workflow|✅ done|
-|1|Infrastructure foundation|⬜ next|
+|1|Infrastructure foundation|🟡 1a in progress|
 |2|Go skeleton + CI/CD + repo restructure|⬜|
 |3|Catalog API + frontend port|⬜|
 |4|Ranking in Go|⬜|
@@ -286,3 +286,5 @@ Append one line per completed phase: date, PR link, and one sentence on anything
 
 - 2026-10-23 — Phase 0: plan, ADRs 0001–0008, workflow, and phase skills written.
 - 2026-10-24 — Phase 0 follow-up: post-MVP backlog constraints and ADR-0009 (URL layout) added.
+- 2026-11-04 — Phase 1a partial (`phase-1a-infra`): SPA delivery, GitOps, and VPS provisioning drafts saved; frontend checks pass, but no live Phase 1 exit criterion is verified.
+  - Next: re-plan Phase 1 for the home Beelink mini PC; replace the DigitalOcean ADR/provisioning draft, retain the portable CI/Docker/Flux work, resolve the image-tag and secrets placeholders, then deploy and rehearse the revised recovery path.
