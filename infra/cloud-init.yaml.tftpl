@@ -1,0 +1,33 @@
+#cloud-config
+users:
+  - name: ops
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: 'ALL=(ALL) NOPASSWD:ALL'
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+
+package_update: true
+package_upgrade: true
+packages:
+  - fail2ban
+  - unattended-upgrades
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/10-orderly.conf
+    permissions: '0644'
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+  - path: /etc/apt/apt.conf.d/52orderly-reboot
+    permissions: '0644'
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "10:00";
+
+runcmd:
+  - systemctl restart ssh
+  - systemctl enable --now fail2ban
+  - curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='${k3s_version}' sh -s - server --write-kubeconfig-mode 0600

@@ -1,0 +1,4 @@
+creation_rules:
+  - path_regex: deploy/secrets/.*\.yaml$
+    encrypted_regex: '^(data|stringData)$'
+    age: REPLACE_WITH_AGE_PUBLIC_KEY

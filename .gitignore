@@ -13,6 +13,13 @@ coverage
 # Logs
 *.log
 
+# Infrastructure state and secrets
+.terraform/
+*.tfstate
+*.tfstate.*
+infra/terraform.tfvars
+*.agekey
+
 # Editors and OS
 .vscode/*
 !.vscode/extensions.json

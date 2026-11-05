@@ -25,6 +25,8 @@ Short, numbered records of decisions that shape the migration. Format: Context â
 |[0007](./0007-no-persistent-staging.md)|No persistent staging environment|Accepted|
 |[0008](./0008-anonymous-ready-identity.md)|Identity model ready for anonymous guests|Accepted|
 |[0009](./0009-url-layout-landing-app-api.md)|URL layout: landing `/`, SPA `/app/`, API `/api/`|Accepted|
+|[0010](./0010-digitalocean-sfo3-origin-ca.md)|DigitalOcean `sfo3` origin, Cloudflare Registrar and Origin CA|Accepted|
+|[0011](./0011-main-push-policy-and-flux-pull.md)|`main` accepts CI pushes; Flux pulls with no credentials|Accepted|
 
 ## Template
 

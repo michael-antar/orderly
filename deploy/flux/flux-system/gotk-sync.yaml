@@ -1,0 +1,40 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: orderly
+  namespace: flux-system
+spec:
+  url: https://github.com/michael-antar/orderly
+  ref:
+    branch: main
+  interval: 1m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  sourceRef:
+    kind: GitRepository
+    name: orderly
+  path: ./deploy/flux/flux-system
+  prune: true
+  interval: 10m
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: prod
+  namespace: flux-system
+spec:
+  sourceRef:
+    kind: GitRepository
+    name: orderly
+  path: ./deploy/overlays/prod
+  prune: true
+  interval: 5m
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
