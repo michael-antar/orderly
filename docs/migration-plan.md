@@ -1,13 +1,13 @@
-# Migration Plan: Supabase SPA → Go backend on a self-managed VPS
+# Migration Plan: Supabase SPA → Go backend on a home mini PC
 
-Status: **Phase 0 (planning) complete — Phase 1 next.**
-Owner: the repository maintainer. Last updated: 2026-10-23.
+Status: **Phase 1a in progress — re-planned for home hosting.**
+Owner: the repository maintainer. Last updated: 2026-11-04.
 
 This is the master plan. Every AI session working on the migration starts here; see [`workflow.md`](./workflow.md) for how to run those sessions. Decisions live in [`adr/`](./adr/README.md); this file holds the phases, their status, and open questions.
 
 ## Goals
 
-- Move all data and business logic off Supabase onto a single VPS I operate.
+- Move all data and business logic off Supabase onto a single home mini PC I operate.
 - Learn Go backend development and single-node Kubernetes ops (k3s, Flux GitOps, Grafana Cloud).
 - Shrink the frontend to UI plus typed API calls: ranking math, pair selection, filtering/sorting, tag syncing, and category seeding move to the server.
 - Keep the app working at the end of every phase. No big-bang cutover.
@@ -25,8 +25,9 @@ This is the master plan. Every AI session working on the migration starts here; 
 ```mermaid
 flowchart LR
   U[Browser] -->|HTTPS| CF[Cloudflare proxy<br/>DNS, TLS edge, cache]
-  CF -->|Full strict TLS| T[Traefik ingress<br/>k3s]
-  subgraph VPS[Hetzner VPS · single-node k3s]
+  CF -->|requests over outbound tunnel| CD[cloudflared]
+  subgraph HOME[Beelink mini PC · single-node k3s]
+    CD -->|cluster HTTP| T[Traefik ingress<br/>k3s]
     T -->|/| LAND[landing page placeholder<br/>static]
     T -->|/app/| WEB[web: static SPA]
     T -->|/api| API[orderly-api: Go modular monolith<br/>identity · catalog · ranking]
@@ -43,7 +44,8 @@ flowchart LR
 ```
 
 - **Same origin.** The landing page is at `/`, the SPA at `/app/`, and the API at `/api/`, all on one domain ([ADR-0009](./adr/0009-url-layout-landing-app-api.md)), so no CORS. Sessions use cookies (`HttpOnly`, `Secure`, `SameSite=Lax`) plus an `Origin` header check for CSRF.
-- **Single node, single region.** Hetzner Hillsboro, OR (`hil`), roughly 25–40 ms from Southern California [INFERENCE; not measured]. Target size is 4 GB RAM. Full rationale in [ADR-0004](./adr/0004-single-vps-k3s-cloudflare.md).
+- **Single home node.** A Beelink with an Intel N100, 16 GB RAM, 512 GB storage, and one 2.5 GbE port runs the cluster. It remains a single point of failure; physical and home-network recovery are explicit work in Phases 1, 6, and 7.
+- **Tunnel ingress.** Cloudflare Tunnel provides the public path without a static public IP or inbound router ports. `cloudflared` forwards to Traefik over cluster-internal HTTP, so the old Origin CA/cert-manager choice is removed. Full rationale in [ADR-0010](./adr/0010-home-mini-pc-cloudflare-tunnel.md).
 - **The API contract is OpenAPI.** `api/openapi.yaml` is the source of truth:
   - Go server stubs are generated with `oapi-codegen`.
   - Frontend TypeScript types are generated with `openapi-typescript`. That tool emits types only (no runtime code), so it's paired with `openapi-fetch` to make the calls typed.
@@ -69,7 +71,7 @@ deploy/
   overlays/prod/            # prod patches; staging overlay can be copied from this later
   flux/                     # Flux GitRepository + Kustomization objects
   secrets/                  # SOPS-encrypted secrets only
-infra/                      # OpenTofu (hcloud, Cloudflare DNS) + cloud-init
+infra/                      # Cloudflare/OpenTofu + documented bare-metal host provisioning
 docs/                       # this plan, ADRs, workflow, learning notes
 ```
 
@@ -85,7 +87,7 @@ Each phase is one branch and one PR (or one per sub-step if a phase is large), m
 |#|Phase|Status|
 |---|---|---|
 |0|Planning docs, ADRs, workflow|✅ done|
-|1|Infrastructure foundation|⬜ next|
+|1|Infrastructure foundation|🟡 1a in progress|
 |2|Go skeleton + CI/CD + repo restructure|⬜|
 |3|Catalog API + frontend port|⬜|
 |4|Ranking in Go|⬜|
@@ -99,22 +101,36 @@ Each phase is one branch and one PR (or one per sub-step if a phase is large), m
 
 ### Phase 1: Infrastructure foundation
 
-Bring up the server and the deploy pipeline while the app itself keeps using Supabase from the browser.
+Bring up the mini PC and deploy pipeline while the app itself keeps using Supabase from the browser. Rework the saved `phase-1a-infra` draft rather than discarding it: preserve the portable baseline fixes, CI/Docker/nginx, Kubernetes base, and Flux work; replace the DigitalOcean ADR and provider-bound provisioning.
 
-- Buy a domain on Cloudflare Registrar. Cloudflare DNS with the proxy on.
-- OpenTofu in `infra/`: Hetzner server, firewall (SSH from my IP only; 80/443 from Cloudflare IP ranges only), and Cloudflare DNS records.
-- cloud-init: non-root user, key-only SSH, unattended upgrades, fail2ban, then install k3s (bundled Traefik and local-path storage stay on).
-- TLS between Cloudflare and Traefik, with Cloudflare SSL mode set to Full (strict). Choose between a Cloudflare Origin CA certificate stored as a Secret, or cert-manager with a DNS-01 challenge. Decide at kickoff.
-- Flux bootstrap with only `source-controller` and `kustomize-controller`. SOPS + age for secrets ([ADR-0005](./adr/0005-gitops-flux-sops.md)).
-- Grafana Alloy shipping node metrics and pod logs to Grafana Cloud, with metric filtering from day one to stay inside the free tier.
-- Serve the current SPA from the cluster (nginx image built in CI and pushed to GHCR), then point the domain at it and disconnect Vercel.
+#### Phase 1a: Hardware and host foundation
+
+- Record the exact Beelink and storage models, use wired Ethernet with a DHCP reservation, and configure the BIOS to restore power after an AC outage.
+- Decide whether to add a USB-supported UPS with Network UPS Tools for graceful shutdown. Define acceptable downtime and data-loss objectives before choosing backup schedules in Phase 6.
+- Choose and document the bare-metal OS and repeatable host-provisioning path. Configure a non-root user, key-only SSH, unattended upgrades, host/LAN firewall rules, and private remote administration; do not expose SSH or the Kubernetes API through the router.
+- Install k3s with bundled Traefik and local-path storage. Keep production images on `linux/amd64`; retain `linux/arm64` while local k3d needs it.
+- Write initial runbooks under `docs/runbooks/` for hardware/BIOS setup, OS reinstall, private remote access, power loss, and offline recovery credentials. Include the age private key and Cloudflare/account recovery requirements.
+
+#### Phase 1b: Cluster ingress and GitOps
+
+- Buy a domain on Cloudflare Registrar. Keep Cloudflare DNS with the proxy on.
+- Narrow OpenTofu to Cloudflare resources if retained; it no longer provisions compute or a cloud firewall. Replace the droplet `A` record with the tunnel-managed public hostname.
+- Deploy `cloudflared` with its token stored through SOPS + age. Route the public hostname through the outbound tunnel to Traefik's cluster-internal HTTP Service. No Origin CA certificate or cert-manager is needed for this path.
+- Flux bootstrap with only `source-controller` and `kustomize-controller` ([ADR-0005](./adr/0005-gitops-flux-sops.md)). Document the manual bootstrap and secret-recovery steps.
+- Grafana Alloy ships node metrics and pod logs to Grafana Cloud, with metric filtering from day one to stay inside the free tier.
+
+#### Phase 1c: Application cutover and initial recovery drill
+
+- Serve the current SPA from the cluster (nginx image built in CI and pushed to GHCR), then point the domain at the tunnel and disconnect Vercel.
 - Add the new domain to Supabase Auth's Site URL and redirect URLs.
+- Rehearse a fresh-OS rebuild: host provisioning → k3s → offline secrets → Flux bootstrap → application reachable through the tunnel. Database restoration is added in Phase 6; the full timed disaster-recovery drill remains in Phase 7.
 
 **Exit criteria:**
-- `https://<domain>` serves the app, deployed by Flux from a Git commit.
+- `https://<domain>` serves the app through Cloudflare Tunnel, deployed by Flux from a Git commit.
+- Router ports 80, 443, 22, and 6443 are not forwarded to the host; private administration works through the selected LAN/VPN path.
 - Logs and node metrics are visible in Grafana Cloud.
 - Vercel is disconnected.
-- `tofu destroy && tofu apply` plus Flux bootstrap rebuilds the box. Rehearse this once.
+- The fresh-OS rebuild drill passes, and the host/recovery runbooks are sufficient to repeat it without provider console access.
 
 ### Phase 2: Go skeleton, CI/CD, repo restructure
 
@@ -181,7 +197,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Endpoints: register, log in, log out, `GET /api/me`, request password reset, reset password.
   - Opaque session token in a cookie; only its SHA-256 hash is stored in the database.
   - argon2id for new passwords; imported bcrypt hashes are verified and rehashed to argon2id on the next successful login.
-  - Rate limiting on login and reset, keyed by `CF-Connecting-IP`. In-memory implementation behind a small interface (one API replica makes this correct). A shared store is only needed with more than one replica.
+  - Rate limiting on login and reset, keyed by `CF-Connecting-IP`. Before relying on it, verify propagation through `cloudflared`/Traefik and that direct origin access cannot bypass Cloudflare or spoof the header. In-memory implementation behind a small interface (one API replica makes this correct). A shared store is only needed with more than one replica.
 - Resend: verify the domain (SPF/DKIM records added via OpenTofu), send reset emails as single-use tokens that expire in 1 hour and are stored hashed.
 - Implement the anonymous-ready shape from [ADR-0008](./adr/0008-anonymous-ready-identity.md) (nullable email, `is_guest` flag, upgrade-in-place semantics) without exposing guest signup yet.
 - Remove `@supabase/supabase-js` auth usage, `AuthContext`'s anonymous bootstrap, and the Supabase JWT verification path.
@@ -197,7 +213,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Postgres StatefulSet (same major version as Supabase: **17**, per `supabase/config.toml`) on a local-path volume. Use an image that ships with or can add the `pg_trgm`, `postgis`, and `pgvector` extensions (for example a `postgis/postgis:17-*` base), so post-MVP features need no image or major-version change. Enable only what the MVP uses.
 - A goose baseline migration generated from the then-current `public` schema, with Supabase-specific objects removed. The old `supabase/migrations/` folder is archived, not replayed. This also sidesteps the invalid `CREATE TYPE IF NOT EXISTS` in the initial migration.
 - goose runs as a Kubernetes Job before each API rollout, with the advisory-lock session locker enabled.
-- Backups: a nightly `pg_dump` CronJob that encrypts with `age` and uploads to Cloudflare R2. Old dumps are pruned by a retention policy.
+- Backups: a `pg_dump` CronJob that encrypts with `age` and uploads to Cloudflare R2. Start nightly unless the Phase 1a recovery-point objective requires a shorter interval; old dumps are pruned by a retention policy. The single local disk is never the only copy.
 - Rehearse locally first: restore a Supabase data-only dump into a local Postgres with the baseline schema, check row counts, and log in.
 - Cutover:
   1. Put the app in maintenance mode.
@@ -208,17 +224,18 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Remove `supabase/` tooling, the `db:*` npm scripts, `database.types.ts`, and the `supabase` dev dependency.
 
 **Exit criteria:**
-- The app runs entirely on the VPS.
+- The app runs entirely on the home mini PC.
 - A backup restore drill has been done from R2 into a fresh local Postgres.
 
 ### Phase 7: Hardening and observability (MVP complete)
 
-- Grafana dashboards for request rate, errors, latency, DB pool, and Postgres basics. Alerts (to my phone) for API down, high error rate, a failed backup job, and disk over 80%.
+- Grafana dashboards for request rate, errors, latency, DB pool, and Postgres basics. Alerts (to my phone) for API down, high error rate, a failed backup job, disk over 80%, missing node telemetry, and tunnel failure. Use an external probe/absence alert that still fires when the whole host or home connection is down.
+- Add SMART/NVMe storage-health and temperature monitoring; test UPS graceful shutdown and automatic power restoration if a UPS is installed.
 - Optional OpenTelemetry traces.
 - Resource requests and limits on every pod; liveness and readiness probes.
 - Dependency updates via Renovate or Dependabot. Image scanning in CI (for example Trivy).
-- Rewrite `AGENTS.md` (and add `backend/AGENTS.md` and `web/AGENTS.md` if useful) to describe the new architecture. Update the README.
-- Rehearse disaster recovery end to end: rebuild the VPS from `infra/` plus Flux plus the latest R2 backup, timed.
+- Rewrite `AGENTS.md` (and add `backend/AGENTS.md` and `web/AGENTS.md` if useful) to describe the new architecture. Update the README and host/recovery runbooks.
+- Rehearse disaster recovery end to end: reinstall the mini PC or a replacement x86_64 host using the documented OS/host provisioning, restore offline recovery credentials, bootstrap Flux, and restore the latest R2 backup, timed.
 
 **Exit criteria:**
 - The disaster-recovery drill passes.
@@ -255,7 +272,7 @@ These features are **not** planned or designed yet; each gets its own kickoff af
 |---|---|---|
 |`location` field: geocoding, distance sort/filter, distance-vs-quality slider, address autocomplete|Validate and store the existing `LocationValue` shape in Phase 3. Keep sort/filter extensible with room for a computed sort key (Phase 3). Use a Postgres image that can add PostGIS (Phase 6).|Geocoding provider choice, distance computation (Haversine in Go vs PostGIS), blending formula, autocomplete UX, and a denormalized coordinates column or index|
 |Map view|Nothing beyond the location items above. Coordinates are already part of the stored value.|Map library and tile source|
-|Global search (fuzzy first, semantic later)|`catalog` stays the only owner of item reads, so search becomes one more catalog query. Use a Postgres image that can add `pg_trgm` and `pgvector` (Phase 6). Rough RAM budget: keep about 500 MB free for a future embedding model (ADR-0004 already leaves room).|Search API shape, ranking of results, Levenshtein vs trigram similarity, embedding model and storage, deep links into item details (needs a router under `/app/`)|
+|Global search (fuzzy first, semantic later)|`catalog` stays the only owner of item reads, so search becomes one more catalog query. Use a Postgres image that can add `pg_trgm` and `pgvector` (Phase 6). Rough RAM budget: keep about 500 MB free for a future embedding model (ADR-0010's 16 GB host leaves room).|Search API shape, ranking of results, Levenshtein vs trigram similarity, embedding model and storage, deep links into item details (needs a router under `/app/`)|
 |Static landing page for SEO|Reserve `/` and serve the SPA at `/app/` (ADR-0009, Phase 2). Keep the API and emailed links off `/`.|Page content, second Vite entry vs plain static files, sitemap, Open Graph tags|
 |Redis/Valkey|Nothing new to build. Phase 5 puts the rate limiter and session lookup behind small Go interfaces with in-memory/Postgres implementations, so a Redis or Valkey implementation can be swapped in later.|Whether to add it (rate limiting, session cache, geocode cache, search-as-you-type cache), and Redis (AGPL) vs Valkey (BSD)|
 
@@ -263,7 +280,7 @@ These features are **not** planned or designed yet; each gets its own kickoff af
 
 Resolve each at the kickoff of the phase named in brackets, and record the answer here or in an ADR.
 
-- [Phase 1, first step] **The baseline checks fail on `main` as of 2026-10-23** (pre-existing; not caused by the planning docs). These must be fixed before CI can gate merges or build the SPA image:
+- [Phase 1, first step] **The baseline checks fail on `main` as of 2026-10-23** (pre-existing; not caused by the planning docs). Fixes on `phase-1a-infra` passed lint, all 32 tests, and the production build on 2026-11-04; they must reach `main` before CI can gate merges or build the SPA image:
   - `npm run build` fails at `tsc -b`: in `src/lib/categoryUtils.test.ts:44`, the fixture is missing `sort_order`, which is now required on `CategoryDefinition`.
   - `npm run lint` reports 10 errors:
     - `react-refresh/only-export-components` in `ui/badge.tsx`, `ui/button.tsx`, `ui/toggle.tsx`
@@ -272,8 +289,12 @@ Resolve each at the kickoff of the phase named in brackets, and record the answe
   - `npm run test:run` passes (32 tests).
   - Check how Vercel builds today (it may override the build command) so the cluster image doesn't reproduce a different build.
 - [Phase 1] Domain name.
-- [Phase 1] Are Hetzner `hil` ARM (CAX) servers available? If not, use x86 (CPX) and build images for both architectures in CI.
-- [Phase 1] Cloudflare Origin CA certificate vs cert-manager DNS-01.
+- [Phase 1] Does any cloud VPS infrastructure already exist outside this checkout and require cleanup or migration?
+- [Phase 1] Should OpenTofu manage the Cloudflare Tunnel/public hostname and related DNS, or should those be managed in the Cloudflare dashboard and documented?
+- [Phase 1a] Exact Beelink and storage models; available BIOS power-restoration and storage-health settings.
+- [Phase 1a] OS and repeatable host-provisioning tool. Recommended default: Ubuntu Server 24.04 LTS plus Ansible after a documented clean install.
+- [Phase 1a] Private administration path. Recommended default: Tailscale for remote SSH plus LAN/physical access as fallback.
+- [Phase 1a] UPS model/support, acceptable downtime (RTO), and acceptable data loss (RPO).
 - [Phase 2] Does the Supabase project use asymmetric JWT signing keys (JWKS) or the legacy HS256 secret?
 - [Phase 3] Exact API shape for dynamic-field filtering and sorting (query parameters vs a POST search body).
 - [Phase 4] Tolerance for the Glicko parity test. The SQL used `numeric` and decay depends on `last_compared_at`, so replay results may drift slightly.
@@ -286,3 +307,5 @@ Append one line per completed phase: date, PR link, and one sentence on anything
 
 - 2026-10-23 — Phase 0: plan, ADRs 0001–0008, workflow, and phase skills written.
 - 2026-10-24 — Phase 0 follow-up: post-MVP backlog constraints and ADR-0009 (URL layout) added.
+- 2026-11-04 — Phase 1 re-plan: ADR-0010 replaces VPS hosting with the home Beelink and Cloudflare Tunnel; the partial Phase 1a implementation draft is saved on `phase-1a-infra`.
+  - Next: resolve the Phase 1a hardware/provisioning questions, rework that branch to this plan, then verify the live tunnel, deployment, monitoring, and fresh-OS recovery criteria.

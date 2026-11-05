@@ -2,7 +2,7 @@
 
 Orderly ("rankedreviews" in `package.json`) is a React 19 + TypeScript + Vite SPA backed by Supabase. Users create dynamic categories, log items, and rank them by **head-to-head comparison using Glicko-1** instead of star ratings.
 
-> **Migration in progress.** This repo is moving from Supabase + Vercel to a Go modular monolith on a self-managed k3s VPS. Before migration work, read `docs/migration-plan.md` (phases, status, exit criteria), the relevant `docs/adr/` records, and `docs/workflow.md`. Start migration sessions with `/skill:phase-kickoff` and finish them with `/skill:phase-closeout`. The sections below describe the repo **as it is today**; keep them current as phases land.
+> **Migration in progress.** This repo is moving from Supabase + Vercel to a Go modular monolith on a self-managed home mini PC running k3s. Before migration work, read `docs/migration-plan.md` (phases, status, exit criteria), the relevant `docs/adr/` records, and `docs/workflow.md`. Start migration sessions with `/skill:phase-kickoff` and finish them with `/skill:phase-closeout`. The sections below describe the repo **as it is today**; keep them current as phases land.
 
 ## Project Overview
 
