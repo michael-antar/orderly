@@ -10,16 +10,19 @@ import type { CategoryDefinition } from '@/types/types';
 // the chain itself, and the chain is thenable (resolves to a configurable result).
 // ---------------------------------------------------------------------------
 
+type ChainResult = { data: unknown; error: unknown };
+
 const { mockFrom, mockRpc, createChain } = vi.hoisted(() => {
   const mockRpc = vi.fn();
 
   /** Creates a chainable mock that resolves to `result` when awaited. */
-  function createChain(result: { data: any; error: any } = { data: null, error: null }) {
-    const chain: Record<string, any> = {};
+  function createChain(result: ChainResult = { data: null, error: null }) {
+    const chain: Record<string, unknown> = {};
     for (const method of ['select', 'eq', 'in', 'is', 'order', 'update', 'single', 'delete']) {
       chain[method] = vi.fn(() => chain);
     }
-    chain.then = (onResolve: any, onReject?: any) => Promise.resolve(result).then(onResolve, onReject);
+    chain.then = (onResolve: (value: ChainResult) => unknown, onReject?: (reason: unknown) => unknown) =>
+      Promise.resolve(result).then(onResolve, onReject);
     return chain;
   }
 
@@ -47,6 +50,7 @@ const sampleCategory: CategoryDefinition = {
   name: 'Movies',
   icon: 'film',
   field_definitions: [],
+  sort_order: 0,
 };
 
 // ---------------------------------------------------------------------------
