@@ -1,90 +1,66 @@
-# Deploy runbook
+# Deploy guide
 
-Single-node k3s on DigitalOcean, reconciled by Flux from this repository. Layout:
+Orderly targets single-node k3s on the home Beelink Mini S12 Pro, with Flux reconciling this repository. Phase 1a covers only host provisioning and the reusable deployment objects. Cloudflare Tunnel, secrets, application bootstrap, and domain cutover are Phase 1b/1c work.
 
-| Path                       | Contents                                                                 |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `infra/`                   | OpenTofu: droplet, cloud firewall, Cloudflare DNS + zone settings        |
-| `deploy/base/`             | Namespace, Deployment, Service for the SPA                               |
-| `deploy/overlays/prod/`    | Base + secrets + Ingress; `images[orderly-web].newTag` is bumped by CI   |
-| `deploy/secrets/`          | SOPS-encrypted Secrets (`origin-tls.yaml`)                               |
-| `deploy/flux/flux-system/` | `flux install --export` output plus the `GitRepository`/`Kustomization`s |
+| Path                       | Contents                                                           |
+| -------------------------- | ------------------------------------------------------------------ |
+| `infra/`                   | Cloudflare-only OpenTofu and Ubuntu/Ansible host provisioning      |
+| `deploy/base/`             | Namespace, Deployment, and ClusterIP Service for the SPA           |
+| `deploy/overlays/prod/`    | Base plus Traefik Ingress; CI updates `images[orderly-web].newTag` |
+| `deploy/flux/flux-system/` | Exported minimal Flux installation and Git reconciliation objects  |
+| `deploy/secrets/`          | SOPS-encrypted Secrets when Phase 1b adds them                     |
 
-Flux runs only `source-controller` and `kustomize-controller`. There is no `flux bootstrap`; the objects are applied once by hand from the exported manifest, and from then on Git is the source of truth.
+Flux runs only `source-controller` and `kustomize-controller`. There is no `flux bootstrap`; the exported objects are applied once by hand, after which Git is the source of truth.
 
-## 1. Provision
+## Phase 1a: provision the host
 
-Requires `DIGITALOCEAN_TOKEN` and `CLOUDFLARE_API_TOKEN` in the environment, a `terraform.tfvars` (copy from `terraform.tfvars.example`), and the domain already registered on Cloudflare.
+Follow `docs/runbooks/mini-pc-setup.md`. The short command sequence after installing Ubuntu and copying the example inventory is:
 
 ```sh
-cd infra
-tofu init
-tofu apply
-tofu output -raw droplet_ipv4
+ansible-playbook -K -i infra/ansible/inventory.ini infra/ansible/playbook.yml
+ssh ops@<lan-address>
+sudo k3s kubectl get nodes
 ```
 
-The droplet installs k3s through cloud-init; wait for `cloud-init status --wait` to report `done` (about two minutes).
+The playbook installs and enables Tailscale but does not authenticate it. Run `sudo tailscale up` interactively on the host, then verify remote administration before depending on it. Do not store a Tailscale auth key in this repository.
 
-## 2. Kubeconfig
+The host firewall denies unsolicited inbound traffic by default. SSH and the Kubernetes API are allowed only from the configured LAN CIDR or through `tailscale0`. Router ports 80, 443, 22, and 6443 must remain unforwarded.
 
-Port 6443 is not exposed by the firewall, so the API is reached through an SSH tunnel:
+## Kubeconfig
+
+After Tailscale is connected, copy the kubeconfig over SSH and use an SSH tunnel for administrative Kubernetes access:
 
 ```sh
-IP=$(tofu output -raw droplet_ipv4)
-ssh ops@"$IP" sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/orderly.yaml
-ssh -N -L 6443:127.0.0.1:6443 ops@"$IP" &   # keep open, or run in a second terminal
+ssh ops@<tailscale-address> sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/orderly.yaml
+ssh -N -L 6443:127.0.0.1:6443 ops@<tailscale-address> &
 export KUBECONFIG=~/.kube/orderly.yaml
+kubectl get nodes
 ```
 
-The kubeconfig already points at `127.0.0.1:6443`, which the tunnel forwards to the droplet's API server. Nothing else needs rewriting.
+The kubeconfig already points at `127.0.0.1:6443`. Stop the SSH tunnel when it is no longer needed.
 
-## 3. SOPS age key
+## Phase 1b prerequisites still open
 
-```sh
-age-keygen -o ~/orderly-secrets/age.agekey      # store the file in the password manager
-# put the `age1...` recipient in .sops.yaml (creation_rules.age)
-kubectl create namespace flux-system
-kubectl -n flux-system create secret generic sops-age \
-  --from-file=age.agekey="$HOME/orderly-secrets/age.agekey"
-```
+- Buy the domain and configure the Cloudflare zone through OpenTofu.
+- Deploy `cloudflared` and route its public hostname to Traefik's cluster-internal HTTP Service.
+- Replace the age recipient placeholder in `.sops.yaml`; keep the private key only in the cluster and the password manager.
+- Add the tunnel token as a SOPS-encrypted Secret under `deploy/secrets/`.
+- Replace `images[orderly-web].newTag: unset` with an image built by CI before reconciling the app.
 
-`sops-age` is the only copy of the private key outside the password manager. Losing it means re-encrypting every file under `deploy/secrets/`.
+No Origin CA certificate or cert-manager is needed for the selected tunnel-to-Traefik HTTP path.
 
-## 4. Origin CA TLS secret
+## Flux bootstrap (Phase 1b)
 
-Cloudflare → SSL/TLS → Origin Server → Create Certificate (ECC, the apex and `*.` hostnames, 15 years). Save the two files outside the repo.
-
-```sh
-kubectl create secret tls origin-tls -n orderly \
-  --cert="$HOME/orderly-secrets/origin.pem" \
-  --key="$HOME/orderly-secrets/origin.key" \
-  --dry-run=client -o yaml > deploy/secrets/origin-tls.yaml
-sops -e -i deploy/secrets/origin-tls.yaml
-
-# Gate: ciphertext only.
-grep -c 'ENC\[' deploy/secrets/origin-tls.yaml     # >= 2
-grep -c 'BEGIN' deploy/secrets/origin-tls.yaml     # must be 0
-```
-
-Commit the ciphertext. Cloudflare's `ssl` mode is `strict`, so a wrong certificate surfaces as HTTP 526.
-
-## 5. Install Flux
+After the prerequisites above are complete:
 
 ```sh
 kubectl apply --server-side -k deploy/flux/flux-system
-```
-
-The first apply races CRD establishment. If it fails with "no matches for kind", run it again.
-
-Then:
-
-```sh
 flux get sources git
 flux get kustomizations
 kubectl -n orderly get pods
 ```
 
-`prod` reconciles `./deploy/overlays/prod` from `main` and decrypts `origin-tls.yaml` with `sops-age`.
+The first apply can race CRD establishment. If it fails with `no matches for kind`, run it again.
 
 ### Testing a branch before merging
 
@@ -96,14 +72,10 @@ kubectl -n flux-system patch gitrepository orderly --type merge \
   -p '{"spec":{"ref":{"branch":"<branch>"}}}'
 ```
 
-After merging, `flux resume kustomization flux-system`; the next reconcile resets `spec.ref` to `main` from Git.
+After merging, `flux resume kustomization flux-system`; the next reconcile restores `spec.ref` to `main` from Git.
 
-## 6. Rolls and rebuilds
+## Rolls and rollback
 
 - **New SPA build:** CI pushes `ghcr.io/michael-antar/orderly-web:<sha>` and commits the tag bump to `deploy/overlays/prod/kustomization.yaml`. Flux applies it within five minutes.
-- **Full rebuild:** `tofu apply -replace=digitalocean_droplet.orderly`, then repeat steps 2–5. The droplet's `user_data` and `image` are ignored by OpenTofu so unrelated applies never destroy the volume.
-- **Locked out of SSH:** add the new address to `admin_cidrs`, `tofu apply`, or use the DigitalOcean web console (which is outside the cloud firewall).
-
-## 7. Rollback
-
-`git revert` the tag-bump commit and let Flux reconcile, or pin `newTag` to the previous SHA. Images are content-addressed by commit SHA and never overwritten.
+- **Rollback:** `git revert` the tag-bump commit and let Flux reconcile, or pin `newTag` to the previous SHA. Images are content-addressed by commit SHA and never overwritten.
+- **Host rebuild:** follow `docs/runbooks/mini-pc-recovery.md`, then repeat the Phase 1b Flux bootstrap. Database restoration is added in Phase 6.

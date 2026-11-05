@@ -14,19 +14,19 @@ Short, numbered records of decisions that shape the migration. Format: Context â
 
 ## Index
 
-|#|Title|Status|
-|---|---|---|
-|[0001](./0001-modular-monolith.md)|Go modular monolith first|Accepted|
-|[0002](./0002-auth-sessions-resend.md)|Own auth: email/password, cookie sessions, Resend|Accepted|
-|[0003](./0003-glicko-in-go.md)|Ranking logic moves from SQL/TypeScript into Go|Accepted|
-|[0004](./0004-single-vps-k3s-cloudflare.md)|Single Hetzner VPS, k3s, Cloudflare, same-origin SPA|Accepted|
-|[0005](./0005-gitops-flux-sops.md)|GitOps with minimal Flux and SOPS|Accepted|
-|[0006](./0006-goose-migrations.md)|goose for database migrations|Accepted|
-|[0007](./0007-no-persistent-staging.md)|No persistent staging environment|Accepted|
-|[0008](./0008-anonymous-ready-identity.md)|Identity model ready for anonymous guests|Accepted|
-|[0009](./0009-url-layout-landing-app-api.md)|URL layout: landing `/`, SPA `/app/`, API `/api/`|Accepted|
-|[0010](./0010-digitalocean-sfo3-origin-ca.md)|DigitalOcean `sfo3` origin, Cloudflare Registrar and Origin CA|Accepted|
-|[0011](./0011-main-push-policy-and-flux-pull.md)|`main` accepts CI pushes; Flux pulls with no credentials|Accepted|
+| #                                                | Title                                                    | Status             |
+| ------------------------------------------------ | -------------------------------------------------------- | ------------------ |
+| [0001](./0001-modular-monolith.md)               | Go modular monolith first                                | Accepted           |
+| [0002](./0002-auth-sessions-resend.md)           | Own auth: email/password, cookie sessions, Resend        | Accepted           |
+| [0003](./0003-glicko-in-go.md)                   | Ranking logic moves from SQL/TypeScript into Go          | Accepted           |
+| [0004](./0004-single-vps-k3s-cloudflare.md)      | Single Hetzner VPS, k3s, Cloudflare, same-origin SPA     | Superseded by 0010 |
+| [0005](./0005-gitops-flux-sops.md)               | GitOps with minimal Flux and SOPS                        | Accepted           |
+| [0006](./0006-goose-migrations.md)               | goose for database migrations                            | Accepted           |
+| [0007](./0007-no-persistent-staging.md)          | No persistent staging environment                        | Accepted           |
+| [0008](./0008-anonymous-ready-identity.md)       | Identity model ready for anonymous guests                | Accepted           |
+| [0009](./0009-url-layout-landing-app-api.md)     | URL layout: landing `/`, SPA `/app/`, API `/api/`        | Accepted           |
+| [0010](./0010-home-mini-pc-cloudflare-tunnel.md) | Home Beelink mini PC, k3s, and Cloudflare Tunnel         | Accepted           |
+| [0011](./0011-main-push-policy-and-flux-pull.md) | `main` accepts CI pushes; Flux pulls with no credentials | Accepted           |
 
 ## Template
 
@@ -38,11 +38,14 @@ Short, numbered records of decisions that shape the migration. Format: Context â
 - Phase: N
 
 ## Context
+
 What forces are at play; what problem needs deciding.
 
 ## Decision
+
 What we will do, stated plainly.
 
 ## Consequences
+
 What gets easier, what gets harder, what we must now do.
 ```

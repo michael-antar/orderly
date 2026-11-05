@@ -1,6 +1,6 @@
 # 0004. Single Hetzner VPS, k3s, Cloudflare, same-origin SPA
 
-- Status: Accepted
+- Status: Superseded by [0010](./0010-home-mini-pc-cloudflare-tunnel.md)
 - Date: 2026-10-23
 - Phase: 1
 
@@ -25,14 +25,14 @@
 - **Infrastructure as code:** OpenTofu manages the server, firewall, and Cloudflare DNS. cloud-init handles OS hardening and the k3s install.
 - **Rough RAM budget [INFERENCE, not measured]:**
 
-  |Component|RAM|
-  |---|---|
-  |OS + k3s|~700 MB|
-  |Traefik + Flux|~250 MB|
-  |Alloy|~200 MB|
-  |Postgres|~250 MB|
-  |API + web|~50 MB|
-  |**Total**|**~1.5 GB**|
+  | Component      | RAM         |
+  | -------------- | ----------- |
+  | OS + k3s       | ~700 MB     |
+  | Traefik + Flux | ~250 MB     |
+  | Alloy          | ~200 MB     |
+  | Postgres       | ~250 MB     |
+  | API + web      | ~50 MB      |
+  | **Total**      | **~1.5 GB** |
 
 ## Consequences
 

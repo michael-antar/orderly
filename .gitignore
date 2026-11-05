@@ -18,6 +18,8 @@ coverage
 *.tfstate
 *.tfstate.*
 infra/terraform.tfvars
+infra/ansible/inventory.ini
+*.retry
 *.agekey
 
 # Editors and OS

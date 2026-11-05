@@ -4,15 +4,6 @@ data "cloudflare_zone" "main" {
   }
 }
 
-resource "cloudflare_dns_record" "apex" {
-  zone_id = data.cloudflare_zone.main.zone_id
-  name    = var.domain
-  type    = "A"
-  content = digitalocean_droplet.orderly.ipv4_address
-  proxied = true
-  ttl     = 1
-}
-
 resource "cloudflare_zone_setting" "ssl" {
   zone_id    = data.cloudflare_zone.main.zone_id
   setting_id = "ssl"

@@ -2,7 +2,7 @@
 
 Orderly ("rankedreviews" in `package.json`) is a React 19 + TypeScript + Vite SPA backed by Supabase. Users create dynamic categories, log items, and rank them by **head-to-head comparison using Glicko-1** instead of star ratings.
 
-> **Migration in progress.** This repo is moving from Supabase + Vercel to a Go modular monolith on a self-managed k3s VPS. Before migration work, read `docs/migration-plan.md` (phases, status, exit criteria), the relevant `docs/adr/` records, and `docs/workflow.md`. Start migration sessions with `/skill:phase-kickoff` and finish them with `/skill:phase-closeout`. The sections below describe the repo **as it is today**; keep them current as phases land.
+> **Migration in progress.** This repo is moving from Supabase + Vercel to a Go modular monolith on a self-managed home mini PC running k3s. Before migration work, read `docs/migration-plan.md` (phases, status, exit criteria), the relevant `docs/adr/` records, and `docs/workflow.md`. Start migration sessions with `/skill:phase-kickoff` and finish them with `/skill:phase-closeout`. The sections below describe the repo **as it is today**; keep them current as phases land.
 
 ## Project Overview
 
@@ -38,34 +38,39 @@ flowchart TD
 
 ## Key Directories
 
-| Path | Purpose |
-|---|---|
-| `src/components/` | Feature components grouped by domain: `items/`, `categories/`, `auth/`, `layout/`, `shared/` |
-| `src/components/ui/` | Vendored shadcn/ui ("new-york") modules; direct imports, no barrel |
-| `src/hooks/` | All stateful data logic: `useCategoryItems`, `useItemForm`, `useComparisonQueue`, `usePrevious` |
-| `src/lib/` | Supabase client, `cn` + formatting helpers, category seeding/migration, Lucide icon map |
-| `src/types/` | `types.ts` hand-written domain types; `database.types.ts` generated — do not hand-edit |
-| `supabase/migrations/` | Additive SQL migrations; all DB functions, RLS policies, indexes |
-| `src/contexts/` | `AuthContext` (anonymous bootstrap, session, sign-out) |
-| `docs/` | README screenshots/ER diagram only |
+| Path                   | Purpose                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/components/`      | Feature components grouped by domain: `items/`, `categories/`, `auth/`, `layout/`, `shared/`    |
+| `src/components/ui/`   | Vendored shadcn/ui ("new-york") modules; direct imports, no barrel                              |
+| `src/hooks/`           | All stateful data logic: `useCategoryItems`, `useItemForm`, `useComparisonQueue`, `usePrevious` |
+| `src/lib/`             | Supabase client, `cn` + formatting helpers, category seeding/migration, Lucide icon map         |
+| `src/types/`           | `types.ts` hand-written domain types; `database.types.ts` generated — do not hand-edit          |
+| `supabase/migrations/` | Additive SQL migrations; all DB functions, RLS policies, indexes                                |
+| `src/contexts/`        | `AuthContext` (anonymous bootstrap, session, sign-out)                                          |
+| `infra/`               | Cloudflare-only OpenTofu and Ubuntu/Ansible host provisioning                                   |
+| `deploy/`              | Kustomize base/prod overlay and minimal Flux manifests                                          |
+| `nginx/`               | Unprivileged SPA static-server configuration                                                    |
+| `docs/`                | Migration plan, ADRs, runbooks, learning notes, and README images                               |
 
 ## Development Commands
 
-| Task | Command |
-|---|---|
-| Install | `npm install` (npm, `package-lock.json` v3) |
-| Dev server | `npm run dev` (Vite, default port 5173) |
-| Typecheck + production build | `npm run build` (`tsc -b && vite build`) |
-| Preview build | `npm run preview` |
-| Lint | `npm run lint` (`eslint .`) |
-| Tests (watch) | `npm run test` |
-| Tests (CI) | `npm run test:run` |
-| Coverage | `npm run test:coverage` |
-| Format | `npx prettier --write .` — **no `format` npm script exists** despite README |
-| New migration | `npm run db:new <snake_case_name>` |
-| Push migrations | `npm run db:push` (sources `.env.local`; requires linked project + CLI auth) |
-| Migration status / diff | `npm run db:list`, `npm run db:diff` |
-| Regenerate DB types | `npm run db:types` (hardcoded project ref `txfxxktbykqvmsuhrfez`) |
+| Task                         | Command                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| Install                      | `npm install` (npm, `package-lock.json` v3)                                  |
+| Dev server                   | `npm run dev` (Vite, default port 5173)                                      |
+| Typecheck + production build | `npm run build` (`tsc -b && vite build`)                                     |
+| Preview build                | `npm run preview`                                                            |
+| Lint                         | `npm run lint` (`eslint .`)                                                  |
+| Tests (watch)                | `npm run test`                                                               |
+| Tests (CI)                   | `npm run test:run`                                                           |
+| Coverage                     | `npm run test:coverage`                                                      |
+| Format                       | `npx prettier --write .` — **no `format` npm script exists** despite README  |
+| New migration                | `npm run db:new <snake_case_name>`                                           |
+| Push migrations              | `npm run db:push` (sources `.env.local`; requires linked project + CLI auth) |
+| Migration status / diff      | `npm run db:list`, `npm run db:diff`                                         |
+| Regenerate DB types          | `npm run db:types` (hardcoded project ref `txfxxktbykqvmsuhrfez`)            |
+| Validate OpenTofu            | `tofu -chdir=infra fmt -check` and `tofu -chdir=infra validate`              |
+| Provision the mini PC        | `ansible-playbook -i infra/ansible/inventory.ini infra/ansible/playbook.yml` |
 
 Required env in `.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`. The client throws if either is missing.
 
@@ -80,12 +85,14 @@ Required env in `.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_A
 ## Code Conventions & Common Patterns
 
 **Language / formatting**
+
 - TypeScript `strict`, `noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax` — use `import { type X }` for types.
 - Prettier: 2 spaces, single quotes, width 120, LF, always arrow parens. Not enforced by lint.
 - `simple-import-sort` is an **ESLint error**: external packages, blank line, `@/` imports, blank line, relative imports. Let `eslint --fix` reorder.
 - Path alias `@/* → src/*` (both TS and Vite). Use `@/` across directories; relative imports for siblings.
 
 **Components / hooks**
+
 - Named exports everywhere; only `App.tsx` uses `export default`.
 - One component per file; private subcomponents at the bottom of the same file (`ErrorState`, `ComparisonCard`, `FieldEditorRow`).
 - Memoize leaf lists/components with `React.memo` where rerenders matter (`ItemCard`, `ItemForm`, `TagBadge`); use `useCallback`/`useMemo` for callbacks and derived arrays.
@@ -94,12 +101,14 @@ Required env in `.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_A
 - No form library, no schemas: plain `useState`; validation is ad hoc.
 
 **Error handling**
+
 - Mutations → `toast.success` / `toast.error` (sonner).
 - Fetch/query → expose `error` and render an inline error state (`CategoryView`'s `ErrorState`).
 - `lib/` helpers → throw (`ensureUserCategories`); auth forms → local inline error state.
 - `console.error` only as a last resort; **`console.log`/`group*` are stripped by `vite-plugin-remove-console` in every mode** — use `warn`/`error` for debugging.
 
 **Supabase**
+
 - Import the singleton; never create additional clients.
 - Filter `.eq('user_id', user.id)` on reads/writes where practical; RLS is the backstop, but a few paths (`CategoryManager` delete/reorder) rely on RLS alone.
 - Generated `database.types.ts` types `field_definitions`/`properties` as `Json`; domain code uses `as unknown as CategoryDefinition` casts in `categoryUtils.ts`, `CategoryBuilder.tsx`, `TagManager.tsx`. Keep casts localized.
@@ -107,6 +116,7 @@ Required env in `.env.local` (gitignored): `VITE_SUPABASE_URL`, `VITE_SUPABASE_A
 - `SECURITY DEFINER` functions bypass RLS: include an explicit ownership check when adding one (`handle_comparison` currently has none).
 
 **Dynamic field changes — update all of these**
+
 1. `src/types/types.ts` — `FieldType` union, `ItemPropertyValue`
 2. `src/components/categories/CategoryBuilder.tsx` — `FIELD_TYPES` dropdown
 3. `src/components/shared/DynamicFieldRenderer.tsx` — input branch
@@ -123,26 +133,29 @@ No SQL migration is needed for a field type; only for new columns/RPC signatures
 
 ## Important Files
 
-| File | Why it matters |
-|---|---|
-| `src/main.tsx` | Provider stack + PWA service-worker registration |
-| `src/App.tsx` | Shell, category selection, loading/empty states |
-| `src/contexts/AuthContext.tsx` | Anonymous auth, session, `isPermanent`, sign-out |
-| `src/lib/supabaseClient.ts` | Env validation and typed client |
-| `src/lib/categoryUtils.ts` | Category fetch, seed RPC, legacy global-reference migration |
-| `src/lib/utils.ts` | `cn`, property formatting, card detail extraction |
-| `src/hooks/useCategoryItems.ts` | Server sorting/filtering + client-side numeric/tag filters |
-| `src/hooks/useComparisonQueue.ts` | Pair generation, calibration, local rating patch |
-| `src/components/items/ComparisonModal.tsx` | RPC invocation and post-comparison refetch |
-| `src/components/categories/CategoryView.tsx` | Per-category dashboard orchestration |
-| `src/components/shared/DynamicFieldRenderer.tsx` | Renders dynamic category fields |
-| `src/types/types.ts` | Canonical domain model |
-| `src/types/database.types.ts` | Generated Supabase types (regenerate, don't edit) |
-| `supabase/migrations/20260101000000_initial_schema.sql` | Tables, enums, RLS enablement |
-| `supabase/migrations/20260328201200_existing_functions_rls_indexes.sql` | Glicko RPC, seed RPC, policies, indexes |
-| `supabase/migrations/20260401152602_add_category_sort_order.sql` | Current head (`sort_order`) |
-| `vite.config.ts` | Aliases, PWA, console stripping, embedded Vitest config |
-| `components.json` | shadcn aliases/style |
+| File                                                                    | Why it matters                                              |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `src/main.tsx`                                                          | Provider stack + PWA service-worker registration            |
+| `src/App.tsx`                                                           | Shell, category selection, loading/empty states             |
+| `src/contexts/AuthContext.tsx`                                          | Anonymous auth, session, `isPermanent`, sign-out            |
+| `src/lib/supabaseClient.ts`                                             | Env validation and typed client                             |
+| `src/lib/categoryUtils.ts`                                              | Category fetch, seed RPC, legacy global-reference migration |
+| `src/lib/utils.ts`                                                      | `cn`, property formatting, card detail extraction           |
+| `src/hooks/useCategoryItems.ts`                                         | Server sorting/filtering + client-side numeric/tag filters  |
+| `src/hooks/useComparisonQueue.ts`                                       | Pair generation, calibration, local rating patch            |
+| `src/components/items/ComparisonModal.tsx`                              | RPC invocation and post-comparison refetch                  |
+| `src/components/categories/CategoryView.tsx`                            | Per-category dashboard orchestration                        |
+| `src/components/shared/DynamicFieldRenderer.tsx`                        | Renders dynamic category fields                             |
+| `src/types/types.ts`                                                    | Canonical domain model                                      |
+| `src/types/database.types.ts`                                           | Generated Supabase types (regenerate, don't edit)           |
+| `supabase/migrations/20260101000000_initial_schema.sql`                 | Tables, enums, RLS enablement                               |
+| `supabase/migrations/20260328201200_existing_functions_rls_indexes.sql` | Glicko RPC, seed RPC, policies, indexes                     |
+| `supabase/migrations/20260401152602_add_category_sort_order.sql`        | Current head (`sort_order`)                                 |
+| `vite.config.ts`                                                        | Aliases, PWA, console stripping, embedded Vitest config     |
+| `components.json`                                                       | shadcn aliases/style                                        |
+| `infra/ansible/playbook.yml`                                            | Ubuntu hardening, Tailscale, firewall, and k3s provisioning |
+| `docs/runbooks/mini-pc-setup.md`                                        | Physical setup and host verification procedure              |
+| `docs/runbooks/mini-pc-recovery.md`                                     | Failure response and staged recovery drills                 |
 
 ## Runtime/Tooling Preferences
 

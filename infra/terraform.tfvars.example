@@ -1,3 +1,2 @@
 # Copy to infra/terraform.tfvars (gitignored) and fill in.
-domain      = "example.com"
-admin_cidrs = ["203.0.113.4/32"]
+domain = "example.com"
