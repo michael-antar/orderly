@@ -1,6 +1,6 @@
 # 0004. Single Hetzner VPS, k3s, Cloudflare, same-origin SPA
 
-- Status: Accepted
+- Status: Superseded by [0010](./0010-home-mini-pc-cloudflare-tunnel.md)
 - Date: 2026-10-23
 - Phase: 1
 
