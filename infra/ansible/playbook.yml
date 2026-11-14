@@ -11,7 +11,7 @@
       ansible.builtin.assert:
         that:
           - lan_cidr is defined
-          - lan_cidr | ansible.utils.ipaddr('network')
+          - (lan_cidr | ansible.utils.ipaddr('network')) is truthy
           - ssh_public_key_path is defined
         fail_msg: Set lan_cidr and ssh_public_key_path in inventory.ini.
 
