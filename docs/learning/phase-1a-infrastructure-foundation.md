@@ -38,7 +38,17 @@ Local verification passed:
 - Prettier checks on the Phase 1a documentation and owned source/manifests.
 - No DigitalOcean, Hetzner, Origin TLS, cloud-init, or embedded provisioning-secret matches remain in `infra/`/`deploy/`.
 
-Physical verification has not been performed. The exact BIOS restore-on-AC label, storage brand/model/health, Tailscale access, k3s readiness, firewall behavior, and automatic power restoration must be observed on the Mini S12 Pro before Phase 1a closes. Cloudflare Tunnel, Grafana telemetry, application deployment, Vercel disconnection, and database recovery are later-phase criteria.
+Physical verification passed on the Mini S12 Pro:
+
+- The initial Ansible apply completed successfully; the final rerun reported `changed=0` and `failed=0`.
+- `tailscaled`, `k3s`, `fail2ban`, and `smartmontools` are active. The single k3s node is `Ready` on `v1.36.5+k3s1`.
+- UFW is active with the intended LAN/Tailscale rules and routed pod rule. Effective SSH configuration is `permitrootlogin no`, `pubkeyauthentication yes`, `passwordauthentication no`, and `kbdinteractiveauthentication no`; a password-only SSH attempt is rejected.
+- SSH and Kubernetes API port 6443 are reachable through Tailscale.
+- The M.2 SATA disk identifies as `SSD 512GB`; SMART overall health is `PASSED` with no logged errors.
+- The BIOS setting is **Chipset → PCH-IO Configuration → State after G3 → S0 State**. After a clean shutdown and AC removal/reconnection, the machine booted without pressing the power button, and Tailscale/k3s returned to `Ready`.
+- The maintainer confirmed that router ports 80, 443, 22, and 6443 are not forwarded to the host.
+
+Cloudflare Tunnel, Grafana telemetry, application deployment, Vercel disconnection, and database recovery are later-phase criteria.
 
 ## Questions and exercises
 

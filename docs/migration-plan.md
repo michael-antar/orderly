@@ -1,7 +1,7 @@
 # Migration Plan: Supabase SPA → Go backend on a home mini PC
 
-Status: **Phase 1a in progress — re-planned for home hosting.**
-Owner: the repository maintainer. Last updated: 2026-11-04.
+Status: **Phase 1a complete — Phase 1b next.**
+Owner: the repository maintainer. Last updated: 2026-11-18.
 
 This is the master plan. Every AI session working on the migration starts here; see [`workflow.md`](./workflow.md) for how to run those sessions. Decisions live in [`adr/`](./adr/README.md); this file holds the phases, their status, and open questions.
 
@@ -85,18 +85,18 @@ Module boundaries:
 
 Each phase is one branch and one PR (or one per sub-step if a phase is large), merged into `main`. Each phase ends with **exit criteria**: things I can observe working, not just "the code compiles".
 
-| #   | Phase                                  | Status            |
-| --- | -------------------------------------- | ----------------- |
-| 0   | Planning docs, ADRs, workflow          | ✅ done           |
-| 1   | Infrastructure foundation              | 🟡 1a in progress |
-| 2   | Go skeleton + CI/CD + repo restructure | ⬜                |
-| 3   | Catalog API + frontend port            | ⬜                |
-| 4   | Ranking in Go                          | ⬜                |
-| 5   | Own auth (sessions, Resend)            | ⬜                |
-| 6   | Data cutover to self-hosted Postgres   | ⬜                |
-| 7   | Hardening and observability            | ⬜                |
-| 8   | Anonymous guest users (post-MVP)       | ⬜                |
-| 9   | Optional: extract services             | ⬜                |
+| #   | Phase                                  | Status              |
+| --- | -------------------------------------- | ------------------- |
+| 0   | Planning docs, ADRs, workflow          | ✅ done             |
+| 1   | Infrastructure foundation              | 🟡 1a done; 1b next |
+| 2   | Go skeleton + CI/CD + repo restructure | ⬜                  |
+| 3   | Catalog API + frontend port            | ⬜                  |
+| 4   | Ranking in Go                          | ⬜                  |
+| 5   | Own auth (sessions, Resend)            | ⬜                  |
+| 6   | Data cutover to self-hosted Postgres   | ⬜                  |
+| 7   | Hardening and observability            | ⬜                  |
+| 8   | Anonymous guest users (post-MVP)       | ⬜                  |
+| 9   | Optional: extract services             | ⬜                  |
 
 **MVP = Phases 1–7.** That gives a fully self-hosted app with my own auth, no Supabase, and monitoring and backups.
 
@@ -106,7 +106,7 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 
 #### Phase 1a: Hardware and host foundation
 
-- Use the Beelink Mini S12 Pro with wired Ethernet and a DHCP reservation. Configure BIOS restore-on-AC and record the firmware label plus the actual storage model during setup.
+- Use the Beelink Mini S12 Pro with wired Ethernet and a DHCP reservation. Verified BIOS power recovery is **Chipset → PCH-IO Configuration → State after G3 → S0 State**. The M.2 SATA disk identifies as `SSD 512GB` and passed SMART overall health with no logged errors.
 - Run without a UPS initially; document the unclean-shutdown risk. Recovery targets are **RPO ≤24 hours** and **RTO ≤24 hours**. Nightly backups begin in Phase 6 and the full timed recovery drill remains in Phase 7.
 - Install Ubuntu Server 24.04 LTS and provision through `infra/ansible/playbook.yml`. Configure the `ops` user, key-only SSH, unattended upgrades, LAN/Tailscale firewall rules, and Tailscale for private remote administration. Do not expose SSH or the Kubernetes API through the router or store a Tailscale auth key in Git.
 - Install k3s with bundled Traefik and local-path storage. Keep production images on `linux/amd64`; retain `linux/arm64` while local k3d needs it.
@@ -300,7 +300,6 @@ Resolve each at the kickoff of the phase named in brackets, and record the answe
   - Check how Vercel builds today (it may override the build command) so the cluster image doesn't reproduce a different build.
 - [Phase 1b] Exact domain name to purchase through Cloudflare Registrar.
 - [Phase 1b] Durable OpenTofu state backend for the Cloudflare tunnel/DNS resources and its recovery procedure.
-- [Phase 1a, physical verification] Exact BIOS restore-on-AC setting and storage brand/model; capture these during host setup.
 - [Phase 2] Does the Supabase project use asymmetric JWT signing keys (JWKS) or the legacy HS256 secret?
 - [Phase 3] Exact API shape for dynamic-field filtering and sorting (query parameters vs a POST search body).
 - [Phase 4] Tolerance for the Glicko parity test. The SQL used `numeric` and decay depends on `last_compared_at`, so replay results may drift slightly.
@@ -315,4 +314,5 @@ Append one line per completed phase: date, PR link, and one sentence on anything
 - 2026-10-24 — Phase 0 follow-up: post-MVP backlog constraints and ADR-0009 (URL layout) added.
 - 2026-11-04 — Phase 1 re-plan: ADR-0010 replaces VPS hosting with the home Beelink and Cloudflare Tunnel; the partial Phase 1a implementation draft is saved on `phase-1a-infra`.
 - 2026-11-04 — Phase 1a implementation (`phase-1a-infra`): DigitalOcean/cloud-init was replaced with Cloudflare-only OpenTofu and Ubuntu/Ansible host provisioning; Origin CA dependencies were removed and Mini S12 Pro runbooks added. OpenTofu, Ansible syntax, Kustomize, frontend, formatting, and safety-review checks pass.
-  - Next: complete the physical BIOS/Ubuntu/DHCP setup in `docs/runbooks/mini-pc-setup.md`, apply Ansible, then verify Tailscale, k3s, SSH/firewall, storage health, router exposure, and restore-on-AC. Do not mark Phase 1a complete until those host checks pass.
+- 2026-11-18 — Phase 1a complete: Ubuntu/Ansible provisioning is idempotent, Tailscale administration and k3s are ready, SSH/UFW and SMART checks pass, and clean-shutdown AC restoration automatically returned the host to service.
+  - Next: Phase 1b selects and purchases the Cloudflare domain, chooses durable OpenTofu state, then configures the tunnel, SOPS secrets, Flux, and Grafana.
