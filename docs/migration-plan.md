@@ -1,7 +1,7 @@
 # Migration Plan: Supabase SPA → Go backend on a home mini PC
 
-Status: **Phase 1a in progress — re-planned for home hosting.**
-Owner: the repository maintainer. Last updated: 2026-11-04.
+Status: **Phase 1a complete — Phase 1b next.**
+Owner: the repository maintainer. Last updated: 2026-11-18.
 
 This is the master plan. Every AI session working on the migration starts here; see [`workflow.md`](./workflow.md) for how to run those sessions. Decisions live in [`adr/`](./adr/README.md); this file holds the phases, their status, and open questions.
 
@@ -76,6 +76,7 @@ docs/                       # this plan, ADRs, workflow, learning notes
 ```
 
 Module boundaries:
+
 - `catalog` and `ranking` may depend on `identity` only through an interface they define. They never depend on each other directly.
 - Cross-module reads go through Go interfaces, not shared tables.
 - This keeps a later service split mechanical.
@@ -84,18 +85,18 @@ Module boundaries:
 
 Each phase is one branch and one PR (or one per sub-step if a phase is large), merged into `main`. Each phase ends with **exit criteria**: things I can observe working, not just "the code compiles".
 
-|#|Phase|Status|
-|---|---|---|
-|0|Planning docs, ADRs, workflow|✅ done|
-|1|Infrastructure foundation|🟡 1a in progress|
-|2|Go skeleton + CI/CD + repo restructure|⬜|
-|3|Catalog API + frontend port|⬜|
-|4|Ranking in Go|⬜|
-|5|Own auth (sessions, Resend)|⬜|
-|6|Data cutover to self-hosted Postgres|⬜|
-|7|Hardening and observability|⬜|
-|8|Anonymous guest users (post-MVP)|⬜|
-|9|Optional: extract services|⬜|
+| #   | Phase                                  | Status              |
+| --- | -------------------------------------- | ------------------- |
+| 0   | Planning docs, ADRs, workflow          | ✅ done             |
+| 1   | Infrastructure foundation              | 🟡 1a done; 1b next |
+| 2   | Go skeleton + CI/CD + repo restructure | ⬜                  |
+| 3   | Catalog API + frontend port            | ⬜                  |
+| 4   | Ranking in Go                          | ⬜                  |
+| 5   | Own auth (sessions, Resend)            | ⬜                  |
+| 6   | Data cutover to self-hosted Postgres   | ⬜                  |
+| 7   | Hardening and observability            | ⬜                  |
+| 8   | Anonymous guest users (post-MVP)       | ⬜                  |
+| 9   | Optional: extract services             | ⬜                  |
 
 **MVP = Phases 1–7.** That gives a fully self-hosted app with my own auth, no Supabase, and monitoring and backups.
 
@@ -105,11 +106,11 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 
 #### Phase 1a: Hardware and host foundation
 
-- Record the exact Beelink and storage models, use wired Ethernet with a DHCP reservation, and configure the BIOS to restore power after an AC outage.
-- Decide whether to add a USB-supported UPS with Network UPS Tools for graceful shutdown. Define acceptable downtime and data-loss objectives before choosing backup schedules in Phase 6.
-- Choose and document the bare-metal OS and repeatable host-provisioning path. Configure a non-root user, key-only SSH, unattended upgrades, host/LAN firewall rules, and private remote administration; do not expose SSH or the Kubernetes API through the router.
+- Use the Beelink Mini S12 Pro with wired Ethernet and a DHCP reservation. Verified BIOS power recovery is **Chipset → PCH-IO Configuration → State after G3 → S0 State**. The M.2 SATA disk identifies as `SSD 512GB` and passed SMART overall health with no logged errors.
+- Run without a UPS initially; document the unclean-shutdown risk. Recovery targets are **RPO ≤24 hours** and **RTO ≤24 hours**. Nightly backups begin in Phase 6 and the full timed recovery drill remains in Phase 7.
+- Install Ubuntu Server 24.04 LTS and provision through `infra/ansible/playbook.yml`. Configure the `ops` user, key-only SSH, unattended upgrades, LAN/Tailscale firewall rules, and Tailscale for private remote administration. Do not expose SSH or the Kubernetes API through the router or store a Tailscale auth key in Git.
 - Install k3s with bundled Traefik and local-path storage. Keep production images on `linux/amd64`; retain `linux/arm64` while local k3d needs it.
-- Write initial runbooks under `docs/runbooks/` for hardware/BIOS setup, OS reinstall, private remote access, power loss, and offline recovery credentials. Include the age private key and Cloudflare/account recovery requirements.
+- Use `docs/runbooks/mini-pc-setup.md` and `docs/runbooks/mini-pc-recovery.md` for hardware/BIOS setup, OS reinstall, private remote access, power loss, and offline recovery credentials. Include the age private key and Cloudflare/account recovery requirements after Phase 1b creates them.
 
 #### Phase 1b: Cluster ingress and GitOps
 
@@ -126,6 +127,7 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 - Rehearse a fresh-OS rebuild: host provisioning → k3s → offline secrets → Flux bootstrap → application reachable through the tunnel. Database restoration is added in Phase 6; the full timed disaster-recovery drill remains in Phase 7.
 
 **Exit criteria:**
+
 - `https://<domain>` serves the app through Cloudflare Tunnel, deployed by Flux from a Git commit.
 - Router ports 80, 443, 22, and 6443 are not forwarded to the host; private administration works through the selected LAN/VPN path.
 - Logs and node metrics are visible in Grafana Cloud.
@@ -147,6 +149,7 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 - GitHub Actions: path-filtered jobs, `golangci-lint`, `go test` (using `testcontainers-go`), multi-arch image build pushed to GHCR, then a commit of the new image tag into `deploy/overlays/prod`.
 
 **Exit criteria:**
+
 - Merging to `main` deploys a new API image via Flux with no manual steps.
 - `GET /api/me` returns my user ID when called from the SPA with my Supabase session.
 
@@ -166,6 +169,7 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 - Port feature by feature (items → tags → categories) as separate PRs if that's easier.
 
 **Exit criteria:**
+
 - Every catalog flow works through `/api` with no `supabase.from` left in catalog code.
 - The ownership test covers every endpoint.
 
@@ -178,6 +182,7 @@ Bring up the mini PC and deploy pipeline while the app itself keeps using Supaba
 - Retire the `handle_comparison` RPC. This also fixes its missing ownership check.
 
 **Exit criteria:**
+
 - Comparisons and calibration work end to end through the API.
 - The parity test passes.
 - `useComparisonQueue` is reduced to UI state only.
@@ -203,6 +208,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Remove `@supabase/supabase-js` auth usage, `AuthContext`'s anonymous bootstrap, and the Supabase JWT verification path.
 
 **Exit criteria:**
+
 - I can log in with my existing password and see all my data.
 - The password reset email arrives and works.
 - No Supabase auth calls remain in `web/`.
@@ -224,6 +230,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Remove `supabase/` tooling, the `db:*` npm scripts, `database.types.ts`, and the `supabase` dev dependency.
 
 **Exit criteria:**
+
 - The app runs entirely on the home mini PC.
 - A backup restore drill has been done from R2 into a fresh local Postgres.
 
@@ -238,6 +245,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 - Rehearse disaster recovery end to end: reinstall the mini PC or a replacement x86_64 host using the documented OS/host provisioning, restore offline recovery credentials, bootstrap Flux, and restore the latest R2 backup, timed.
 
 **Exit criteria:**
+
 - The disaster-recovery drill passes.
 - Alerts fire in a test.
 - Docs describe the new system only.
@@ -245,6 +253,7 @@ Still running on the Supabase database, so the auth cutover happens separately f
 ### Phase 8: Anonymous guest users (post-MVP)
 
 Per [ADR-0008](./adr/0008-anonymous-ready-identity.md):
+
 - Guest session creation, with Cloudflare Turnstile and per-IP rate limiting.
 - Seeded sample data for new guests.
 - Upgrade-in-place: adding an email and password to the same user row means no data migration.
@@ -254,6 +263,7 @@ Per [ADR-0008](./adr/0008-anonymous-ready-identity.md):
 ### Phase 9 (optional): Extract services
 
 Extract `ranking` (and possibly `identity`) into separately deployed services:
+
 - service-to-service auth
 - per-service database schemas and roles
 - an explicit internal API between services
@@ -268,13 +278,13 @@ I'm not hand-writing any part of this; AI writes all the code. To still learn fr
 
 These features are **not** planned or designed yet; each gets its own kickoff after Phase 7. This section records only what the MVP must do (or avoid) so they stay cheap to add later.
 
-|Feature|What the MVP must do now|Deliberately left for later|
-|---|---|---|
-|`location` field: geocoding, distance sort/filter, distance-vs-quality slider, address autocomplete|Validate and store the existing `LocationValue` shape in Phase 3. Keep sort/filter extensible with room for a computed sort key (Phase 3). Use a Postgres image that can add PostGIS (Phase 6).|Geocoding provider choice, distance computation (Haversine in Go vs PostGIS), blending formula, autocomplete UX, and a denormalized coordinates column or index|
-|Map view|Nothing beyond the location items above. Coordinates are already part of the stored value.|Map library and tile source|
-|Global search (fuzzy first, semantic later)|`catalog` stays the only owner of item reads, so search becomes one more catalog query. Use a Postgres image that can add `pg_trgm` and `pgvector` (Phase 6). Rough RAM budget: keep about 500 MB free for a future embedding model (ADR-0010's 16 GB host leaves room).|Search API shape, ranking of results, Levenshtein vs trigram similarity, embedding model and storage, deep links into item details (needs a router under `/app/`)|
-|Static landing page for SEO|Reserve `/` and serve the SPA at `/app/` (ADR-0009, Phase 2). Keep the API and emailed links off `/`.|Page content, second Vite entry vs plain static files, sitemap, Open Graph tags|
-|Redis/Valkey|Nothing new to build. Phase 5 puts the rate limiter and session lookup behind small Go interfaces with in-memory/Postgres implementations, so a Redis or Valkey implementation can be swapped in later.|Whether to add it (rate limiting, session cache, geocode cache, search-as-you-type cache), and Redis (AGPL) vs Valkey (BSD)|
+| Feature                                                                                             | What the MVP must do now                                                                                                                                                                                                                                                 | Deliberately left for later                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `location` field: geocoding, distance sort/filter, distance-vs-quality slider, address autocomplete | Validate and store the existing `LocationValue` shape in Phase 3. Keep sort/filter extensible with room for a computed sort key (Phase 3). Use a Postgres image that can add PostGIS (Phase 6).                                                                          | Geocoding provider choice, distance computation (Haversine in Go vs PostGIS), blending formula, autocomplete UX, and a denormalized coordinates column or index   |
+| Map view                                                                                            | Nothing beyond the location items above. Coordinates are already part of the stored value.                                                                                                                                                                               | Map library and tile source                                                                                                                                       |
+| Global search (fuzzy first, semantic later)                                                         | `catalog` stays the only owner of item reads, so search becomes one more catalog query. Use a Postgres image that can add `pg_trgm` and `pgvector` (Phase 6). Rough RAM budget: keep about 500 MB free for a future embedding model (ADR-0010's 16 GB host leaves room). | Search API shape, ranking of results, Levenshtein vs trigram similarity, embedding model and storage, deep links into item details (needs a router under `/app/`) |
+| Static landing page for SEO                                                                         | Reserve `/` and serve the SPA at `/app/` (ADR-0009, Phase 2). Keep the API and emailed links off `/`.                                                                                                                                                                    | Page content, second Vite entry vs plain static files, sitemap, Open Graph tags                                                                                   |
+| Redis/Valkey                                                                                        | Nothing new to build. Phase 5 puts the rate limiter and session lookup behind small Go interfaces with in-memory/Postgres implementations, so a Redis or Valkey implementation can be swapped in later.                                                                  | Whether to add it (rate limiting, session cache, geocode cache, search-as-you-type cache), and Redis (AGPL) vs Valkey (BSD)                                       |
 
 ## Open questions
 
@@ -288,13 +298,8 @@ Resolve each at the kickoff of the phase named in brackets, and record the answe
     - `no-explicit-any` in `categoryUtils.test.ts:17-22`
   - `npm run test:run` passes (32 tests).
   - Check how Vercel builds today (it may override the build command) so the cluster image doesn't reproduce a different build.
-- [Phase 1] Domain name.
-- [Phase 1] Does any cloud VPS infrastructure already exist outside this checkout and require cleanup or migration?
-- [Phase 1] Should OpenTofu manage the Cloudflare Tunnel/public hostname and related DNS, or should those be managed in the Cloudflare dashboard and documented?
-- [Phase 1a] Exact Beelink and storage models; available BIOS power-restoration and storage-health settings.
-- [Phase 1a] OS and repeatable host-provisioning tool. Recommended default: Ubuntu Server 24.04 LTS plus Ansible after a documented clean install.
-- [Phase 1a] Private administration path. Recommended default: Tailscale for remote SSH plus LAN/physical access as fallback.
-- [Phase 1a] UPS model/support, acceptable downtime (RTO), and acceptable data loss (RPO).
+- [Phase 1b] Exact domain name to purchase through Cloudflare Registrar.
+- [Phase 1b] Durable OpenTofu state backend for the Cloudflare tunnel/DNS resources and its recovery procedure.
 - [Phase 2] Does the Supabase project use asymmetric JWT signing keys (JWKS) or the legacy HS256 secret?
 - [Phase 3] Exact API shape for dynamic-field filtering and sorting (query parameters vs a POST search body).
 - [Phase 4] Tolerance for the Glicko parity test. The SQL used `numeric` and decay depends on `last_compared_at`, so replay results may drift slightly.
@@ -308,4 +313,6 @@ Append one line per completed phase: date, PR link, and one sentence on anything
 - 2026-10-23 — Phase 0: plan, ADRs 0001–0008, workflow, and phase skills written.
 - 2026-10-24 — Phase 0 follow-up: post-MVP backlog constraints and ADR-0009 (URL layout) added.
 - 2026-11-04 — Phase 1 re-plan: ADR-0010 replaces VPS hosting with the home Beelink and Cloudflare Tunnel; the partial Phase 1a implementation draft is saved on `phase-1a-infra`.
-  - Next: resolve the Phase 1a hardware/provisioning questions, rework that branch to this plan, then verify the live tunnel, deployment, monitoring, and fresh-OS recovery criteria.
+- 2026-11-04 — Phase 1a implementation (`phase-1a-infra`): DigitalOcean/cloud-init was replaced with Cloudflare-only OpenTofu and Ubuntu/Ansible host provisioning; Origin CA dependencies were removed and Mini S12 Pro runbooks added. OpenTofu, Ansible syntax, Kustomize, frontend, formatting, and safety-review checks pass.
+- 2026-11-18 — Phase 1a complete: Ubuntu/Ansible provisioning is idempotent, Tailscale administration and k3s are ready, SSH/UFW and SMART checks pass, and clean-shutdown AC restoration automatically returned the host to service.
+  - Next: Phase 1b selects and purchases the Cloudflare domain, chooses durable OpenTofu state, then configures the tunnel, SOPS secrets, Flux, and Grafana.

@@ -13,6 +13,15 @@ coverage
 # Logs
 *.log
 
+# Infrastructure state and secrets
+.terraform/
+*.tfstate
+*.tfstate.*
+infra/terraform.tfvars
+infra/ansible/inventory.ini
+*.retry
+*.agekey
+
 # Editors and OS
 .vscode/*
 !.vscode/extensions.json

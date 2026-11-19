@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+.git
+.env
+.env.*
+*.local
+infra
+deploy
+docs
+supabase
+.omp

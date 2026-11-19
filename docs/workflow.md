@@ -131,7 +131,7 @@ Use these as-is when the agent needs a nudge:
 ## Git and PR conventions
 
 - Branches: `phase-N-<slug>` or `phase-Na-<slug>`. Never commit straight to `main`.
-- **Merge authority is mine.** Agents branch, commit, push, and open PRs; they never merge, never enable auto-merge, and never delete the branch afterwards. `main` is protected (PR required, force-push and deletion off, admins included). That protection is the backstop, not something to route around by weakening it.
+- **Merge authority is mine.** Agents branch, commit, push, and open PRs; they never merge, never enable auto-merge, and never delete the branch afterwards. `main` rejects force-push and deletion, admins included; the PR requirement was removed so CI's `GITHUB_TOKEN` can push image-tag commits ([ADR-0011](./adr/0011-main-push-policy-and-flux-pull.md)), so the review rule is policy rather than enforcement. The remaining protection is the backstop, not something to route around by weakening it.
 - **Three approvals per session:** commit messages, the PR title and body before `gh pr create` runs, and the merge itself. The first two are text I read and edit; the third is mine alone.
 - Commits: small and descriptive. The agent proposes the messages; I approve before it commits.
 - PR description: short, and shaped like the commit message — a sentence of rationale, then a bullet per file or per logical change. No headings, no boilerplate sections, no restating the diff. Add verification or follow-ups only when they carry information the bullets don't. Drafted by the close-out skill and shown to me for edits before the PR opens.

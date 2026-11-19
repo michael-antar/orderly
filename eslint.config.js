@@ -30,5 +30,14 @@ export default tseslint.config([
     },
   },
 
+  {
+    // Vendored shadcn/ui modules export `cva` variants alongside components; moving
+    // them would touch every import site of generated code.
+    files: ['src/components/ui/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+
   eslintConfigPrettier,
 ]);

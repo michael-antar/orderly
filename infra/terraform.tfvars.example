@@ -1,0 +1,2 @@
+# Copy to infra/terraform.tfvars (gitignored) and fill in.
+domain = "example.com"
