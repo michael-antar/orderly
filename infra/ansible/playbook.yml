@@ -21,6 +21,12 @@
       delegate_to: localhost
       become: false
 
+    - name: Apply available package updates
+      ansible.builtin.apt:
+        upgrade: dist
+        update_cache: true
+        cache_valid_time: 3600
+
     - name: Install base packages
       ansible.builtin.apt:
         name:
@@ -36,7 +42,6 @@
         state: present
         update_cache: true
         cache_valid_time: 3600
-        upgrade: dist
 
     - name: Create the operations user
       ansible.builtin.user:
