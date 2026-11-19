@@ -65,9 +65,17 @@
         mode: '0440'
         validate: /usr/sbin/visudo -cf %s
 
+    - name: Remove the superseded SSH hardening drop-in
+      ansible.builtin.file:
+        path: /etc/ssh/sshd_config.d/99-orderly.conf
+        state: absent
+      notify: Restart SSH
+
+    # OpenSSH uses the first value obtained. Ubuntu's 50-cloud-init.conf
+    # enables password authentication, so this file must sort before it.
     - name: Harden SSH
       ansible.builtin.copy:
-        dest: /etc/ssh/sshd_config.d/99-orderly.conf
+        dest: /etc/ssh/sshd_config.d/00-orderly.conf
         content: |
           PermitRootLogin no
           PasswordAuthentication no
